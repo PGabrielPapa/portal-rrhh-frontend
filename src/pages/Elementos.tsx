@@ -3,8 +3,8 @@ import { api } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import EmpleadoPicker from '../components/EmpleadoPicker';
 
-interface E { id: number; tipo: string; descripcion?: string; identificador?: string; estado: string; fecha_entrega?: string; fecha_devolucion?: string; nom?: string; leg_num?: string; empresa?: string; }
-const TIPOS = [['celular', '📱 Celular / Smartphone'], ['notebook', '💻 Notebook / Laptop'], ['tablet', '📟 Tablet'], ['auto', '🚗 Vehículo / Auto'], ['herramienta', '🔧 Herramienta'], ['ropa', '👕 Ropa / EPP'], ['llave', '🔑 Llave / Tarjeta de acceso'], ['otro', '📦 Otro elemento']];
+interface E { id: number; tipo: string; descripcion?: string; identificador?: string; estado: string; fecha_entrega?: string; fecha_devolucion?: string; nom?: string; leg_num?: string; empresa?: string; data?: { numeroChip?: string; empresaChip?: string }; }
+const TIPOS = [['celular', '📱 Celular / Smartphone'], ['notebook', '💻 Notebook / Laptop'], ['tablet', '📟 Tablet'], ['auto', '🚗 Vehículo / Auto'], ['herramienta', '🔧 Herramienta'], ['ropa', '👕 Ropa / EPP'], ['chip', '📶 Chip telefónico'], ['llave', '🔑 Llave / Tarjeta de acceso'], ['otro', '📦 Otro elemento']];
 const ESTADOS: Record<string, { l: string; c: string }> = { entregado: { l: 'En uso', c: 'var(--green)' }, devuelto: { l: 'Devuelto', c: 'var(--t3)' }, perdido: { l: 'Extraviado', c: 'var(--red)' }, roto: { l: 'Dado de baja', c: 'var(--yellow)' } };
 const tipoLabel = (t: string) => TIPOS.find((x) => x[0] === t)?.[1] || t;
 const fmt = (s?: string) => s ? new Date(s + 'T12:00:00').toLocaleDateString('es-AR') : '—';
@@ -23,7 +23,7 @@ export default function Elementos() {
 
   async function registrar(e: React.FormEvent) {
     e.preventDefault(); if (!emp) return;
-    try { await api.post('/elementos', { empleadoId: emp.id, tipo: f.tipo, descripcion: f.descripcion, identificador: f.identificador, fechaEntrega: f.fechaEntrega, observaciones: f.observaciones }); setMsg({ t: 'Elemento registrado', ok: true }); setF({ tipo: 'celular', fechaEntrega: hoy() }); setEmp(null); load(); }
+    try { await api.post('/elementos', { empleadoId: emp.id, tipo: f.tipo, descripcion: f.descripcion, identificador: f.identificador, fechaEntrega: f.fechaEntrega, observaciones: f.observaciones, numeroChip: f.numeroChip, empresaChip: f.empresaChip }); setMsg({ t: 'Elemento registrado', ok: true }); setF({ tipo: 'celular', fechaEntrega: hoy() }); setEmp(null); load(); }
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   async function cambiarEstado(it: E, estado: string) { try { await api.patch(`/elementos/${it.id}`, { estado, fechaDevolucion: estado !== 'entregado' ? hoy() : null }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
@@ -40,9 +40,15 @@ export default function Elementos() {
           <div className="field"><label>Descripción</label><input className="input" value={f.descripcion || ''} onChange={set('descripcion')} /></div>
           <div className="field"><label>Fecha de entrega</label><input className="input" type="date" value={f.fechaEntrega || ''} onChange={set('fechaEntrega')} /></div>
         </div>
+        {f.tipo === 'chip' && (
+          <div className="grid2" style={{ marginBottom: 10 }}>
+            <div className="field"><label>Número de línea *</label><input className="input" value={f.numeroChip || ''} onChange={set('numeroChip')} placeholder="Ej: 11 5555-5555" /></div>
+            <div className="field"><label>Empresa (operadora)</label><input className="input" value={f.empresaChip || ''} onChange={set('empresaChip')} placeholder="Movistar, Claro, Personal…" /></div>
+          </div>
+        )}
         <div className="field" style={{ marginBottom: 12 }}><label>Observaciones</label><input className="input" value={f.observaciones || ''} onChange={set('observaciones')} /></div>
         {msg && <div className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 8 }}>{msg.ok ? '✓ ' : '⚠ '}{msg.t}</div>}
-        <button className="btn" disabled={!emp}>Registrar</button>
+        <button className="btn" disabled={!emp || (f.tipo === 'chip' && !f.numeroChip)}>Registrar</button>
       </form>
       <div className="row" style={{ marginBottom: 14, flexWrap: 'wrap' }}>
         <input className="input" style={{ maxWidth: 240 }} placeholder="Buscar empleado o legajo…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -54,7 +60,7 @@ export default function Elementos() {
           <tbody>
             {items.map((it) => (
               <tr key={it.id}>
-                <td>{it.nom} <span className="muted">({it.leg_num})</span></td><td>{tipoLabel(it.tipo)}</td><td>{it.identificador || '—'}</td><td>{fmt(it.fecha_entrega)}</td>
+                <td>{it.nom} <span className="muted">({it.leg_num})</span></td><td>{tipoLabel(it.tipo)}</td><td>{it.tipo === 'chip' ? <span>📶 {it.data?.numeroChip || '—'}{it.data?.empresaChip ? ` · ${it.data.empresaChip}` : ''}</span> : (it.identificador || '—')}</td><td>{fmt(it.fecha_entrega)}</td>
                 <td><span className="badge" style={{ color: ESTADOS[it.estado]?.c }}>{ESTADOS[it.estado]?.l || it.estado}</span></td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{it.estado === 'entregado' && <>
                   <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 11, marginRight: 4 }} onClick={() => cambiarEstado(it, 'devuelto')}>Devuelto</button>
