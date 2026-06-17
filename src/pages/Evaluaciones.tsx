@@ -24,6 +24,9 @@ export default function Evaluaciones() {
   const [equipo, setEquipo] = useState<Empleado[]>([]);
   const [f, setF] = useState<Record<string, string>>({ tipo: 'Anual', calificacion: 'Bueno', periodo: `Anual ${new Date().getFullYear()}` });
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const [periodo, setPeriodo] = useState<{ anio: number; abierto: boolean; abierto_at?: string; cerrado_at?: string } | null>(null);
+  const [pend, setPend] = useState<{ anual: { anio: number; abierto: boolean } | null; equipoCount: number; prueba: { id: number; nom: string; legNum: string; ingreso?: string; dias: number; hito: number }[] } | null>(null);
+  const [anioPer, setAnioPer] = useState(new Date().getFullYear());
   const [scores, setScores] = useState<Record<string, Record<number, number>>>({});
   const setScore = (cat: string, i: number, v: number) => setScores((p) => ({ ...p, [cat]: { ...(p[cat] || {}), [i]: v } }));
   const promedio = (() => { const a: number[] = []; Object.values(scores).forEach((c) => Object.values(c).forEach((v) => v > 0 && a.push(v))); return a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 100) / 100 : 0; })();
@@ -38,17 +41,77 @@ export default function Evaluaciones() {
   }
   useEffect(() => { if (esRRHH) api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, [esRRHH]);
   useEffect(() => { if (esGerente) api.get<Empleado[]>('/empleados/equipo').then(setEquipo).catch(() => {}); }, [esGerente]);
+  async function cargarPeriodo() { try { setPeriodo(await api.get('/evaluaciones/periodo')); } catch { /* */ } }
+  async function cargarPend() { try { setPend(await api.get('/evaluaciones/pendientes')); } catch { /* */ } }
+  useEffect(() => { if (esRRHH) cargarPeriodo(); if (esGerente) cargarPend(); /* eslint-disable-next-line */ }, [esRRHH, esGerente]);
+  async function abrirPeriodo() { try { await api.post('/evaluaciones/periodo', { anio: anioPer }); setMsg({ t: `Período de evaluación anual ${anioPer} abierto`, ok: true }); cargarPeriodo(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
+  async function cerrarPeriodo(anio: number) { try { await api.patch(`/evaluaciones/periodo/${anio}/cerrar`, {}); setMsg({ t: `Período ${anio} cerrado`, ok: true }); cargarPeriodo(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
+  function evaluarPrueba(p: { id: number; nom: string; legNum: string; hito: number }) {
+    setEmp((equipo.find((x) => x.id === p.id) || { id: p.id, nom: p.nom, legNum: p.legNum }) as Empleado);
+    setF({ ...f, tipo: 'Período de prueba', periodo: `Período de prueba ${p.hito} días`, calificacion: f.calificacion || 'Bueno' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [key, q, empresa]);
 
   async function registrar(e: React.FormEvent) {
     e.preventDefault(); if (!emp) return;
-    try { await api.post('/evaluaciones', { empleadoId: emp.id, periodo: f.periodo, tipo: f.tipo, calificacion: f.calificacion, comentarios: f.comentarios, datos: { items: scores } }); setMsg({ t: 'Evaluación registrada', ok: true }); setEmp(null); setScores({}); load(); }
+    try { await api.post('/evaluaciones', { empleadoId: emp.id, periodo: f.periodo, tipo: f.tipo, calificacion: f.calificacion, comentarios: f.comentarios, datos: { items: scores } }); setMsg({ t: 'Evaluación registrada', ok: true }); setEmp(null); setScores({}); load(); if (esGerente) cargarPend(); }
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
 
   return (
     <>
+      {esRRHH && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <h3 style={{ marginTop: 0 }}>Período de evaluación de desempeño anual</h3>
+          <p className="muted" style={{ marginTop: -6, fontSize: 12 }}>RR.HH. abre el período cada año (habitualmente en octubre). Mientras está abierto, los gerentes ven el aviso para evaluar a su personal.</p>
+          {periodo
+            ? <div className="row" style={{ gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span className="badge" style={{ color: periodo.abierto ? 'var(--green)' : 'var(--t3)' }}>{periodo.abierto ? `Abierto · ${periodo.anio}` : `Cerrado · ${periodo.anio}`}</span>
+                {periodo.abierto
+                  ? <button className="btn ghost" onClick={() => cerrarPeriodo(periodo.anio)}>Cerrar período {periodo.anio}</button>
+                  : <button className="btn" onClick={abrirPeriodo}>Reabrir / abrir período</button>}
+              </div>
+            : <div className="muted" style={{ fontSize: 13 }}>Todavía no se abrió ningún período.</div>}
+          {(!periodo || !periodo.abierto) && (
+            <div className="row" style={{ gap: 8, alignItems: 'flex-end', marginTop: 10 }}>
+              <div className="field"><label>Año</label><input className="input" type="number" style={{ width: 110 }} value={anioPer} onChange={(e) => setAnioPer(Number(e.target.value))} /></div>
+              <button className="btn" onClick={abrirPeriodo}>Abrir período {anioPer}</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {esGerente && pend && (
+        <>
+          {pend.anual?.abierto && pend.equipoCount > 0 && (
+            <div className="card" style={{ marginBottom: 12, padding: '10px 14px', background: 'rgba(61,127,255,.1)', border: '1px solid rgba(61,127,255,.4)', color: 'var(--accent2)', fontWeight: 600 }}>
+              📋 Período de evaluación de desempeño anual abierto — tiene personal a evaluar
+            </div>
+          )}
+          {pend.prueba.length > 0 && (
+            <div className="card" style={{ marginBottom: 14, padding: '10px 14px', background: 'rgba(234,179,8,.07)', border: '1px solid rgba(234,179,8,.35)' }}>
+              <strong style={{ color: 'var(--yellow)' }}>⏰ Evaluaciones de período de prueba pendientes ({pend.prueba.length})</strong>
+              <div className="muted" style={{ fontSize: 12, margin: '2px 0 8px' }}>A realizar a los 60, 120 y 170 días desde el ingreso.</div>
+              <table style={{ width: '100%', fontSize: 13 }}>
+                <thead><tr><th>Empleado</th><th style={{ textAlign: 'right' }}>Días desde ingreso</th><th>Hito</th><th></th></tr></thead>
+                <tbody>
+                  {pend.prueba.map((p, i) => (
+                    <tr key={i}>
+                      <td>{p.nom} <span className="muted">({p.legNum})</span></td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{p.dias}</td>
+                      <td><span className="badge" style={{ color: 'var(--yellow)' }}>{p.hito} días</span></td>
+                      <td style={{ textAlign: 'right' }}><button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => evaluarPrueba(p)}>Evaluar</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
       {puedeRegistrar && (
         <form className="card" style={{ marginBottom: 18 }} onSubmit={registrar}>
           <h3 style={{ marginTop: 0 }}>Registrar evaluación</h3>
