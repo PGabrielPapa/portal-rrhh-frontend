@@ -7,7 +7,7 @@ interface DiaRevisar { fecha: string; motivo: string; tarde?: string; }
 interface Matcheado {
   empleadoId: number; legNum: string; nom: string; empresa: string; legajoProsoft: string;
   diasTrabajados: number; horasExtra50: string; horasExtra100: string; tardanzas: string;
-  diasTardanza: number; diasARevisar: DiaRevisar[];
+  diasTardanza: number; diasARevisar: DiaRevisar[]; bancoNeto: string; bancoNetoMin: number;
 }
 interface SinMatch {
   legajoProsoft: string; empleado: string; empresaProsoft: string; area: string;
@@ -103,7 +103,7 @@ export default function FichadasImport() {
 
           <div className="card" style={{ padding: 0, overflow: 'auto', marginBottom: 16 }}>
             <table>
-              <thead><tr><th>Legajo</th><th>Empleado</th><th>Empresa</th><th style={{ textAlign: 'right' }}>Días trab.</th><th style={{ textAlign: 'right' }}>Hs Extra 50</th><th style={{ textAlign: 'right' }}>Tardanzas</th><th style={{ textAlign: 'right' }}>A revisar</th></tr></thead>
+              <thead><tr><th>Legajo</th><th>Empleado</th><th>Empresa</th><th style={{ textAlign: 'right' }}>Días trab.</th><th style={{ textAlign: 'right' }}>Hs Extra 50</th><th style={{ textAlign: 'right' }}>Tardanzas</th><th style={{ textAlign: 'right' }}>Banco mes</th><th style={{ textAlign: 'right' }}>A revisar</th></tr></thead>
               <tbody>
                 {preview.matcheados.map((m) => (
                   <tr key={m.empleadoId}>
@@ -113,10 +113,11 @@ export default function FichadasImport() {
                     <td style={{ textAlign: 'right' }}>{m.diasTrabajados}</td>
                     <td style={{ textAlign: 'right' }}>{m.horasExtra50}</td>
                     <td style={{ textAlign: 'right' }}>{m.tardanzas}{m.diasTardanza ? <span className="muted"> ({m.diasTardanza}d)</span> : null}</td>
+                    <td style={{ textAlign: 'right', color: m.bancoNetoMin < 0 ? '#dc2626' : '#16a34a' }}>{m.bancoNeto}</td>
                     <td style={{ textAlign: 'right', color: m.diasARevisar.length ? '#d97706' : undefined }}>{m.diasARevisar.length || '—'}</td>
                   </tr>
                 ))}
-                {!preview.matcheados.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 20 }}>Ningún legajo cruzó con el portal.</td></tr>}
+                {!preview.matcheados.length && <tr><td colSpan={8} className="muted" style={{ textAlign: 'center', padding: 20 }}>Ningún legajo cruzó con el portal.</td></tr>}
               </tbody>
             </table>
           </div>
