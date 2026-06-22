@@ -16,10 +16,12 @@ import Asiento from '../pages/Asiento';
 import ArchivosBanco from '../pages/ArchivosBanco';
 import GeneradorReportes from '../pages/GeneradorReportes';
 import Simulaciones from '../pages/Simulaciones';
+import SimuladorGanancias from '../pages/SimuladorGanancias';
 import DdjjSindical from '../pages/DdjjSindical';
 import Sindicatos from '../pages/Sindicatos';
 import DocumentosFirmados from '../pages/DocumentosFirmados';
 import Hys from '../pages/Hys';
+import MisHys from '../pages/MisHys';
 import Reglamento from '../pages/Reglamento';
 import CierrePeriodos from '../pages/CierrePeriodos';
 import NivelesUsuario from '../pages/NivelesUsuario';
@@ -67,10 +69,12 @@ const COMPONENTS: Record<string, ComponentType> = {
   'bancos': ArchivosBanco,
   'reportes': GeneradorReportes,
   'simulaciones': Simulaciones,
+  'simulador-ganancias': SimuladorGanancias,
   'ddjj-sindical': DdjjSindical,
   'sindicatos': Sindicatos,
   'documentos': DocumentosFirmados,
   'hys': Hys,
+  'mis-hys': MisHys,
   'reglamento': Reglamento,
   'cierre-periodos': CierrePeriodos,
   'user-levels': NivelesUsuario,

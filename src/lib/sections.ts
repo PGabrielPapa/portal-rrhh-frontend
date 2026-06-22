@@ -21,6 +21,7 @@ export const GROUPS: Group[] = [
       { key: 'mis-sanciones', label: 'Mis sanciones', ready: true },
       { key: 'mis-evaluaciones', label: 'Mis evaluaciones', ready: true },
       { key: 'mis-familiares', label: 'Mis familiares', ready: true },
+      { key: 'mis-hys', label: 'Higiene y Seguridad', ready: true },
     ],
   },
   {
@@ -46,6 +47,7 @@ export const GROUPS: Group[] = [
       { key: 'ganancias-rrhh', label: 'Ganancias / F.1357', ready: true },
       { key: 'ganancias-params', label: 'Parámetros de Ganancias', ready: true },
       { key: 'liquidacion-anual', label: 'Liquidación anual ganancias', ready: true },
+      { key: 'simulador-ganancias', label: 'Simulador de Ganancias', ready: true },
       { key: 'escalas', label: 'Escalas / convenios', ready: true },
       { key: 'conceptos', label: 'Conceptos', ready: true },
       { key: 'sanciones', label: 'Sanciones', ready: true },

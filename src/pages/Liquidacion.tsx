@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, fetchBlob } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import ReciboView, { Recibo } from '../components/ReciboView';
+import GananciasCheck from '../components/GananciasCheck';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const TIPOS: [string, string][] = [['mensual', 'Mensual'], ['quincenal_1', 'Quincena 1ª (1–15)'], ['quincenal_2', 'Quincena 2ª (16–fin)'], ['sac1', 'SAC 1° semestre'], ['sac2', 'SAC 2° semestre'], ['vacaciones', 'Vacaciones'], ['anticipo', 'Anticipo de haberes'], ['complementaria', 'Ajuste de sueldo (remunerativo)'], ['anticipo_ajuste', 'Anticipo ajuste de sueldo (no rem.)'], ['final', 'Liquidación final']];
@@ -75,6 +76,7 @@ function Individual() {
           <div className="field"><label>Fecha de pago</label><input className="input" type="date" value={fin.fechaPago || ''} onChange={(e) => setFin({ ...fin, fechaPago: e.target.value })} /></div>
         </div>
         <div className="muted" style={{ fontSize: 11, marginTop: -4, marginBottom: 4 }}>La fecha de pago define la tabla de Ganancias aplicable.</div>
+        <GananciasCheck anio={anio} mes={mes} />
         {tipo === 'vacaciones' && <div className="field" style={{ marginTop: 10, maxWidth: 200 }}><label>Días de vacaciones</label><input className="input" type="number" value={fin.diasVac || ''} onChange={(e) => setFin({ ...fin, diasVac: e.target.value })} placeholder="por antigüedad" /></div>}
         {tipo === 'anticipo' && <div className="field" style={{ marginTop: 10, maxWidth: 240 }}><label>Monto del anticipo *</label><input className="input" type="number" value={fin.montoAnticipo || ''} onChange={(e) => setFin({ ...fin, montoAnticipo: e.target.value })} /></div>}
         {tipo === 'complementaria' && (
@@ -186,6 +188,7 @@ function Corrida() {
           <div className="field"><label>Empresa</label><select className="input" value={empresa} onChange={(e) => setEmpresa(e.target.value)}><option value="">Todas</option>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
           <button className="btn" onClick={crear} disabled={busy}>{busy ? 'Liquidando…' : 'Generar corrida'}</button>
         </div>
+        <GananciasCheck anio={anio} mes={mes} />
         {err && <div className="err" style={{ marginTop: 10 }}>⚠ {err}</div>}
       </div>
 

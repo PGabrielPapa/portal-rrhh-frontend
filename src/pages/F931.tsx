@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, fetchBlob } from '../lib/api';
 import type { Empleado } from '../lib/types';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -40,6 +40,22 @@ export default function F931() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `f931_${anio}_${String(mes).padStart(2, '0')}.csv`; a.click();
     api.post('/reportes/f931-generar', { anio, mes }).then(() => { setOk('F.931 generado con el diseño SICOSS vigente.'); cargarDis(); }).catch(() => {});
   }
+
+  // Descarga del archivo posicional SICOSS real (.txt, 499 chars/registro) para importar en ARCA.
+  async function archivoSicoss() {
+    setErr(''); setOk('');
+    try {
+      const p = new URLSearchParams({ anio: String(anio), mes: String(mes) });
+      if (empresa) p.set('empresa', empresa);
+      const blob = await fetchBlob(`/reportes/sicoss-archivo?${p}`);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `SICOSS_${anio}${String(mes).padStart(2, '0')}.txt`;
+      a.click(); URL.revokeObjectURL(a.href);
+      setOk('Archivo SICOSS generado. Importalo en "Declaración en Línea" de ARCA para validarlo antes de presentar.');
+      cargarDis();
+    } catch (e: any) { setErr(e.message); }
+  }
   const t = data?.totales;
 
   return (
@@ -48,7 +64,8 @@ export default function F931() {
         <div className="field"><label>Mes</label><select className="input" value={mes} onChange={(e) => setMes(Number(e.target.value))}>{MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}</select></div>
         <div className="field"><label>Año</label><input className="input" type="number" style={{ width: 100 }} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></div>
         <div className="field"><label>Empresa</label><select className="input" value={empresa} onChange={(e) => setEmpresa(e.target.value)}><option value="">Todas</option>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
-        <button className="btn" onClick={csv} disabled={!data?.items.length}>⬇ Verificar diseño y generar (CSV)</button>
+        <button className="btn" onClick={archivoSicoss} disabled={!data?.items.length}>⬇ Generar archivo SICOSS (.txt)</button>
+        <button className="btn ghost" onClick={csv} disabled={!data?.items.length}>Resumen de control (CSV)</button>
       </div>
       {dis && (
         <div className="card" style={{ marginBottom: 12, padding: '8px 12px', fontSize: 13,

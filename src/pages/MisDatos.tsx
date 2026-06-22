@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { buscarObrasSociales, type ObraSocial } from '../lib/arca';
 import type { Empleado } from '../lib/types';
 
 const v = (x: unknown) => (x === null || x === undefined || x === '' ? '—' : String(x));
@@ -17,14 +18,39 @@ export default function MisDatos() {
   const [showForm, setShowForm] = useState(false);
   const [f, setF] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  // Obra social
+  const [osCambios, setOsCambios] = useState<any[]>([]);
+  const [showOS, setShowOS] = useState(false);
+  const [osQ, setOsQ] = useState('');
+  const [osRes, setOsRes] = useState<ObraSocial[]>([]);
+  const [osSel, setOsSel] = useState<ObraSocial | null>(null);
+  const [osMsg, setOsMsg] = useState<{ t: string; ok: boolean } | null>(null);
 
   async function load() {
     try { setP(await api.get<Empleado>('/empleados/mi-perfil')); }
     catch (e: any) { setErr(e.message); return; }
     // Secundario: si falla (p.ej. backend sin actualizar), no rompe la página.
     try { setCambios(await api.get<Cambio[]>('/cambios-domicilio/mias')); } catch { /* opcional */ }
+    try { setOsCambios(await api.get<any[]>('/cambios-obra-social/mias')); } catch { /* opcional */ }
   }
   useEffect(() => { load(); }, []);
+
+  // Busqueda de obra social (con debounce simple).
+  useEffect(() => {
+    if (!showOS) return;
+    const t = setTimeout(() => { buscarObrasSociales(osQ).then(setOsRes).catch(() => setOsRes([])); }, 250);
+    return () => clearTimeout(t);
+  }, [osQ, showOS]);
+
+  async function enviarOS(e: React.FormEvent) {
+    e.preventDefault();
+    if (!osSel) { setOsMsg({ t: 'Elegí una obra social de la lista', ok: false }); return; }
+    try {
+      await api.post('/cambios-obra-social', { os_codigo: osSel.codigo, os_nombre: osSel.nombre });
+      setOsMsg({ t: 'Cambio de obra social enviado a RR.HH.', ok: true });
+      setOsSel(null); setOsQ(''); setShowOS(false); load();
+    } catch (e: any) { setOsMsg({ t: e.message, ok: false }); }
+  }
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -106,6 +132,61 @@ export default function MisDatos() {
                   <div>{c.dom_nuevo}</div>
                   <div className="muted" style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>
                     {c.estado === 'aprobado' ? `Vigente desde ${fmtFecha(c.resuelto_at)}` : c.estado === 'rechazado' ? `Rechazado ${fmtFecha(c.resuelto_at)}` : `Informado ${fmtFecha(c.created_at)}`}
+                  </div>
+                </div>
+                <span className="badge" style={{ color: estadoColor(c.estado) }}>{c.estado}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>Obra social</h3>
+          <button className="btn ghost" onClick={() => { setShowOS(!showOS); setOsMsg(null); }}>✏ Solicitar cambio de obra social</button>
+        </div>
+        <div className="grid2" style={{ marginTop: 12 }}>
+          <Field label="Obra social actual" value={p['os_nombre'] || p['desc_os']} />
+          <Field label="Código (RNOS)" value={p['os_codigo'] || p['cod_os']} />
+        </div>
+
+        {showOS && (
+          <form onSubmit={enviarOS} style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+            <h4 style={{ marginTop: 0 }}>Elegir nueva obra social</h4>
+            <div className="field">
+              <label>Buscar por nombre o código</label>
+              <input className="input" value={osQ} onChange={(e) => { setOsQ(e.target.value); setOsSel(null); }} placeholder="Ej.: OSDE, gráfico, 1-0900-4…" />
+            </div>
+            {osSel
+              ? <div className="ok" style={{ marginTop: 4 }}>Seleccionada: <b>{osSel.codigo}</b> — {osSel.nombre}</div>
+              : osQ && (
+                <div style={{ maxHeight: 200, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4 }}>
+                  {osRes.map((o) => (
+                    <div key={o.codigo} onClick={() => setOsSel(o)} style={{ padding: '6px 10px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)' }}>{o.codigo}</span> — {o.nombre}
+                    </div>
+                  ))}
+                  {!osRes.length && <div className="muted" style={{ padding: '6px 10px', fontSize: 13 }}>Sin coincidencias.</div>}
+                </div>
+              )}
+            <div className="row" style={{ marginTop: 10 }}>
+              <button className="btn" disabled={!osSel}>Enviar solicitud</button>
+              <button type="button" className="btn ghost" onClick={() => { setShowOS(false); setOsSel(null); setOsQ(''); }}>Cancelar</button>
+            </div>
+          </form>
+        )}
+        {osMsg && <div className={osMsg.ok ? 'ok' : 'err'} style={{ marginTop: 10 }}>{osMsg.ok ? '✓ ' : '⚠ '}{osMsg.t}</div>}
+
+        {osCambios.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div className="muted" style={{ marginBottom: 6, textTransform: 'uppercase', fontSize: 11, letterSpacing: '.05em' }}>Histórico de obra social</div>
+            {osCambios.map((c) => (
+              <div key={c.id} className="row" style={{ justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div><span style={{ fontFamily: 'var(--font-mono)' }}>{c.os_codigo}</span> — {c.os_nombre}</div>
+                  <div className="muted" style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                    {c.estado === 'aprobado' ? `Vigente desde ${fmtFecha(c.resuelto_at)}` : c.estado === 'rechazado' ? `Rechazado ${fmtFecha(c.resuelto_at)}` : `Solicitado ${fmtFecha(c.created_at)}`}
                   </div>
                 </div>
                 <span className="badge" style={{ color: estadoColor(c.estado) }}>{c.estado}</span>
