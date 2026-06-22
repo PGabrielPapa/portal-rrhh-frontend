@@ -62,7 +62,7 @@ function Individual() {
         </div>
         <div className="field" style={{ position: 'relative', marginBottom: 12 }}>
           <label>Empleado</label>
-          <input className="input" placeholder="Buscar por nombre, legajo o DNI…" value={q} onChange={(e) => buscar(e.target.value)} />
+          <input className="input" placeholder="Buscar por nombre, legajo o DNI…" value={q} onChange={(e) => buscar(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && matches.length) { e.preventDefault(); elegir(matches[0]); } }} />
           {matches.length > 0 && (
             <div style={{ position: 'absolute', zIndex: 5, left: 0, right: 0, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4, maxHeight: 240, overflow: 'auto' }}>
               {matches.map((e) => <div key={e.id} onClick={() => elegir(e)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}>{e.nom} <span className="muted">· {e.legNum} · {e.empresa}</span></div>)}
@@ -145,6 +145,7 @@ function Individual() {
           <button className="btn" onClick={calcular} disabled={!sel || busy || (tipo === 'final' && !fin.fechaEgreso) || (tipo === 'anticipo' && !fin.montoAnticipo) || (tipo === 'complementaria' && !fin.montoAjuste) || (tipo === 'anticipo_ajuste' && !fin.montoAnticipoAjuste)}>{busy ? 'Procesando…' : 'Calcular'}</button>
           {recibo && <button className="btn ghost" onClick={guardar} disabled={busy}>Guardar y publicar</button>}
         </div>
+        {!sel && <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>Buscá y seleccioná un empleado de la lista (o apretá Enter) para habilitar el cálculo.</div>}
         {err && <div className="err" style={{ marginTop: 10 }}>⚠ {err}</div>}
         {msg && <div className="ok" style={{ marginTop: 10 }}>✓ {msg}</div>}
       </div>
