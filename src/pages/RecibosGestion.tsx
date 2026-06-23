@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import ReciboView, { Recibo } from '../components/ReciboView';
-import { imprimirRecibo } from '../lib/reciboPrint';
+import { imprimirRecibo, imprimirVarios } from '../lib/reciboPrint';
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const money = (n: number) => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
@@ -21,6 +21,12 @@ export default function RecibosGestion() {
   const [vistas, setVistas] = useState<{ created_at: string; nom: string; leg_num: string }[] | null>(null);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
+  const [tipo, setTipo] = useState('');
+  const [openEmp, setOpenEmp] = useState<Record<string, boolean>>({});
+  const [openLeg, setOpenLeg] = useState<Record<string, boolean>>({});
+  const [imp, setImp] = useState(false);
+  const TIPOS: [string, string][] = [['mensual','Mensual'],['quincenal_1','Quincena 1ª'],['quincenal_2','Quincena 2ª'],['sac1','SAC 1° sem.'],['sac2','SAC 2° sem.'],['vacaciones','Vacaciones'],['anticipo','Anticipo'],['complementaria','Ajuste de sueldo'],['anticipo_ajuste','Anticipo ajuste'],['final','Liquidación final']];
+  const tipoLbl = (t: string) => (TIPOS.find(([v]) => v === t)?.[1]) || t;
 
   async function load() {
     setErr('');
@@ -45,16 +51,34 @@ export default function RecibosGestion() {
   }
 
   async function verVistas() { if (!selId) return; try { setVistas(await api.get(`/recibos/${selId}/vistas`)); } catch (e: any) { setErr(e.message); } }
+  async function imprimirLista(lista: Item[]) {
+    if (!lista.length) return;
+    setImp(true); setErr('');
+    try { const recs = await Promise.all(lista.map((it) => api.get<Recibo>(`/recibos/${it.id}`))); imprimirVarios(recs); }
+    catch (e: any) { setErr(e.message); } finally { setImp(false); }
+  }
+  function exportarCsv() {
+    const vis = tipo ? items.filter((i) => i.tipo === tipo) : items;
+    if (!vis.length) return;
+    const head = 'Empresa,Legajo,Empleado,Periodo,Tipo,Neto,Liquidado por';
+    const filas = vis.map((it) => `"${it.empresa}",${it.leg_num},"${it.nom}",${MESES[it.mes - 1]} ${it.anio},${tipoLbl(it.tipo)},${it.neto},${it.created_by || ''}`);
+    const blob = new Blob(['\ufeff' + [head, ...filas].join('\r\n')], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `recibos${anio ? '_' + anio : ''}${mes ? '_' + String(mes).padStart(2, '0') : ''}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
   async function eliminar(it: Item) {
-    if (!window.confirm(`¿Eliminar el recibo de ${it.nom} (${MESES[it.mes - 1]} ${it.anio})? Sirve para re-liquidar el período.`)) return;
+    if (!window.confirm(`¿Eliminar el recibo de ${it.nom} — ${MESES[it.mes - 1]} ${it.anio} · ${tipoLbl(it.tipo)}? Sirve para re-liquidar.`)) return;
     setErr(''); setOk('');
     try { await api.del(`/recibos/${it.id}`); if (selId === it.id) { setSel(null); setSelId(null); } setOk('Recibo eliminado.'); load(); } catch (e: any) { setErr(e.message); }
   }
-  async function eliminarLote() {
-    if (!mes || !anio) { setErr('Para borrar en lote, elegí Mes y Año.'); return; }
-    if (!window.confirm(`¿Eliminar los ${items.length} recibo(s) de ${MESES[mes - 1]} ${anio}${empresa ? ' · ' + empresa : ''}? Sirve para re-liquidar el período.`)) return;
+  async function borrarPeriodo(empName?: string) {
+    if (!mes || !anio) { setErr('Elegí Mes y Año para borrar un período.'); return; }
+    const alc = `${MESES[mes - 1]} ${anio}${tipo ? ' · ' + tipoLbl(tipo) : ''}${empName ? ' · ' + empName : (empresa ? ' · ' + empresa : ' · todas las empresas')}`;
+    if (!window.confirm(`¿Eliminar TODOS los recibos de ${alc}? Sirve para re-liquidar.`)) return;
     setErr(''); setOk('');
-    try { const r = await api.post<{ eliminados: number }>('/recibos/eliminar-lote', { anio: Number(anio), mes, empresa: empresa || undefined }); setOk(`${r.eliminados} recibo(s) eliminados.`); load(); } catch (e: any) { setErr(e.message); }
+    try {
+      const r = await api.post<{ eliminados: number }>('/recibos/eliminar-lote', { anio: Number(anio), mes, empresa: empName || empresa || undefined, tipo: tipo || undefined });
+      setOk(`${r.eliminados} recibo(s) eliminados — ${alc}.`); load();
+    } catch (e: any) { setErr(e.message); }
   }
   if (sel) return (
     <>
@@ -87,33 +111,75 @@ export default function RecibosGestion() {
           {MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
         </select>
         <input className="input" style={{ maxWidth: 110 }} type="number" placeholder="Año" value={anio} onChange={(e) => setAnio(e.target.value)} />
+        <select className="input" style={{ maxWidth: 180 }} value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <option value="">Todos los tipos</option>
+          {TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
       </div>
       {err && <div className="err" style={{ marginBottom: 10 }}>⚠ {err}</div>}
       {ok && <div className="ok" style={{ marginBottom: 10 }}>✓ {ok}</div>}
-      {!!(mes && anio && items.length) && <button className="btn ghost" style={{ marginBottom: 10, color: 'var(--red)' }} onClick={eliminarLote}>🗑 Eliminar los {items.length} recibos de {MESES[mes - 1]} {anio}{empresa ? ' · ' + empresa : ''}</button>}
+      {!!(mes && anio) && <button className="btn ghost" style={{ marginBottom: 10, color: 'var(--red)' }} onClick={() => borrarPeriodo()}>🗑 Borrar período {MESES[mes - 1]} {anio}{tipo ? ' · ' + tipoLbl(tipo) : ''}{empresa ? ' · ' + empresa : ' (todas las empresas)'}</button>}
+      <button className="btn ghost" style={{ marginBottom: 10, marginLeft: 8 }} onClick={exportarCsv}>⬇ Exportar CSV</button>
 
-      <div className="card" style={{ padding: 0, overflow: 'auto' }}>
-        <table>
-          <thead><tr><th>Empleado</th><th>Empresa</th><th>Período</th><th>Neto</th><th>Liquidado por</th><th></th></tr></thead>
-          <tbody>
-            {items.map((it) => (
-              <tr key={it.id}>
-                <td>{it.nom} <span className="muted">({it.leg_num})</span></td>
-                <td>{it.empresa}</td>
-                <td>{MESES[it.mes - 1]} {it.anio}</td>
-                <td style={{ fontFamily: 'monospace' }}>{money(it.neto)}</td>
-                <td className="muted">{it.created_by || '—'}</td>
-                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => ver(it)}>Ver</button>
-                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, color: 'var(--red)' }} onClick={() => eliminar(it)}>✕</button>
-                </td>
-              </tr>
-            ))}
-            {!items.length && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 20 }}>No hay recibos liquidados con esos filtros.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-      <p className="muted" style={{ marginTop: 10 }}>{items.length} recibo(s)</p>
+      {(() => {
+        const vis = tipo ? items.filter((it) => it.tipo === tipo) : items;
+        if (!vis.length) return <div className="card"><div className="muted" style={{ textAlign: 'center', padding: 20 }}>No hay recibos con esos filtros.</div></div>;
+        const emps = [...new Set(vis.map((i) => i.empresa))].sort((a, b) => a.localeCompare(b));
+        const SEP = '|#|';
+        return emps.map((em) => {
+          const delEmp = vis.filter((i) => i.empresa === em);
+          const legs = [...new Set(delEmp.map((i) => i.leg_num + SEP + i.nom))].sort((a, b) => a.split(SEP)[1].localeCompare(b.split(SEP)[1]));
+          const empOpen = openEmp[em] !== false;
+          const netoEmp = delEmp.reduce((acc, i) => acc + Number(i.neto || 0), 0);
+          return (
+            <div className="card" key={em} style={{ marginBottom: 12, padding: 0, overflow: 'hidden' }}>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', cursor: 'pointer', background: 'var(--bg3)' }} onClick={() => setOpenEmp((st) => ({ ...st, [em]: !empOpen }))}>
+                <strong style={{ color: 'var(--accent2)' }}>{empOpen ? '▾ ' : '▸ '}{em} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({delEmp.length} recibos · {legs.length} empleados · neto {money(netoEmp)})</span></strong>
+                <span className="row" style={{ gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                  <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} disabled={imp} onClick={() => imprimirLista(delEmp)}>🖨 {imp ? 'Generando…' : 'Imprimir'}</button>
+                  {!!(mes && anio) && <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12, color: 'var(--red)' }} onClick={() => borrarPeriodo(em)}>🗑 Borrar {MESES[mes - 1]} {anio}{tipo ? ' · ' + tipoLbl(tipo) : ''}</button>}
+                </span>
+              </div>
+              {empOpen && (
+                <div style={{ padding: '2px 8px 8px' }}>
+                  {legs.map((key) => {
+                    const leg = key.split(SEP)[0], nom = key.split(SEP)[1];
+                    const recs = delEmp.filter((i) => i.leg_num === leg && i.nom === nom).sort((a, b) => b.anio - a.anio || b.mes - a.mes || a.tipo.localeCompare(b.tipo));
+                    const lkey = em + SEP + key;
+                    const legOpen = !!openLeg[lkey];
+                    return (
+                      <div key={key} style={{ borderTop: '1px solid var(--border)' }}>
+                        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', cursor: 'pointer' }} onClick={() => setOpenLeg((st) => ({ ...st, [lkey]: !legOpen }))}>
+                          <span style={{ fontSize: 13 }}>{legOpen ? '▾ ' : '▸ '}{nom} <span className="muted">({leg})</span></span>
+                          <span className="muted" style={{ fontSize: 12 }}>{recs.length} recibo(s)</span>
+                        </div>
+                        {legOpen && (
+                          <table style={{ width: '100%', fontSize: 13, marginBottom: 6 }}>
+                            <tbody>
+                              {recs.map((it) => (
+                                <tr key={it.id}>
+                                  <td style={{ paddingLeft: 26 }}>{MESES[it.mes - 1]} {it.anio} <span className="muted">· {tipoLbl(it.tipo)}</span></td>
+                                  <td style={{ fontFamily: 'monospace', textAlign: 'right' }}>{money(it.neto)}</td>
+                                  <td className="muted" style={{ textAlign: 'right', fontSize: 12 }}>{it.created_by || '—'}</td>
+                                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                    <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12, marginRight: 6 }} onClick={() => ver(it)}>Ver</button>
+                                    <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12, color: 'var(--red)' }} onClick={() => eliminar(it)}>✕</button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        });
+      })()}
+      <p className="muted" style={{ marginTop: 10 }}>{(tipo ? items.filter((i) => i.tipo === tipo) : items).length} recibo(s) · neto total {money((tipo ? items.filter((i) => i.tipo === tipo) : items).reduce((acc, i) => acc + Number(i.neto || 0), 0))}</p>
     </>
   );
 }

@@ -136,3 +136,42 @@ export function imprimirRecibo(r: Recibo) {
   w.document.close(); w.focus();
   setTimeout(() => { try { w.print(); } catch { /* */ } }, 300);
 }
+
+export function imprimirVarios(recibos: Recibo[]) {
+  if (!recibos.length) return;
+  const w = window.open('', '_blank'); if (!w) return;
+  const cuerpo = recibos.map((r) => copia(r, 'ORIGINAL · Copia para el empleador') + copia(r, 'DUPLICADO · Copia para el trabajador')).join('');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibos (${recibos.length})</title>
+  <style>
+    @page { size: A4 portrait; margin: 10mm; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+    .copia { border: 1.5px solid #333; padding: 10px 12px; position: relative; page-break-after: always; }
+    .copia:last-child { page-break-after: auto; }
+    .marca { position: absolute; top: 6px; right: 10px; font-size: 9px; color: #888; letter-spacing: 1px; }
+    .head { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 6px; }
+    .right { text-align: right; font-size: 10px; }
+    table { width: 100%; border-collapse: collapse; }
+    .datos td { font-size: 10px; padding: 2px 4px; border: 1px solid #ccc; }
+    .cols { display: flex; gap: 10px; margin-top: 8px; }
+    .cols table { flex: 1; }
+    th, td { border: 1px solid #ccc; padding: 3px 6px; font-size: 10px; text-align: left; }
+    th { background: #f3f3f3; }
+    .n { text-align: right; font-family: 'Courier New', monospace; white-space: nowrap; }
+    .tot td { font-weight: bold; background: #fafafa; }
+    .neto { display: flex; justify-content: space-between; background: #eef6ff; border: 1px solid #99c; padding: 8px 12px; margin-top: 8px; font-size: 13px; }
+    .contrib { margin-top: 8px; }
+    .costo { margin-top: 10px; border-top: 1px solid #999; padding-top: 6px; }
+    .costo-t { font-weight: bold; font-size: 10px; margin-bottom: 4px; }
+    .costo-wrap { display: flex; gap: 14px; align-items: center; }
+    .leyenda { flex: 1; font-size: 9px; }
+    .det { margin-top: 6px; }
+    .det th, .det td { font-size: 9px; padding: 2px 6px; }
+    .firmas { display: flex; justify-content: space-between; margin-top: 48px; }
+    .firma { width: 45%; font-size: 9px; text-align: center; }
+    .firma .sig { height: 64px; display: flex; align-items: flex-end; justify-content: center; }
+    .firma .sig img { max-height: 60px; max-width: 180px; }
+    .firma .line { border-top: 1px solid #333; padding-top: 4px; margin-top: 2px; }
+  </style></head><body>${cuerpo}</body></html>`);
+  w.document.close(); w.focus();
+  setTimeout(() => { try { w.print(); } catch { /* */ } }, 400);
+}
