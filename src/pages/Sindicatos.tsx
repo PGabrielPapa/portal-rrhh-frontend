@@ -22,7 +22,7 @@ export default function Sindicatos() {
     try { if (edit.id) await api.put(`/sindicatos/${edit.id}`, edit); else await api.post('/sindicatos', edit); setEdit(null); load(); }
     catch (e: any) { setErr(e.message); }
   }
-  async function borrar(s: Sind) { try { await api.del(`/sindicatos/${s.id}`); load(); } catch (e: any) { setErr(e.message); } }
+  async function borrar(s: Sind) { if (!window.confirm('¿Eliminar este sindicato?')) return; try { await api.del(`/sindicatos/${s.id}`); load(); } catch (e: any) { setErr(e.message); } }
   const setF = (k: keyof Sind, v: any) => setEdit({ ...(edit as Sind), [k]: v });
   const presLbl = (p: string) => PRES.find((x) => x[0] === p)?.[1] || p;
 

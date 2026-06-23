@@ -110,7 +110,7 @@ export default function Hys() {
       alert(`Importados ${r.importados} ítems.`);
     } catch (e: any) { setErr('Import: ' + e.message); }
   }
-  async function delCat(tipo: string, codigo: string) { await api.del(`/hys/catalogo/${tipo}/${encodeURIComponent(codigo)}`); const c = await api.get('/hys/catalogos'); setCat(c as any); }
+  async function delCat(tipo: string, codigo: string) { if (!window.confirm('¿Eliminar este ítem del catálogo?')) return; try { await api.del(`/hys/catalogo/${tipo}/${encodeURIComponent(codigo)}`); const c = await api.get('/hys/catalogos'); setCat(c as any); } catch (e: any) { alert(e.message || 'No se pudo eliminar'); } }
   async function subirManual(e: React.FormEvent) {
     e.preventDefault();
     if (!mform.titulo) { setErr('El manual necesita un título.'); return; }
@@ -404,14 +404,14 @@ function DetalleEmpleado({ emp, cat, onClose, onChange }: { emp: EmpRow; cat: { 
     await api.post('/hys/capacitaciones', { empleadoId: emp.id, codigo: fc.codigo, nombre: t?.nombre || fc.codigo, fecha: fc.fecha, vigenciaMeses: t?.vigencia_meses, dictadaPor: fc.dictadaPor, observaciones: fc.observaciones });
     setFc({ fecha: hoy() }); recargar(); onChange();
   }
-  async function delCap(id: number) { await api.del(`/hys/capacitaciones/${id}`); recargar(); onChange(); }
+  async function delCap(id: number) { if (!window.confirm('¿Eliminar esta capacitación?')) return; try { await api.del(`/hys/capacitaciones/${id}`); recargar(); onChange(); } catch (e: any) { alert(e.message || 'No se pudo eliminar'); } }
   async function addEpp(e: React.FormEvent) {
     e.preventDefault(); if (!fe.codigo) return;
     const t = cat.epp.find((c) => c.codigo === fe.codigo);
     await api.post('/hys/epp', { empleadoId: emp.id, codigo: fe.codigo, nombre: t?.nombre || fe.codigo, cantidad: Number(fe.cantidad) || 1, talle: fe.talle, fecha: fe.fecha, observaciones: fe.observaciones });
     setFe({ fecha: hoy(), cantidad: '1' }); recargar(); onChange();
   }
-  async function delEpp(id: number) { await api.del(`/hys/epp/${id}`); recargar(); onChange(); }
+  async function delEpp(id: number) { if (!window.confirm('¿Eliminar esta entrega de EPP?')) return; try { await api.del(`/hys/epp/${id}`); recargar(); onChange(); } catch (e: any) { alert(e.message || 'No se pudo eliminar'); } }
 
   return (
     <div className="modal-bg" onClick={onClose}>

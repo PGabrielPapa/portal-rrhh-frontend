@@ -38,7 +38,7 @@ export default function Asiento() {
       setCf(blank); cargarPlan(); cargar();
     } catch (e: any) { setErr(e.message); }
   }
-  async function borrarCuenta(id: number) { try { await api.del(`/reportes/plan-cuentas/${id}`); cargarPlan(); cargar(); } catch (e: any) { setErr(e.message); } }
+  async function borrarCuenta(id: number) { if (!window.confirm('¿Eliminar esta cuenta del plan?')) return; try { await api.del(`/reportes/plan-cuentas/${id}`); cargarPlan(); cargar(); } catch (e: any) { setErr(e.message); } }
 
   useEffect(() => { api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
   async function cargar() { setErr(''); try { const p = new URLSearchParams({ anio: String(anio), mes: String(mes) }); if (empresa) p.set('empresa', empresa); const r = await api.get<{ asientos: Asiento[] }>(`/reportes/asiento?${p}`); setAsientos(r.asientos); } catch (e: any) { setErr(e.message); } }

@@ -9,6 +9,11 @@ const PLANTILLA = ['Legajo*','DNI*','CUIL*','Apellido y Nombre*','Empresa*','Fec
   'Fecha Nacimiento','Ubicación','Categoría','Tramo','Sueldo Bruto','Sueldo Neto','E-mail',
   'Domicilio Calle','Localidad','Provincia','Código Postal'];
 
+// Campo de formulario (a nivel de módulo para conservar identidad estable y no perder el foco al tipear).
+function F({ k, label, type = 'text', ph, f, set }: { k: string; label: string; type?: string; ph?: string; f: any; set: (k: string) => any }) {
+  return <div className="field"><label>{label}</label><input className="input" type={type} value={f[k] || ''} onChange={set(k)} placeholder={ph} /></div>;
+}
+
 export default function Empleados() {
   const { user } = useAuth();
   const canEdit = user?.role === 'rrhh' || user?.role === 'admin';
@@ -158,9 +163,6 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     api.get<{ legNum: string }>(`/empleados/proximo-legajo?empresa=${encodeURIComponent(f.empresa)}`)
       .then((r) => setF((prev) => ({ ...prev, legNum: r.legNum }))).catch(() => {});
   }, [esNueva, f.empresa]);
-  const F = ({ k, label, type = 'text', ph }: { k: string; label: string; type?: string; ph?: string }) => (
-    <div className="field"><label>{label}</label><input className="input" type={type} value={f[k] || ''} onChange={set(k)} placeholder={ph} /></div>
-  );
 
   const osSicoss = (o: ObraSocial) => o.codigo_sicoss || String(o.codigo).replace(/\D/g, '').slice(-6);
 
@@ -195,25 +197,25 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <div className="field"><label>Apellido y Nombre *</label><input className="input" value={f.nom || ''} onChange={set('nom')} /></div>
           <div className="field"><label>Legajo {esNueva ? '(automático)' : '*'}</label><input className="input" value={f.legNum || (esNueva ? '…' : '')} disabled readOnly title={esNueva ? 'Lo asigna el sistema según el último legajo de la empresa' : ''} /></div>
           <div className="field"><label>DNI *</label><input className="input" value={f.dni || ''} onChange={set('dni')} disabled={!esNueva} /></div>
-          <F k="cuil" label="CUIL" ph="XX-XXXXXXXX-X" />
-          <F k="email" label="E-mail" />
-          <F k="ingreso" label="Fecha de ingreso" type="date" />
-          <F k="fecha_nac" label="Fecha de nacimiento" ph="AAAA-MM-DD o DD/MM/AAAA" />
-          <F k="sexo" label="Sexo" />
-          <F k="estado_civil" label="Estado civil" />
-          <F k="nacionalidad" label="Nacionalidad" />
+          <F k="cuil" label="CUIL" ph="XX-XXXXXXXX-X" f={f} set={set} />
+          <F k="email" label="E-mail" f={f} set={set} />
+          <F k="ingreso" label="Fecha de ingreso" type="date" f={f} set={set} />
+          <F k="fecha_nac" label="Fecha de nacimiento" ph="AAAA-MM-DD o DD/MM/AAAA" f={f} set={set} />
+          <F k="sexo" label="Sexo" f={f} set={set} />
+          <F k="estado_civil" label="Estado civil" f={f} set={set} />
+          <F k="nacionalidad" label="Nacionalidad" f={f} set={set} />
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Datos laborales</div>
         <div className="grid2">
-          <F k="lugar" label="Ubicación / Lugar de trabajo" />
-          <F k="tarea" label="Tarea / Puesto" />
-          <F k="cat" label="Categoría (código)" />
-          <F k="tramo" label="Tramo" />
-          <F k="desc_categoria" label="Descripción de categoría" />
-          <F k="condicion" label="Condición" />
-          <F k="cod_convenio" label="Código de convenio" />
-          <F k="cod_sindicato" label="Código de sindicato" />
+          <F k="lugar" label="Ubicación / Lugar de trabajo" f={f} set={set} />
+          <F k="tarea" label="Tarea / Puesto" f={f} set={set} />
+          <F k="cat" label="Categoría (código)" f={f} set={set} />
+          <F k="tramo" label="Tramo" f={f} set={set} />
+          <F k="desc_categoria" label="Descripción de categoría" f={f} set={set} />
+          <F k="condicion" label="Condición" f={f} set={set} />
+          <F k="cod_convenio" label="Código de convenio" f={f} set={set} />
+          <F k="cod_sindicato" label="Código de sindicato" f={f} set={set} />
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Obra social</div>
@@ -275,32 +277,32 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
                 </div>
               );
             }
-            return <F key={c.key} k={c.key} label={c.label} type={c.kind === 'number' ? 'number' : 'text'} />;
+            return <F key={c.key} k={c.key} label={c.label} type={c.kind === 'number' ? 'number' : 'text'} f={f} set={set} />;
           })}
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Remuneración</div>
         <div className="grid2">
-          <F k="basico" label="Básico" />
-          <F k="antiguedad_monto" label="Adicional antigüedad ($)" />
-          <F k="complemento" label="Complemento" />
-          <F k="norem" label="No remunerativo" />
-          <F k="sueldo" label="Sueldo" />
-          <F k="bruto" label="Sueldo bruto" />
-          <F k="neto" label="Sueldo neto" />
+          <F k="basico" label="Básico" f={f} set={set} />
+          <F k="antiguedad_monto" label="Adicional antigüedad ($)" f={f} set={set} />
+          <F k="complemento" label="Complemento" f={f} set={set} />
+          <F k="norem" label="No remunerativo" f={f} set={set} />
+          <F k="sueldo" label="Sueldo" f={f} set={set} />
+          <F k="bruto" label="Sueldo bruto" f={f} set={set} />
+          <F k="neto" label="Sueldo neto" f={f} set={set} />
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Domicilio</div>
         <div className="grid2">
-          <F k="dom_calle" label="Calle" />
-          <F k="dom_nro" label="Número" />
-          <F k="dom_piso" label="Piso" />
-          <F k="dom_depto" label="Depto" />
-          <F k="dom_torre" label="Torre" />
-          <F k="dom_bloque" label="Bloque" />
-          <F k="dom_loc" label="Localidad" />
-          <F k="dom_cp" label="C.P." />
-          <F k="dom_prov" label="Provincia" />
+          <F k="dom_calle" label="Calle" f={f} set={set} />
+          <F k="dom_nro" label="Número" f={f} set={set} />
+          <F k="dom_piso" label="Piso" f={f} set={set} />
+          <F k="dom_depto" label="Depto" f={f} set={set} />
+          <F k="dom_torre" label="Torre" f={f} set={set} />
+          <F k="dom_bloque" label="Bloque" f={f} set={set} />
+          <F k="dom_loc" label="Localidad" f={f} set={set} />
+          <F k="dom_cp" label="C.P." f={f} set={set} />
+          <F k="dom_prov" label="Provincia" f={f} set={set} />
         </div>
 
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 18 }}>

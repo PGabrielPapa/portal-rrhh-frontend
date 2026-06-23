@@ -150,7 +150,7 @@ function EscalaInterna({ puedeEditar }: { puedeEditar: boolean }) {
         onApply={async (b) => { await api.post('/escala/incremento', b); await load(); }} />}
 
       <h3 style={{ marginBottom: 8 }}>Historial de versiones</h3>
-      <Historial versiones={versiones} puedeEditar={puedeEditar} onDelete={async (v) => { await api.del(`/escala/${v.id}`); load(); }} />
+      <Historial versiones={versiones} puedeEditar={puedeEditar} onDelete={async (v) => { if (!window.confirm('¿Eliminar esta versión de la escala?')) return; await api.del(`/escala/${v.id}`); load(); }} />
     </>
   );
 }
@@ -279,7 +279,7 @@ function ConvenioView({ codigo, puedeEditar }: { codigo: string; puedeEditar: bo
         onApply={async (b) => { await api.post(`/convenios/${codigo}/incremento`, b); await load(); }} />}
 
       <h3 style={{ marginBottom: 8 }}>Historial de versiones</h3>
-      <Historial versiones={versiones} puedeEditar={puedeEditar} onDelete={async (v) => { await api.del(`/convenios/${codigo}/versiones/${v.id}`); load(); }} />
+      <Historial versiones={versiones} puedeEditar={puedeEditar} onDelete={async (v) => { if (!window.confirm('¿Eliminar esta versión del convenio?')) return; await api.del(`/convenios/${codigo}/versiones/${v.id}`); load(); }} />
     </>
   );
 }

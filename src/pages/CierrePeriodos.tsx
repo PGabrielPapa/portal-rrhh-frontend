@@ -29,6 +29,7 @@ export default function CierrePeriodos() {
   }
   async function reabrir(c: Cierre) {
     setErr(''); setOk('');
+    if (!window.confirm(`¿Reabrir el período ${c.mes}/${c.anio} de ${c.empresa}? Volverá a permitir liquidar/borrar.`)) return;
     try { await api.del(`/cierres?empresa=${encodeURIComponent(c.empresa)}&anio=${c.anio}&mes=${c.mes}`); load(); } catch (e: any) { setErr(e.message); }
   }
 

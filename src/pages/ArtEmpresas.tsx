@@ -46,7 +46,7 @@ export default function ArtEmpresas() {
     catch (e: any) { setErr(e.message); }
   }
   async function toggle(c: Contrato) { try { await api.put(`/art/${c.id}`, { nroContrato: c.nroContrato, fechaInicio: c.fechaInicio, fechaFin: c.fechaFin, activo: !c.activo }); load(); } catch (e: any) { setErr(e.message); } }
-  async function borrar(c: Contrato) { try { await api.del(`/art/${c.id}`); load(); } catch (e: any) { setErr(e.message); } }
+  async function borrar(c: Contrato) { if (!window.confirm('¿Eliminar este contrato de ART?')) return; try { await api.del(`/art/${c.id}`); load(); } catch (e: any) { setErr(e.message); } }
   const setAl = (id: number, k: string) => (e: any) => setAlic({ ...alic, [id]: { ...(alic[id] || {}), [k]: e.target.value } });
 
   return (

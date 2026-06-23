@@ -34,7 +34,7 @@ export default function GananciasParams() {
       setOk('Parámetros guardados.'); setEdit(null); load();
     } catch (e: any) { setErr(e.message); }
   }
-  async function borrar(p: Periodo) { setErr(''); try { await api.del(`/ganancias/periodos/${p.id}`); load(); } catch (e: any) { setErr(e.message); } }
+  async function borrar(p: Periodo) { if (!window.confirm(`¿Eliminar la tabla de Ganancias del período ${p.periodo}? La liquidación dejará de tenerla disponible.`)) return; setErr(''); try { await api.del(`/ganancias/periodos/${p.id}`); load(); } catch (e: any) { setErr(e.message); } }
   async function verHist(p: Periodo) {
     setErr(''); if (!p.id) return;
     if (histFor === p.id) { setHistFor(null); return; }
