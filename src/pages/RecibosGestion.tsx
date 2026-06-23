@@ -20,6 +20,7 @@ export default function RecibosGestion() {
   const [selId, setSelId] = useState<number | null>(null);
   const [vistas, setVistas] = useState<{ created_at: string; nom: string; leg_num: string }[] | null>(null);
   const [err, setErr] = useState('');
+  const [ok, setOk] = useState('');
 
   async function load() {
     setErr('');
@@ -44,6 +45,17 @@ export default function RecibosGestion() {
   }
 
   async function verVistas() { if (!selId) return; try { setVistas(await api.get(`/recibos/${selId}/vistas`)); } catch (e: any) { setErr(e.message); } }
+  async function eliminar(it: Item) {
+    if (!window.confirm(`¿Eliminar el recibo de ${it.nom} (${MESES[it.mes - 1]} ${it.anio})? Sirve para re-liquidar el período.`)) return;
+    setErr(''); setOk('');
+    try { await api.del(`/recibos/${it.id}`); if (selId === it.id) { setSel(null); setSelId(null); } setOk('Recibo eliminado.'); load(); } catch (e: any) { setErr(e.message); }
+  }
+  async function eliminarLote() {
+    if (!mes || !anio) { setErr('Para borrar en lote, elegí Mes y Año.'); return; }
+    if (!window.confirm(`¿Eliminar los ${items.length} recibo(s) de ${MESES[mes - 1]} ${anio}${empresa ? ' · ' + empresa : ''}? Sirve para re-liquidar el período.`)) return;
+    setErr(''); setOk('');
+    try { const r = await api.post<{ eliminados: number }>('/recibos/eliminar-lote', { anio: Number(anio), mes, empresa: empresa || undefined }); setOk(`${r.eliminados} recibo(s) eliminados.`); load(); } catch (e: any) { setErr(e.message); }
+  }
   if (sel) return (
     <>
       <div className="row" style={{ marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
@@ -77,6 +89,8 @@ export default function RecibosGestion() {
         <input className="input" style={{ maxWidth: 110 }} type="number" placeholder="Año" value={anio} onChange={(e) => setAnio(e.target.value)} />
       </div>
       {err && <div className="err" style={{ marginBottom: 10 }}>⚠ {err}</div>}
+      {ok && <div className="ok" style={{ marginBottom: 10 }}>✓ {ok}</div>}
+      {!!(mes && anio && items.length) && <button className="btn ghost" style={{ marginBottom: 10, color: 'var(--red)' }} onClick={eliminarLote}>🗑 Eliminar los {items.length} recibos de {MESES[mes - 1]} {anio}{empresa ? ' · ' + empresa : ''}</button>}
 
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
@@ -89,7 +103,10 @@ export default function RecibosGestion() {
                 <td>{MESES[it.mes - 1]} {it.anio}</td>
                 <td style={{ fontFamily: 'monospace' }}>{money(it.neto)}</td>
                 <td className="muted">{it.created_by || '—'}</td>
-                <td style={{ textAlign: 'right' }}><button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => ver(it)}>Ver</button></td>
+                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => ver(it)}>Ver</button>
+                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, color: 'var(--red)' }} onClick={() => eliminar(it)}>✕</button>
+                </td>
               </tr>
             ))}
             {!items.length && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 20 }}>No hay recibos liquidados con esos filtros.</td></tr>}
