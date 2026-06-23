@@ -161,15 +161,16 @@ function Corrida() {
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [corridas, setCorridas] = useState<any[]>([]);
   const [sel, setSel] = useState<any>(null); const [reporte, setReporte] = useState<any>(null); const [exp, setExp] = useState<Record<number, boolean>>({});
-  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [filtro, setFiltro] = useState(''); const [msg, setMsg] = useState('');
 
   async function loadCorridas() { try { setCorridas(await api.get('/liquidacion/corridas')); } catch (e: any) { setErr(e.message); } }
   useEffect(() => { loadCorridas(); api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
+  useEffect(() => { if (!sel && corridas.length) abrir(corridas[0].id); /* auto-abre la ultima corrida para mostrar la planilla */ }, [corridas]);
 
   async function crear() { setErr(''); setBusy(true); try { const r = await api.post<any>('/liquidacion/corrida', { anio, mes, tipo, empresa: empresa || undefined, fechaPago: fechaPago || undefined }); await loadCorridas(); abrir(r.id); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } }
   async function abrir(id: number) { setErr(''); setReporte(null); try { setSel(await api.get(`/liquidacion/corrida/${id}`)); } catch (e: any) { setErr(e.message); } }
-  async function aprobar() { try { await api.post(`/liquidacion/corrida/${sel.corrida.id}/aprobar`, {}); await loadCorridas(); abrir(sel.corrida.id); } catch (e: any) { setErr(e.message); } }
-  async function publicar() { try { await api.post(`/liquidacion/corrida/${sel.corrida.id}/publicar`, {}); await loadCorridas(); abrir(sel.corrida.id); } catch (e: any) { setErr(e.message); } }
+  async function aprobar() { setErr(''); setMsg(''); try { await api.post(`/liquidacion/corrida/${sel.corrida.id}/aprobar`, {}); await loadCorridas(); abrir(sel.corrida.id); setMsg('Corrida aprobada. Ahora hacé clic en “Publicar recibos” para que los empleados los vean.'); } catch (e: any) { setErr(e.message); } }
+  async function publicar() { setErr(''); setMsg(''); try { await api.post(`/liquidacion/corrida/${sel.corrida.id}/publicar`, {}); await loadCorridas(); abrir(sel.corrida.id); setMsg('✓ Recibos publicados — ya están disponibles en “Mis recibos” de cada empleado.'); } catch (e: any) { setErr(e.message); } }
   async function borrar(id: number) { try { await api.del(`/liquidacion/corrida/${id}`); if (sel?.corrida.id === id) setSel(null); loadCorridas(); } catch (e: any) { setErr(e.message); } }
   async function verReporte() { try { setReporte(await api.get(`/liquidacion/corrida/${sel.corrida.id}/reporte`)); } catch (e: any) { setErr(e.message); } }
   async function bajarBanco() {
@@ -193,23 +194,25 @@ function Corrida() {
         {err && <div className="err" style={{ marginTop: 10 }}>⚠ {err}</div>}
       </div>
 
-      <div className="grid2" style={{ alignItems: 'start' }}>
-        <div className="card" style={{ padding: 0, overflow: 'auto' }}>
-          <table>
-            <thead><tr><th>Período</th><th>Tipo</th><th>Estado</th><th style={{ textAlign: 'right' }}>Neto</th><th></th></tr></thead>
-            <tbody>
-              {corridas.map((c) => (
-                <tr key={c.id} style={{ cursor: 'pointer', background: sel?.corrida.id === c.id ? 'var(--bg2)' : undefined }} onClick={() => abrir(c.id)}>
-                  <td>{String(c.mes).padStart(2, '0')}/{c.anio}{c.empresa ? <div className="muted" style={{ fontSize: 11 }}>{c.empresa}</div> : ''}</td>
-                  <td>{c.tipo}</td>
-                  <td><span className="badge" style={{ color: estadoColor(c.estado) }}>{c.estado}</span></td>
-                  <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>${$(c.total_neto)}</td>
-                  <td style={{ textAlign: 'right' }}>{c.estado !== 'publicada' && <button className="btn ghost" style={{ padding: '2px 8px', color: 'var(--red)' }} onClick={(ev) => { ev.stopPropagation(); borrar(c.id); }}>✕</button>}</td>
-                </tr>
-              ))}
-              {!corridas.length && <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 16 }}>Sin corridas.</td></tr>}
-            </tbody>
-          </table>
+      <div>
+        <div className="card" style={{ padding: 8, marginBottom: 16 }}>
+          <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>Corridas</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {corridas.map((c) => (
+            <div key={c.id} onClick={() => abrir(c.id)} style={{ cursor: 'pointer', padding: '8px 10px', borderRadius: 8, width: 230, background: sel?.corrida.id === c.id ? 'var(--bg2)' : 'var(--bg3)', border: sel?.corrida.id === c.id ? '1px solid var(--accent2)' : '1px solid var(--border)' }}>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong style={{ fontSize: 13 }}>{String(c.mes).padStart(2, '0')}/{c.anio}</strong>
+                <span className="badge" style={{ color: estadoColor(c.estado), fontSize: 11 }}>{c.estado}</span>
+              </div>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+                <span className="muted" style={{ fontSize: 11 }}>{c.tipo}{c.empresa ? ' · ' + c.empresa : ''}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 12 }}>${$(c.total_neto)}</span>
+              </div>
+              {c.estado !== 'publicada' && <button className="btn ghost" style={{ padding: '0 6px', fontSize: 11, color: 'var(--red)', marginTop: 4 }} onClick={(ev) => { ev.stopPropagation(); borrar(c.id); }}>✕ borrar</button>}
+            </div>
+          ))}
+          </div>
+          {!corridas.length && <div className="muted" style={{ textAlign: 'center', padding: 16 }}>Sin corridas.</div>}
         </div>
 
         <div>
@@ -225,31 +228,49 @@ function Corrida() {
                 <button className="btn ghost" onClick={verReporte}>📊 Reporte</button>
                 <button className="btn ghost" onClick={bajarBanco}>🏦 Archivo de banco (CSV)</button>
               </div>
-              <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>Conceptos liquidados — agrupados por empresa, ordenados por legajo. Clic en un empleado para ver/ocultar el detalle.</div>
-              <div style={{ overflow: 'auto', maxHeight: 460 }}>
-                {Object.entries(sel.items.reduce((acc: any, it: any) => { (acc[it.empresa] = acc[it.empresa] || []).push(it); return acc; }, {})).map(([empresa, lista]: any) => (
-                  <div key={empresa} style={{ marginBottom: 12 }}>
-                    <div style={{ fontWeight: 700, padding: '4px 0', borderBottom: '1px solid var(--border)', color: 'var(--accent2)' }}>{empresa} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({lista.length})</span></div>
-                    <table style={{ width: '100%', fontSize: 13 }}>
-                      <thead><tr><th style={{ textAlign: 'left' }}>Legajo</th><th style={{ textAlign: 'left' }}>Empleado</th><th style={{ textAlign: 'right' }}>Remun.</th><th style={{ textAlign: 'right' }}>Desc.</th><th style={{ textAlign: 'right' }}>Neto</th></tr></thead>
+              {sel.corrida.estado === 'borrador' && <div className="muted" style={{ fontSize: 12, marginTop: -4, marginBottom: 8 }}>Flujo: <b>Aprobar</b> → <b>Publicar recibos</b>. Los empleados ven sus recibos recién después de publicar.</div>}
+              {sel.corrida.estado === 'aprobada' && <div className="muted" style={{ fontSize: 12, marginTop: -4, marginBottom: 8 }}>Corrida aprobada. Hacé clic en <b>📢 Publicar recibos</b> para ponerlos a disposición de los empleados.</div>}
+              {sel.corrida.estado === 'publicada' && <div style={{ fontSize: 12, marginTop: -4, marginBottom: 8, color: 'var(--green)' }}>✓ Publicada — los recibos están disponibles en “Mis recibos” de cada empleado.</div>}
+              {msg && <div className="ok" style={{ marginBottom: 10 }}>{msg}</div>}
+              {err && <div className="err" style={{ marginBottom: 10 }}>⚠ {err}</div>}
+              <div className="row" style={{ gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input className="input" placeholder="Filtrar por legajo o nombre…" value={filtro} onChange={(e) => setFiltro(e.target.value)} style={{ maxWidth: 280 }} />
+                <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setExp(Object.fromEntries((sel.items || []).map((it: any) => [it.id, true])))}>Expandir todos</button>
+                <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setExp({})}>Contraer todos</button>
+                <span className="muted" style={{ fontSize: 12, marginLeft: 'auto' }}>Clic en una fila para ver el detalle de conceptos.</span>
+              </div>
+              <div style={{ overflow: 'auto', maxHeight: 620, border: '1px solid var(--border)', borderRadius: 8 }}>
+                {Object.entries(sel.items.reduce((acc: any, it: any) => { (acc[it.empresa] = acc[it.empresa] || []).push(it); return acc; }, {})).map(([empresa, lista]: any) => {
+                  const f = filtro.trim().toLowerCase();
+                  const vis = (lista as any[]).filter((it) => !f || String(it.legNum).toLowerCase().includes(f) || (it.nom || '').toLowerCase().includes(f)).sort((a, b) => String(a.legNum).localeCompare(String(b.legNum)));
+                  if (!vis.length) return null;
+                  const subRem = vis.reduce((acc, it) => acc + Number(it.totalRemun || 0), 0);
+                  const subDesc = vis.reduce((acc, it) => acc + Number(it.totalDescuentos || 0), 0);
+                  const subNeto = vis.reduce((acc, it) => acc + Number(it.neto || 0), 0);
+                  return (
+                    <table key={empresa} style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+                      <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                        <tr style={{ background: 'var(--bg3)' }}><th colSpan={5} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--accent2)' }}>{empresa} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({vis.length})</span></th></tr>
+                        <tr style={{ background: 'var(--bg2)' }}><th style={{ textAlign: 'left', padding: '4px 10px' }}>Legajo</th><th style={{ textAlign: 'left', padding: '4px 10px' }}>Empleado</th><th style={{ textAlign: 'right', padding: '4px 10px' }}>Remun.</th><th style={{ textAlign: 'right', padding: '4px 10px' }}>Desc.</th><th style={{ textAlign: 'right', padding: '4px 10px' }}>Neto</th></tr>
+                      </thead>
                       <tbody>
-                        {[...lista].sort((a: any, b: any) => String(a.legNum).localeCompare(String(b.legNum))).map((it: any) => [
-                          <tr key={it.id} style={{ cursor: 'pointer' }} onClick={() => setExp((p) => ({ ...p, [it.id]: !p[it.id] }))}>
-                            <td style={{ fontFamily: 'monospace' }}>{exp[it.id] ? '▾ ' : '▸ '}{it.legNum}</td>
-                            <td>{it.nom}</td>
-                            <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>${$(it.totalRemun)}</td>
-                            <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>${$(it.totalDescuentos)}</td>
-                            <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>${$(it.neto)}</td>
+                        {vis.map((it: any) => [
+                          <tr key={it.id} style={{ cursor: 'pointer', background: exp[it.id] ? 'var(--bg2)' : undefined, borderTop: '1px solid var(--border)' }} onClick={() => setExp((pp) => ({ ...pp, [it.id]: !pp[it.id] }))}>
+                            <td style={{ fontFamily: 'monospace', padding: '5px 10px', whiteSpace: 'nowrap' }}>{exp[it.id] ? '▾ ' : '▸ '}{it.legNum}</td>
+                            <td style={{ padding: '5px 10px' }}>{it.nom}</td>
+                            <td style={{ textAlign: 'right', fontFamily: 'monospace', padding: '5px 10px' }}>${$(it.totalRemun)}</td>
+                            <td style={{ textAlign: 'right', fontFamily: 'monospace', padding: '5px 10px' }}>${$(it.totalDescuentos)}</td>
+                            <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, padding: '5px 10px' }}>${$(it.neto)}</td>
                           </tr>,
                           exp[it.id] && (
-                            <tr key={`d${it.id}`}><td colSpan={5} style={{ background: 'var(--bg2)', padding: '6px 14px' }}>
+                            <tr key={`d${it.id}`}><td colSpan={5} style={{ background: 'var(--bg2)', padding: '8px 18px' }}>
                               <div className="grid2" style={{ gap: 18 }}>
                                 <div>
-                                  <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em' }}>Haberes</div>
+                                  <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 2 }}>Haberes</div>
                                   {(it.haberes || []).map((h: any, k: number) => <div key={k} className="row" style={{ justifyContent: 'space-between', fontSize: 12 }}><span>{h.concepto}{h.tipo === 'norem' ? ' (no rem.)' : h.tipo === 'exento' ? ' (exento)' : ''}</span><span style={{ fontFamily: 'monospace' }}>${$(h.monto)}</span></div>)}
                                 </div>
                                 <div>
-                                  <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em' }}>Descuentos</div>
+                                  <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 2 }}>Descuentos</div>
                                   {(it.descuentos || []).map((d: any, k: number) => <div key={k} className="row" style={{ justifyContent: 'space-between', fontSize: 12 }}><span>{d.concepto}</span><span style={{ fontFamily: 'monospace' }}>${$(d.monto)}</span></div>)}
                                   {!(it.descuentos || []).length && <div className="muted" style={{ fontSize: 12 }}>—</div>}
                                 </div>
@@ -257,15 +278,42 @@ function Corrida() {
                             </td></tr>
                           ),
                         ]).flat().filter(Boolean)}
+                        <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 700, background: 'var(--bg3)' }}>
+                          <td colSpan={2} style={{ padding: '5px 10px' }}>Subtotal {empresa}</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'monospace', padding: '5px 10px' }}>${$(subRem)}</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'monospace', padding: '5px 10px' }}>${$(subDesc)}</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--green)', padding: '5px 10px' }}>${$(subNeto)}</td>
+                        </tr>
                       </tbody>
                     </table>
-                  </div>
-                ))}
-                <div className="row" style={{ justifyContent: 'space-between', borderTop: '2px solid var(--border)', paddingTop: 6, fontWeight: 700 }}>
-                  <span>Total neto ({sel.corrida.cant})</span>
-                  <span style={{ fontFamily: 'monospace', color: 'var(--green)' }}>${$(sel.corrida.total_neto)}</span>
-                </div>
+                  );
+                })}
               </div>
+{(() => {
+                const tot = (sel.items || []).reduce((acc: any, it: any) => ({
+                  rem: acc.rem + Number(it.totalRemun || 0),
+                  noRem: acc.noRem + Number(it.totalNoRem || 0),
+                  desc: acc.desc + Number(it.totalDescuentos || 0),
+                  neto: acc.neto + Number(it.neto || 0),
+                  haberes: acc.haberes + Number(it.totalHaberes || 0),
+                  costo: acc.costo + Number(it.costoTotal || 0),
+                }), { rem: 0, noRem: 0, desc: 0, neto: 0, haberes: 0, costo: 0 });
+                const contrib = tot.costo - tot.haberes;
+                return (
+                  <div className="card" style={{ marginTop: 12, padding: '12px 16px', background: 'var(--bg2)' }}>
+                    <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Totales de la corrida</div>
+                    <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                      <div><div className="muted" style={{ fontSize: 12 }}>Empleados</div><div style={{ fontWeight: 700, fontSize: 16 }}>{sel.corrida.cant}</div></div>
+                      <div style={{ textAlign: 'right' }}><div className="muted" style={{ fontSize: 12 }}>Remunerativo</div><div style={{ fontWeight: 700, fontFamily: 'monospace' }}>${$(tot.rem)}</div></div>
+                      <div style={{ textAlign: 'right' }}><div className="muted" style={{ fontSize: 12 }}>No rem.</div><div style={{ fontWeight: 700, fontFamily: 'monospace' }}>${$(tot.noRem)}</div></div>
+                      <div style={{ textAlign: 'right' }}><div className="muted" style={{ fontSize: 12 }}>Descuentos</div><div style={{ fontWeight: 700, fontFamily: 'monospace' }}>${$(tot.desc)}</div></div>
+                      <div style={{ textAlign: 'right' }}><div className="muted" style={{ fontSize: 12 }}>Neto a pagar</div><div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: 18, color: 'var(--green)' }}>${$(tot.neto)}</div></div>
+                      <div style={{ textAlign: 'right' }}><div className="muted" style={{ fontSize: 12 }}>Contrib. patronales</div><div style={{ fontWeight: 700, fontFamily: 'monospace' }}>${$(contrib)}</div></div>
+                      <div style={{ textAlign: 'right' }}><div className="muted" style={{ fontSize: 12 }}>Costo total</div><div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: 18, color: 'var(--accent2)' }}>${$(tot.costo)}</div></div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {reporte && (
                 <div style={{ marginTop: 14 }}>
