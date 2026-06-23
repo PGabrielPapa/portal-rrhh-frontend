@@ -4,16 +4,20 @@ import type { Empleado } from '../lib/types';
 import ReciboView, { Recibo } from '../components/ReciboView';
 import { imprimirRecibo, imprimirVarios } from '../lib/reciboPrint';
 import { useAuth } from '../lib/auth';
+import { useNavigate } from 'react-router-dom';
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const money = (n: number) => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
 
-interface Item { id: number; anio: number; mes: number; tipo: string; neto: number; created_at: string; created_by?: string; nom: string; leg_num: string; empresa: string; }
+interface Item { id: number; anio: number; mes: number; tipo: string; neto: number; created_at: string; created_by?: string; nom: string; leg_num: string; empresa: string; publicado?: boolean; pagado?: boolean; visto?: boolean; }
 
 export default function RecibosGestion() {
   const { user } = useAuth();
   const esAdmin = user?.role === 'admin';
   const [cierres, setCierres] = useState<any[]>([]);
+  const nav = useNavigate();
+  const [soloPendPago, setSoloPendPago] = useState(false);
+  const [soloNoVisto, setSoloNoVisto] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [empresa, setEmpresa] = useState('');
@@ -82,6 +86,18 @@ export default function RecibosGestion() {
     setErr(''); setOk('');
     try { await api.del(`/cierres?empresa=${encodeURIComponent(em)}&anio=${Number(anio)}&mes=${mes}`); setOk(`Período reabierto para ${em}.`); api.get<any[]>('/cierres').then(setCierres); } catch (e: any) { setErr(e.message); }
   }
+  async function togglePagar(it: Item) {
+    setErr(''); setOk('');
+    try { await api.patch(`/recibos/${it.id}/pagar`, { pagado: !it.pagado }); setOk(!it.pagado ? `Recibo de ${it.nom} marcado como pagado.` : 'Pago quitado.'); load(); } catch (e: any) { setErr(e.message); }
+  }
+  async function avisar(it: Item) {
+    setErr(''); setOk('');
+    try { await api.post(`/recibos/${it.id}/avisar`, {}); setOk(`Aviso enviado a ${it.nom}.`); } catch (e: any) { setErr(e.message); }
+  }
+  function reLiquidar(it: Item) {
+    nav(`/m/liquidacion?reLeg=${encodeURIComponent(it.leg_num)}&reEmp=${encodeURIComponent(it.empresa)}&anio=${it.anio}&mes=${it.mes}&tipo=${it.tipo}`);
+  }
+  const visibles = items.filter((it) => (!tipo || it.tipo === tipo) && (!soloPendPago || !it.pagado) && (!soloNoVisto || (it.publicado && !it.visto)));
   async function eliminar(it: Item) {
     if (!window.confirm(`¿Eliminar el recibo de ${it.nom} — ${MESES[it.mes - 1]} ${it.anio} · ${tipoLbl(it.tipo)}? Sirve para re-liquidar.`)) return;
     setErr(''); setOk('');
@@ -132,6 +148,8 @@ export default function RecibosGestion() {
           <option value="">Todos los tipos</option>
           {TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
+        <label className="row" style={{ gap: 6, fontSize: 13 }}><input type="checkbox" checked={soloPendPago} onChange={(e) => setSoloPendPago(e.target.checked)} /> Pendientes de pago</label>
+        <label className="row" style={{ gap: 6, fontSize: 13 }}><input type="checkbox" checked={soloNoVisto} onChange={(e) => setSoloNoVisto(e.target.checked)} /> No vistos</label>
       </div>
       {err && <div className="err" style={{ marginBottom: 10 }}>⚠ {err}</div>}
       {ok && <div className="ok" style={{ marginBottom: 10 }}>✓ {ok}</div>}
@@ -139,7 +157,7 @@ export default function RecibosGestion() {
       <button className="btn ghost" style={{ marginBottom: 10, marginLeft: 8 }} onClick={exportarCsv}>⬇ Exportar CSV</button>
 
       {(() => {
-        const vis = tipo ? items.filter((it) => it.tipo === tipo) : items;
+        const vis = visibles;
         if (!vis.length) return <div className="card"><div className="muted" style={{ textAlign: 'center', padding: 20 }}>No hay recibos con esos filtros.</div></div>;
         const emps = [...new Set(vis.map((i) => i.empresa))].sort((a, b) => a.localeCompare(b));
         const SEP = '|#|';
@@ -180,12 +198,15 @@ export default function RecibosGestion() {
                             <tbody>
                               {recs.map((it) => (
                                 <tr key={it.id}>
-                                  <td style={{ paddingLeft: 26 }}>{MESES[it.mes - 1]} {it.anio} <span className="muted">· {tipoLbl(it.tipo)}</span></td>
+                                  <td style={{ paddingLeft: 26 }}>{MESES[it.mes - 1]} {it.anio} <span className="muted">· {tipoLbl(it.tipo)}</span>{it.pagado && <span className="badge" style={{ color: 'var(--green)', marginLeft: 6 }}>✓ Pagado</span>}{it.publicado && !it.visto && <span className="badge" style={{ color: 'var(--yellow)', marginLeft: 6 }}>no visto</span>}</td>
                                   <td style={{ fontFamily: 'monospace', textAlign: 'right' }}>{money(it.neto)}</td>
                                   <td className="muted" style={{ textAlign: 'right', fontSize: 12 }}>{it.created_by || '—'}</td>
                                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                    <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12, marginRight: 6 }} onClick={() => ver(it)}>Ver</button>
-                                    <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12, color: 'var(--red)' }} onClick={() => eliminar(it)}>✕</button>
+                                    <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4 }} onClick={() => ver(it)}>Ver</button>
+                                    <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4, color: it.pagado ? 'var(--muted)' : 'var(--green)' }} onClick={() => togglePagar(it)}>{it.pagado ? 'Quitar pago' : '✓ Pagar'}</button>
+                                    {it.publicado && <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4 }} title="Avisar al empleado" onClick={() => avisar(it)}>🔔</button>}
+                                    <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4 }} title="Re-liquidar" onClick={() => reLiquidar(it)}>↻</button>
+                                    <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, color: 'var(--red)' }} onClick={() => eliminar(it)}>✕</button>
                                   </td>
                                 </tr>
                               ))}
@@ -201,7 +222,7 @@ export default function RecibosGestion() {
           );
         });
       })()}
-      <p className="muted" style={{ marginTop: 10 }}>{(tipo ? items.filter((i) => i.tipo === tipo) : items).length} recibo(s) · neto total {money((tipo ? items.filter((i) => i.tipo === tipo) : items).reduce((acc, i) => acc + Number(i.neto || 0), 0))}</p>
+      <p className="muted" style={{ marginTop: 10 }}>{visibles.length} recibo(s) · neto total {money(visibles.reduce((acc, i) => acc + Number(i.neto || 0), 0))}</p>
     </>
   );
 }

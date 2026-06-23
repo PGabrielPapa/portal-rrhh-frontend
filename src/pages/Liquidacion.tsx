@@ -3,6 +3,7 @@ import { api, fetchBlob } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import ReciboView, { Recibo } from '../components/ReciboView';
 import GananciasCheck from '../components/GananciasCheck';
+import { useSearchParams } from 'react-router-dom';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const TIPOS: [string, string][] = [['mensual', 'Mensual'], ['quincenal_1', 'Quincena 1ª (1–15)'], ['quincenal_2', 'Quincena 2ª (16–fin)'], ['sac1', 'SAC 1° semestre'], ['sac2', 'SAC 2° semestre'], ['vacaciones', 'Vacaciones'], ['anticipo', 'Anticipo de haberes'], ['complementaria', 'Ajuste de sueldo (remunerativo)'], ['anticipo_ajuste', 'Anticipo ajuste de sueldo (no rem.)'], ['final', 'Liquidación final']];
@@ -11,8 +12,23 @@ const $ = (n: any) => (Number(n) || 0).toLocaleString('es-AR', { minimumFraction
 // ───────────── Individual ─────────────
 function Individual() {
   const [q, setQ] = useState(''); const [matches, setMatches] = useState<Empleado[]>([]); const [sel, setSel] = useState<Empleado | null>(null);
+  const [sp] = useSearchParams();
   const [empresa, setEmpresa] = useState(''); const [empresas, setEmpresas] = useState<string[]>([]);
   useEffect(() => { api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
+  useEffect(() => {
+    const leg = sp.get('reLeg'); if (!leg) return;
+    const emp = sp.get('reEmp') || '';
+    const an = sp.get('anio'), me = sp.get('mes'), ti = sp.get('tipo');
+    if (emp) setEmpresa(emp);
+    if (an) setAnio(Number(an));
+    if (me) setMes(Number(me));
+    if (ti) setTipo(ti);
+    api.get<Empleado[]>(`/empleados?q=${encodeURIComponent(leg)}`).then((rows) => {
+      const m = rows.find((e) => String(e.legNum) === leg && (!emp || e.empresa === emp)) || rows[0];
+      if (m) elegir(m);
+    }).catch(() => {});
+    // eslint-disable-next-line
+  }, []);
   const [mes, setMes] = useState(new Date().getMonth() + 1); const [anio, setAnio] = useState(new Date().getFullYear());
   const [tipo, setTipo] = useState('mensual');
   const [fin, setFin] = useState<Record<string, string>>({ motivoBaja: 'sin_causa' });
