@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import ReciboView, { Recibo } from '../components/ReciboView';
 import { imprimirRecibo, imprimirVarios } from '../lib/reciboPrint';
+import { useAuth } from '../lib/auth';
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const money = (n: number) => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
@@ -10,6 +11,9 @@ const money = (n: number) => Number(n).toLocaleString('es-AR', { style: 'currenc
 interface Item { id: number; anio: number; mes: number; tipo: string; neto: number; created_at: string; created_by?: string; nom: string; leg_num: string; empresa: string; }
 
 export default function RecibosGestion() {
+  const { user } = useAuth();
+  const esAdmin = user?.role === 'admin';
+  const [cierres, setCierres] = useState<any[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [empresa, setEmpresa] = useState('');
@@ -41,6 +45,7 @@ export default function RecibosGestion() {
   }
   useEffect(() => {
     api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {});
+    api.get<any[]>('/cierres').then(setCierres).catch(() => {});
   }, []);
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [empresa, mes, anio, q]);
 
@@ -64,6 +69,18 @@ export default function RecibosGestion() {
     const filas = vis.map((it) => `"${it.empresa}",${it.leg_num},"${it.nom}",${MESES[it.mes - 1]} ${it.anio},${tipoLbl(it.tipo)},${it.neto},${it.created_by || ''}`);
     const blob = new Blob(['\ufeff' + [head, ...filas].join('\r\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `recibos${anio ? '_' + anio : ''}${mes ? '_' + String(mes).padStart(2, '0') : ''}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  const estaCerrado = (em: string) => !!(mes && anio) && cierres.some((c) => c.empresa === em && c.anio === Number(anio) && c.mes === mes);
+  async function cerrarPeriodo(em: string) {
+    if (!mes || !anio) { setErr('Elegí Mes y Año para cerrar.'); return; }
+    if (!window.confirm(`¿Cerrar ${MESES[mes - 1]} ${anio} de ${em}? No se podrá borrar ni re-liquidar hasta reabrirlo.`)) return;
+    setErr(''); setOk('');
+    try { await api.post('/cierres', { empresa: em, anio: Number(anio), mes }); setOk(`Período cerrado para ${em}.`); api.get<any[]>('/cierres').then(setCierres); } catch (e: any) { setErr(e.message); }
+  }
+  async function reabrirPeriodo(em: string) {
+    if (!window.confirm(`¿Reabrir ${MESES[mes - 1]} ${anio} de ${em}?`)) return;
+    setErr(''); setOk('');
+    try { await api.del(`/cierres?empresa=${encodeURIComponent(em)}&anio=${Number(anio)}&mes=${mes}`); setOk(`Período reabierto para ${em}.`); api.get<any[]>('/cierres').then(setCierres); } catch (e: any) { setErr(e.message); }
   }
   async function eliminar(it: Item) {
     if (!window.confirm(`¿Eliminar el recibo de ${it.nom} — ${MESES[it.mes - 1]} ${it.anio} · ${tipoLbl(it.tipo)}? Sirve para re-liquidar.`)) return;
@@ -131,13 +148,18 @@ export default function RecibosGestion() {
           const legs = [...new Set(delEmp.map((i) => i.leg_num + SEP + i.nom))].sort((a, b) => a.split(SEP)[1].localeCompare(b.split(SEP)[1]));
           const empOpen = openEmp[em] !== false;
           const netoEmp = delEmp.reduce((acc, i) => acc + Number(i.neto || 0), 0);
+          const cerrado = estaCerrado(em);
           return (
             <div className="card" key={em} style={{ marginBottom: 12, padding: 0, overflow: 'hidden' }}>
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', cursor: 'pointer', background: 'var(--bg3)' }} onClick={() => setOpenEmp((st) => ({ ...st, [em]: !empOpen }))}>
                 <strong style={{ color: 'var(--accent2)' }}>{empOpen ? '▾ ' : '▸ '}{em} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({delEmp.length} recibos · {legs.length} empleados · neto {money(netoEmp)})</span></strong>
-                <span className="row" style={{ gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                <span className="row" style={{ gap: 6, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                  {cerrado && <span className="badge" style={{ color: 'var(--yellow)' }}>🔒 Cerrado</span>}
                   <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} disabled={imp} onClick={() => imprimirLista(delEmp)}>🖨 {imp ? 'Generando…' : 'Imprimir'}</button>
-                  {!!(mes && anio) && <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12, color: 'var(--red)' }} onClick={() => borrarPeriodo(em)}>🗑 Borrar {MESES[mes - 1]} {anio}{tipo ? ' · ' + tipoLbl(tipo) : ''}</button>}
+                  {!!(mes && anio) && !cerrado && <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12, color: 'var(--red)' }} onClick={() => borrarPeriodo(em)}>🗑 Borrar {MESES[mes - 1]} {anio}{tipo ? ' · ' + tipoLbl(tipo) : ''}</button>}
+                  {esAdmin && !!(mes && anio) && (cerrado
+                    ? <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => reabrirPeriodo(em)}>🔓 Reabrir</button>
+                    : <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => cerrarPeriodo(em)}>🔒 Cerrar período</button>)}
                 </span>
               </div>
               {empOpen && (
