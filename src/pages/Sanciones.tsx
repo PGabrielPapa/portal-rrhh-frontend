@@ -48,7 +48,7 @@ export default function Sanciones() {
   const [empresa, setEmpresa] = useState('');
   const [emp, setEmp] = useState<Empleado | null>(null);
   const [equipo, setEquipo] = useState<Empleado[]>([]);
-  const [f, setF] = useState<Record<string, string>>({ tipo: TIPOS[0], falta: FALTAS[0], fechaNotificacion: hoy() });
+  const [f, setF] = useState<Record<string, string>>({ tipo: TIPOS[0], falta: FALTAS[0] });
   const [notif, setNotif] = useState<Record<number, string>>({});
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
 
@@ -68,7 +68,7 @@ export default function Sanciones() {
     try {
       const r = await api.post<{ estado: string }>('/sanciones', { empleadoId: emp.id, tipo: f.tipo, falta: f.falta, fecha: f.fecha, dias: f.dias, descripcion: f.descripcion, fechaNotificacion: f.fechaNotificacion, fechaCumplimiento: f.fechaCumplimiento, solicitar: esGerente });
       setMsg({ t: r.estado === 'solicitada' ? 'Sanción solicitada (pendiente RR.HH.)' : 'Sanción aplicada', ok: true });
-      setF({ tipo: TIPOS[0], falta: FALTAS[0], fechaNotificacion: hoy() }); setEmp(null); load();
+      setF({ tipo: TIPOS[0], falta: FALTAS[0] }); setEmp(null); load();
     } catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   async function resolver(s: S, estado: string) { try { await api.patch(`/sanciones/${s.id}`, { estado }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
@@ -96,12 +96,12 @@ export default function Sanciones() {
             <div className="field"><label>Falta cometida</label><select className="input" value={f.falta} onChange={set('falta')}>{FALTAS.map((t) => <option key={t}>{t}</option>)}</select></div>
             <div className="field"><label>Fecha del incumplimiento *</label><input className="input" type="date" value={f.fecha || ''} onChange={set('fecha')} /></div>
             {f.tipo === 'Suspensión' && <div className="field"><label>Días de suspensión</label><input className="input" type="number" value={f.dias || ''} onChange={set('dias')} /></div>}
-            {esRRHH && <div className="field"><label>Fecha de notificación *</label><input className="input" type="date" max={hoy()} value={f.fechaNotificacion || ''} onChange={set('fechaNotificacion')} /></div>}
+            {esRRHH && <div className="field"><label>Fecha de notificación <span className="muted" style={{ fontWeight: 400 }}>(opcional — se carga al notificar por escrito)</span></label><input className="input" type="date" max={hoy()} value={f.fechaNotificacion || ''} onChange={set('fechaNotificacion')} /></div>}
             {esRRHH && <div className="field"><label>Fecha de cumplimiento{f.tipo === 'Suspensión' ? ' (suspensión)' : ''}</label><input className="input" type="date" value={f.fechaCumplimiento || ''} onChange={set('fechaCumplimiento')} /></div>}
           </div>
-          <div className="field" style={{ marginBottom: 12 }}><label>Comentarios</label><textarea className="input" rows={2} value={f.descripcion || ''} onChange={set('descripcion')} /></div>
+          <div className="field" style={{ marginBottom: 12 }}><label>Descripción del hecho</label><textarea className="input" rows={2} value={f.descripcion || ''} onChange={set('descripcion')} placeholder="Describí el hecho que motiva la sanción" /></div>
           {msg && <div className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 8 }}>{msg.ok ? '✓ ' : '⚠ '}{msg.t}</div>}
-          <button className="btn" disabled={!emp || !f.fecha || (esRRHH && !f.fechaNotificacion)}>{esGerente ? 'Solicitar' : 'Registrar'}</button>
+          <button className="btn" disabled={!emp || !f.fecha}>{esGerente ? 'Solicitar' : 'Registrar'}</button>
         </form>
       )}
       {!puedeRegistrar && msg && !msg.ok && <div className="err" style={{ marginBottom: 12 }}>⚠ {msg.t}</div>}
