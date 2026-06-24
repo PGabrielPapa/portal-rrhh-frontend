@@ -5,6 +5,7 @@ import EmpleadoPicker from '../components/EmpleadoPicker';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const $ = (n: any) => (Number(n) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const SUPUESTOS_BAJA: [string, string][] = [['renuncia', 'Renuncia (Art. 240)'], ['sin_causa', 'Despido sin causa (Art. 245)'], ['fuerza_mayor', 'Fuerza mayor / falta de trabajo (Art. 247)'], ['con_causa', 'Despido con justa causa (Art. 242)'], ['mutuo', 'Mutuo acuerdo (Art. 241)'], ['jubilacion', 'Jubilación / Retiro (Art. 252)'], ['fallecimiento', 'Fallecimiento (Art. 248)'], ['prueba', 'Período de prueba (Art. 92 bis)']];
 
 interface Item { legNum: string; nom: string; empresa: string; netoActual: number; netoSim: number; costoActual: number; costoSim: number; }
 interface Resp { incrementoPct: number; cant: number; items: Item[]; totales: { netoActual: number; netoSim: number; costoActual: number; costoSim: number; deltaCosto: number; deltaNeto: number }; }
@@ -196,13 +197,13 @@ function SimFinalMasiva() {
   const [empresa, setEmpresa] = useState('');
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [fechaEgreso, setFechaEgreso] = useState('');
-  const [diasVac, setDiasVac] = useState('');
+  const [supuesto, setSupuesto] = useState('sin_causa');
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   useEffect(() => { api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
   async function calcular() {
     setErr(''); setBusy(true); setData(null);
-    try { setData(await api.post('/liquidacion/simular-final-masivo', { empresa: empresa || undefined, fechaEgreso, diasVacNoGozadas: diasVac ? Number(diasVac) : 0 })); }
+    try { setData(await api.post('/liquidacion/simular-final-masivo', { empresa: empresa || undefined, fechaEgreso, supuesto })); }
     catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }
   function csv() {
@@ -222,7 +223,7 @@ function SimFinalMasiva() {
         <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="field"><label>Empresa</label><select className="input" value={empresa} onChange={(e) => setEmpresa(e.target.value)}><option value="">Todas</option>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
           <div className="field"><label>Fecha de egreso *</label><input className="input" type="date" value={fechaEgreso} onChange={(e) => setFechaEgreso(e.target.value)} /></div>
-          <div className="field"><label>Días vac. no gozadas</label><input className="input" type="number" style={{ width: 120 }} value={diasVac} onChange={(e) => setDiasVac(e.target.value)} /></div>
+          <div className="field"><label>Causa de desvinculación</label><select className="input" value={supuesto} onChange={(e) => setSupuesto(e.target.value)}>{SUPUESTOS_BAJA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
           <button className="btn" onClick={calcular} disabled={busy || !fechaEgreso}>{busy ? 'Calculando…' : '⚖️ Comparar supuestos (masivo)'}</button>
         </div>
         {err && <div className="err" style={{ marginTop: 10 }}>⚠ {err}</div>}
