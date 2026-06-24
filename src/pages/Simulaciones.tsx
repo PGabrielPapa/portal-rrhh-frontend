@@ -192,6 +192,59 @@ function SimFinal() {
   );
 }
 
+function SimFinalMasiva() {
+  const [empresa, setEmpresa] = useState('');
+  const [empresas, setEmpresas] = useState<string[]>([]);
+  const [fechaEgreso, setFechaEgreso] = useState('');
+  const [diasVac, setDiasVac] = useState('');
+  const [data, setData] = useState<any>(null);
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  useEffect(() => { api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
+  async function calcular() {
+    setErr(''); setBusy(true); setData(null);
+    try { setData(await api.post('/liquidacion/simular-final-masivo', { empresa: empresa || undefined, fechaEgreso, diasVacNoGozadas: diasVac ? Number(diasVac) : 0 })); }
+    catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  }
+  function csv() {
+    if (!data) return;
+    const sup = data.supuestos as any[];
+    const head = ['Legajo', 'Empleado', 'Empresa', ...sup.map((sp) => sp.lbl)].join(',');
+    const lines = data.items.map((it: any) => [it.legNum, `"${it.nom}"`, `"${it.empresa}"`, ...sup.map((sp) => it.netos[sp.v] ?? 0)].join(','));
+    const tot = ['TOTAL', '', '', ...sup.map((sp) => data.totales[sp.v] ?? 0)].join(',');
+    const blob = new Blob(['\ufeff' + [head, ...lines, tot].join('\r\n')], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'liquidaciones_finales_masivas.csv'; a.click();
+  }
+  const sup = (data?.supuestos || []) as any[];
+  return (
+    <>
+      <p className="muted" style={{ marginTop: 0, marginBottom: 14 }}>Liquidación final de todo el plantel (o de una empresa) comparando los 7 supuestos legales de baja, a una misma fecha de egreso. No afecta la liquidación oficial.</p>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="field"><label>Empresa</label><select className="input" value={empresa} onChange={(e) => setEmpresa(e.target.value)}><option value="">Todas</option>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
+          <div className="field"><label>Fecha de egreso *</label><input className="input" type="date" value={fechaEgreso} onChange={(e) => setFechaEgreso(e.target.value)} /></div>
+          <div className="field"><label>Días vac. no gozadas</label><input className="input" type="number" style={{ width: 120 }} value={diasVac} onChange={(e) => setDiasVac(e.target.value)} /></div>
+          <button className="btn" onClick={calcular} disabled={busy || !fechaEgreso}>{busy ? 'Calculando…' : '⚖️ Comparar supuestos (masivo)'}</button>
+        </div>
+        {err && <div className="err" style={{ marginTop: 10 }}>⚠ {err}</div>}
+      </div>
+      {data && (
+        <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+          <div className="row" style={{ justifyContent: 'space-between', padding: '8px 12px' }}><strong>{data.cant} empleados</strong><button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={csv}>⬇ CSV</button></div>
+          <table>
+            <thead><tr><th>Legajo</th><th>Empleado</th><th>Empresa</th>{sup.map((sp) => <th key={sp.v} style={{ textAlign: 'right' }}>{sp.lbl}</th>)}</tr></thead>
+            <tbody>
+              {data.items.map((it: any, i: number) => (
+                <tr key={i}><td style={{ fontFamily: 'monospace' }}>{it.legNum}</td><td>{it.nom}</td><td>{it.empresa}</td>
+                  {sup.map((sp) => <td key={sp.v} style={{ textAlign: 'right', fontFamily: 'monospace' }}>{$(it.netos[sp.v])}</td>)}</tr>
+              ))}
+            </tbody>
+            <tfoot><tr style={{ fontWeight: 700, borderTop: '2px solid var(--border)' }}><td colSpan={3}>Totales</td>{sup.map((sp) => <td key={sp.v} style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--green)' }}>{$(data.totales[sp.v])}</td>)}</tr></tfoot>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
 export default function Simulaciones() {
   const [tab, setTab] = useState('incremento');
   return (
@@ -200,8 +253,9 @@ export default function Simulaciones() {
         <button className={`btn ${tab === 'incremento' ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setTab('incremento')}>Incremento salarial</button>
         <button className={`btn ${tab === 'gratificacion' ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setTab('gratificacion')}>Gratificaciones</button>
         <button className={`btn ${tab === 'final' ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setTab('final')}>Liquidación final</button>
+        <button className={`btn ${tab === 'final_masiva' ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setTab('final_masiva')}>Final masiva</button>
       </div>
-      {tab === 'incremento' ? <SimIncremento /> : tab === 'gratificacion' ? <SimGratificacion /> : <SimFinal />}
+      {tab === 'incremento' ? <SimIncremento /> : tab === 'gratificacion' ? <SimGratificacion /> : tab === 'final' ? <SimFinal /> : <SimFinalMasiva />}
     </>
   );
 }
