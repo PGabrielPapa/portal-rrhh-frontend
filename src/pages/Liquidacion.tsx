@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const TIPOS: [string, string][] = [['mensual', 'Mensual'], ['quincenal_1', 'Quincena 1ª (1–15)'], ['quincenal_2', 'Quincena 2ª (16–fin)'], ['sac1', 'SAC 1° semestre'], ['sac2', 'SAC 2° semestre'], ['vacaciones', 'Vacaciones'], ['anticipo', 'Anticipo de haberes'], ['complementaria', 'Ajuste de sueldo (remunerativo)'], ['anticipo_ajuste', 'Anticipo ajuste de sueldo (no rem.)'], ['final', 'Liquidación final']];
+const CAUSAS: [string, string][] = [['renuncia', 'Renuncia (Art. 240)'], ['sin_causa', 'Despido sin causa (Art. 245)'], ['fuerza_mayor', 'Fuerza mayor / falta de trabajo (Art. 247)'], ['con_causa', 'Despido con justa causa (Art. 242)'], ['despido_indirecto', 'Despido indirecto (Art. 246)'], ['mutuo', 'Mutuo acuerdo / retiro voluntario (Art. 241)'], ['jubilacion', 'Jubilación / Retiro (Art. 252)'], ['fallecimiento', 'Fallecimiento (Art. 248)'], ['incapacidad', 'Incapacidad (Art. 212)'], ['abandono', 'Abandono de trabajo (Art. 244)'], ['fin_contrato', 'Vencimiento de plazo / fin de obra'], ['prueba', 'Período de prueba (Art. 92 bis)']];
 const $ = (n: any) => (Number(n) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // ───────────── Individual ─────────────
@@ -23,6 +24,8 @@ function Individual() {
     if (an) setAnio(Number(an));
     if (me) setMes(Number(me));
     if (ti) setTipo(ti);
+    const motivo = sp.get('motivo'); const fEg = sp.get('fechaEgreso'); const fNotif = sp.get('fechaNotif'); const prev = sp.get('preaviso'); const grat = sp.get('grat');
+    if (ti === 'final') setFin((pf) => ({ ...pf, ...(fEg ? { fechaEgreso: fEg } : {}), ...(motivo ? { motivoBaja: motivo } : {}), ...(fNotif ? { fechaNotificacion: fNotif } : {}), ...(prev ? { preavisoOverride: prev } : {}), ...(grat ? { gratificacion: grat } : {}) }));
     api.get<Empleado[]>(`/empleados?q=${encodeURIComponent(leg)}`).then((rows) => {
       const m = rows.find((e) => String(e.legNum) === leg && (!emp || e.empresa === emp)) || rows[0];
       if (m) elegir(m);
@@ -62,7 +65,7 @@ function Individual() {
       if (fin.nroHijosMenores) nv.nroHijosMenores = Number(fin.nroHijosMenores);
       if (fin.nroHijosIncapacitados) nv.nroHijosIncapacitados = Number(fin.nroHijosIncapacitados);
       Object.assign(b, nv);
-    } if (tipo === 'final') Object.assign(b, { fechaEgreso: fin.fechaEgreso, motivoBaja: fin.motivoBaja, diasVacNoGozadas: fin.diasVacNoGozadas ? Number(fin.diasVacNoGozadas) : 0, mejorRem: fin.mejorRem ? Number(fin.mejorRem) : undefined }); if (tipo === 'vacaciones' && fin.diasVac) b.diasVac = Number(fin.diasVac); if (tipo === 'anticipo') b.montoAnticipo = Number(fin.montoAnticipo || 0); if (tipo === 'complementaria') { b.montoAjuste = Number(fin.montoAjuste || 0); b.conceptoAjuste = fin.conceptoAjuste; } if (tipo === 'anticipo_ajuste') { b.montoAnticipoAjuste = Number(fin.montoAnticipoAjuste || 0); b.conceptoAjuste = fin.conceptoAjuste; } if (tipo === 'mensual' || tipo === 'quincenal_1' || tipo === 'quincenal_2') { if (fin.ajusteSueldoBruto) b.ajusteSueldoBruto = Number(fin.ajusteSueldoBruto); if (fin.anticipoAjusteDesc) b.anticipoAjusteDesc = Number(fin.anticipoAjusteDesc); } return b; }
+    } if (tipo === 'final') Object.assign(b, { fechaEgreso: fin.fechaEgreso, motivoBaja: fin.motivoBaja, diasVacNoGozadas: fin.diasVacNoGozadas ? Number(fin.diasVacNoGozadas) : 0, mejorRem: fin.mejorRem ? Number(fin.mejorRem) : undefined, fechaNotificacion: fin.fechaNotificacion || undefined, gratificacion: fin.gratificacion ? Number(fin.gratificacion) : 0, pagarPreaviso: fin.preavisoOverride === 'pagar' ? true : fin.preavisoOverride === 'no' ? false : undefined }); if (tipo === 'vacaciones' && fin.diasVac) b.diasVac = Number(fin.diasVac); if (tipo === 'anticipo') b.montoAnticipo = Number(fin.montoAnticipo || 0); if (tipo === 'complementaria') { b.montoAjuste = Number(fin.montoAjuste || 0); b.conceptoAjuste = fin.conceptoAjuste; } if (tipo === 'anticipo_ajuste') { b.montoAnticipoAjuste = Number(fin.montoAnticipoAjuste || 0); b.conceptoAjuste = fin.conceptoAjuste; } if (tipo === 'mensual' || tipo === 'quincenal_1' || tipo === 'quincenal_2') { if (fin.ajusteSueldoBruto) b.ajusteSueldoBruto = Number(fin.ajusteSueldoBruto); if (fin.anticipoAjusteDesc) b.anticipoAjusteDesc = Number(fin.anticipoAjusteDesc); } return b; }
   async function calcular() { if (!sel) return; setErr(''); setMsg(''); setBusy(true); setRecibo(null); try { setRecibo(await api.post<Recibo>('/liquidacion/calcular', body())); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } }
   async function guardar() { if (!sel) return; if (!window.confirm('Esto guarda y PUBLICA el recibo (queda visible para el empleado en “Mis recibos”). ¿Continuar?')) return; setErr(''); setBusy(true); try { await api.post('/liquidacion/guardar', body()); setMsg('Recibo guardado y publicado ✓ (visible en “Mis recibos”)'); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } }
 
@@ -152,9 +155,12 @@ function Individual() {
           <div className="grid2" style={{ marginTop: 10 }}>
             <div className="field"><label>Fecha de egreso *</label><input className="input" type="date" value={fin.fechaEgreso || ''} onChange={(e) => setFin({ ...fin, fechaEgreso: e.target.value })} /></div>
             <div className="field"><label>Motivo de baja</label><select className="input" value={fin.motivoBaja} onChange={(e) => setFin({ ...fin, motivoBaja: e.target.value })}>
-              <option value="sin_causa">Despido sin causa (con indemnización)</option><option value="renuncia">Renuncia</option><option value="con_causa">Despido con causa</option><option value="mutuo_acuerdo">Mutuo acuerdo (Art. 241)</option><option value="fin_contrato">Fin de contrato</option></select></div>
+              {CAUSAS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
             <div className="field"><label>Días de vacaciones no gozadas</label><input className="input" type="number" value={fin.diasVacNoGozadas || ''} onChange={(e) => setFin({ ...fin, diasVacNoGozadas: e.target.value })} /></div>
             <div className="field"><label>Mejor remuneración (opcional)</label><input className="input" type="number" value={fin.mejorRem || ''} onChange={(e) => setFin({ ...fin, mejorRem: e.target.value })} placeholder="usa la del mes" /></div>
+            {['sin_causa', 'fuerza_mayor', 'despido_indirecto'].includes(fin.motivoBaja) && <div className="field"><label>Fecha de notificación</label><input className="input" type="date" value={fin.fechaNotificacion || ''} onChange={(e) => setFin({ ...fin, fechaNotificacion: e.target.value })} /></div>}
+            {['sin_causa', 'fuerza_mayor', 'despido_indirecto'].includes(fin.motivoBaja) && <div className="field"><label>Preaviso</label><select className="input" value={fin.preavisoOverride || ''} onChange={(e) => setFin({ ...fin, preavisoOverride: e.target.value })}><option value="">Automático (por fechas)</option><option value="pagar">Pagar (no se otorgó)</option><option value="no">No pagar (trabajado)</option></select></div>}
+            {fin.motivoBaja === 'mutuo' && <div className="field"><label>Gratificación ($)</label><input className="input" type="number" value={fin.gratificacion || ''} onChange={(e) => setFin({ ...fin, gratificacion: e.target.value })} /></div>}
           </div>
         )}
         <div className="row" style={{ marginTop: 12 }}>

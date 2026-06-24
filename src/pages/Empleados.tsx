@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { loadCodigos, buscarObrasSociales, CAMPOS_SICOSS, defaultsSicoss, type CodigosArca, type ObraSocial } from '../lib/arca';
 import type { Empleado, ImportResult } from '../lib/types';
+import { useNavigate } from 'react-router-dom';
 
 const PLANTILLA = ['Legajo*','DNI*','CUIL*','Apellido y Nombre*','Empresa*','Fecha Ingreso*',
   'Fecha Nacimiento','Ubicación','Categoría','Tramo','Sueldo Bruto','Sueldo Neto','E-mail',
@@ -22,6 +23,8 @@ export default function Empleados() {
   const [q, setQ] = useState('');
   const [empresa, setEmpresa] = useState('');
   const [soloActivos, setSoloActivos] = useState(false);
+  const navE = useNavigate();
+  const [bajaEmp, setBajaEmp] = useState<Empleado | null>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [showAlta, setShowAlta] = useState(false);
@@ -45,6 +48,14 @@ export default function Empleados() {
   async function toggleActivo(emp: Empleado) {
     try { await api.patch(`/empleados/${emp.id}/activo`, { activo: !emp.activo }); load(); }
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
+  }
+  async function liquidarFinal(e: Empleado) {
+    const p = new URLSearchParams({ reLeg: e.legNum, reEmp: e.empresa, tipo: 'final' });
+    try {
+      const b: any = await api.get(`/empleados/${(e as any).id}/baja`);
+      if (b) { p.set('fechaEgreso', String(b.fecha_baja).slice(0, 10)); p.set('motivo', b.causa); if (b.fecha_notificacion) p.set('fechaNotif', String(b.fecha_notificacion).slice(0, 10)); if (b.preaviso_override) p.set('preaviso', b.preaviso_override); if (Number(b.gratificacion)) p.set('grat', String(Number(b.gratificacion))); }
+    } catch { /* sin baja registrada: igual abro la final */ }
+    navE(`/m/liquidacion?${p.toString()}`);
   }
 
   function descargarPlantilla() {
@@ -109,7 +120,9 @@ export default function Empleados() {
                   <td><span className="badge" style={{ color: e.activo ? 'var(--green)' : 'var(--t3)' }}>{e.activo ? 'Activo' : 'Baja'}</span></td>
                   {canEdit && <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => setEditEmp(e)}>Editar</button>
-                    <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => toggleActivo(e)}>{e.activo ? 'Dar de baja' : 'Reactivar'}</button>
+                    {e.activo
+                      ? <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setBajaEmp(e)}>Dar de baja</button>
+                      : <><button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => toggleActivo(e)}>Reactivar</button><button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => liquidarFinal(e)}>⚖️ Liquidar final</button></>}
                   </td>}
                 </tr>
               ))}
@@ -120,7 +133,98 @@ export default function Empleados() {
         <p className="muted" style={{ marginTop: 10 }}>{items.length} empleado(s)</p>
 
       {(showAlta || editEmp) && <EmpModal emp={editEmp} empresas={empresas} onClose={() => { setShowAlta(false); setEditEmp(null); }} onSaved={(m) => { setShowAlta(false); setEditEmp(null); setMsg({ t: m, ok: true }); load(); }} onError={(t) => setMsg({ t, ok: false })} />}
+      {bajaEmp && <BajaModal emp={bajaEmp} onClose={() => setBajaEmp(null)} onDone={(navTo) => { setBajaEmp(null); load(); navE(navTo); }} />}
     </>
+  );
+}
+
+const CAUSAS_BAJA: [string, string][] = [
+  ['renuncia', 'Renuncia (Art. 240)'],
+  ['sin_causa', 'Despido sin causa (Art. 245)'],
+  ['fuerza_mayor', 'Fuerza mayor / falta de trabajo (Art. 247)'],
+  ['con_causa', 'Despido con justa causa (Art. 242)'],
+  ['despido_indirecto', 'Despido indirecto (Art. 246)'],
+  ['mutuo', 'Mutuo acuerdo / retiro voluntario (Art. 241)'],
+  ['jubilacion', 'Jubilación / Retiro (Art. 252)'],
+  ['fallecimiento', 'Fallecimiento (Art. 248)'],
+  ['incapacidad', 'Incapacidad (Art. 212)'],
+  ['abandono', 'Abandono de trabajo (Art. 244)'],
+  ['fin_contrato', 'Vencimiento de plazo / fin de obra'],
+  ['prueba', 'Período de prueba (Art. 92 bis)'],
+];
+
+function BajaModal({ emp, onClose, onDone }: { emp: Empleado; onClose: () => void; onDone: (navTo: string) => void }) {
+  const [f, setF] = useState<any>({ causa: 'sin_causa', fechaBaja: new Date().toISOString().slice(0, 10), preavisoOverride: '' });
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const esDespido = ['sin_causa', 'fuerza_mayor', 'despido_indirecto'].includes(f.causa);
+  const esMutuo = f.causa === 'mutuo';
+  const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
+  function genCuotas() {
+    const n = Number(f.cantCuotas) || 0; const grat = Number(f.gratificacion) || 0;
+    if (n <= 0) { setF({ ...f, cuotas: [] }); return; }
+    const base = Math.round((grat / n) * 100) / 100;
+    setF({ ...f, cuotas: Array.from({ length: n }, (_, i) => ({ nro: i + 1, monto: base, vence: '' })) });
+  }
+  function setCuota(i: number, k: string, v: any) { const c = [...(f.cuotas || [])]; c[i] = { ...c[i], [k]: k === 'monto' ? Number(v) : v }; setF({ ...f, cuotas: c }); }
+  async function guardar() {
+    if (!f.fechaBaja || !f.causa) { setErr('Fecha de baja y causa son obligatorias.'); return; }
+    setBusy(true); setErr('');
+    try {
+      await api.post(`/empleados/${(emp as any).id}/baja`, {
+        fechaBaja: f.fechaBaja, causa: f.causa, fechaNotificacion: f.fechaNotificacion || undefined,
+        preavisoOverride: esDespido ? (f.preavisoOverride || undefined) : undefined,
+        gratificacion: esMutuo ? (Number(f.gratificacion) || 0) : 0,
+        gratifCuotas: esMutuo ? (f.cuotas || []) : [],
+        observaciones: f.observaciones || undefined,
+      });
+      const p = new URLSearchParams({ reLeg: emp.legNum, reEmp: emp.empresa, tipo: 'final', fechaEgreso: f.fechaBaja, motivo: f.causa });
+      if (f.fechaNotificacion) p.set('fechaNotif', f.fechaNotificacion);
+      if (esDespido && f.preavisoOverride) p.set('preaviso', f.preavisoOverride);
+      if (esMutuo && Number(f.gratificacion)) p.set('grat', String(Number(f.gratificacion)));
+      onDone(`/m/liquidacion?${p.toString()}`);
+    } catch (e: any) { setErr(e.message); setBusy(false); }
+  }
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', zIndex: 50, overflow: 'auto' }} onClick={onClose}>
+      <div className="card" style={{ maxWidth: 580, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Dar de baja — {emp.nom} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({emp.legNum} · {emp.empresa})</span></h3>
+        <div className="grid2" style={{ marginBottom: 10 }}>
+          <div className="field"><label>Fecha de baja *</label><input className="input" type="date" value={f.fechaBaja} onChange={set('fechaBaja')} /></div>
+          <div className="field"><label>Causa de baja *</label><select className="input" value={f.causa} onChange={set('causa')}>{CAUSAS_BAJA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+        </div>
+        {esDespido && (
+          <div className="grid2" style={{ marginBottom: 10 }}>
+            <div className="field"><label>Fecha de notificación</label><input className="input" type="date" value={f.fechaNotificacion || ''} onChange={set('fechaNotificacion')} /></div>
+            <div className="field"><label>Preaviso</label><select className="input" value={f.preavisoOverride} onChange={set('preavisoOverride')}><option value="">Automático (por fechas/antigüedad)</option><option value="pagar">Pagar (no se otorgó preaviso)</option><option value="no">No pagar (preaviso trabajado)</option></select></div>
+          </div>
+        )}
+        {esMutuo && (
+          <div style={{ marginBottom: 10 }}>
+            <div className="grid2">
+              <div className="field"><label>Gratificación ($)</label><input className="input" type="number" value={f.gratificacion || ''} onChange={set('gratificacion')} /></div>
+              <div className="field"><label>Cantidad de cuotas</label><div className="row" style={{ gap: 6 }}><input className="input" type="number" style={{ width: 90 }} value={f.cantCuotas || ''} onChange={set('cantCuotas')} /><button type="button" className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={genCuotas}>Generar</button></div></div>
+            </div>
+            {(f.cuotas || []).length > 0 && (
+              <table style={{ width: '100%', fontSize: 13, marginTop: 6 }}>
+                <thead><tr><th style={{ textAlign: 'left' }}>Cuota</th><th style={{ textAlign: 'left' }}>Monto</th><th style={{ textAlign: 'left' }}>Vence</th></tr></thead>
+                <tbody>{f.cuotas.map((c: any, i: number) => (
+                  <tr key={i}><td>#{c.nro}</td>
+                    <td><input className="input" type="number" style={{ width: 130 }} value={c.monto} onChange={(e) => setCuota(i, 'monto', e.target.value)} /></td>
+                    <td><input className="input" type="date" value={c.vence || ''} onChange={(e) => setCuota(i, 'vence', e.target.value)} /></td></tr>
+                ))}</tbody>
+              </table>
+            )}
+            <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Las cuotas se registran con su monto. Si el acuerdo prevé actualización, editás el monto de cada cuota cuando corresponda.</div>
+          </div>
+        )}
+        <div className="field" style={{ marginBottom: 12 }}><label>Observaciones</label><textarea className="input" rows={2} value={f.observaciones || ''} onChange={set('observaciones')} /></div>
+        {err && <div className="err" style={{ marginBottom: 8 }}>⚠ {err}</div>}
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn" disabled={busy} onClick={guardar}>{busy ? 'Guardando…' : 'Registrar baja y liquidar final →'}</button>
+          <button className="btn ghost" onClick={onClose}>Cancelar</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
