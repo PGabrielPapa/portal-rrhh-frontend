@@ -1,8 +1,10 @@
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const money = (n: number) => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
+const fmtFecha = (s?: string | null) => { if (!s) return '—'; const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s); };
 
 export interface Recibo {
-  empleado: { legNum: string; nom: string; empresa: string; cuil?: string; cat?: string };
+  empleado: { legNum: string; nom: string; empresa: string; cuil?: string; cat?: string; ingreso?: string | null; antiguedadReconocida?: string | null };
+  empleador?: { razonSocial?: string; cuit?: string | null; domicilio?: string | null };
   firmaEmpleador?: string | null;
   firmante?: { nombre?: string; cargo?: string } | null;
   periodo: { anio: number; mes: number; tipoLabel?: string; fechaPago?: string; ganPeriodo?: string };
@@ -27,10 +29,27 @@ export default function ReciboView({ recibo }: { recibo: Recibo }) {
     <div>
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div>
-          <strong>{recibo.empleado.nom}</strong>
-          <div className="muted">Legajo {recibo.empleado.legNum} · {recibo.empleado.empresa} · {recibo.empleado.cat || ''}</div>
+          <strong>{recibo.empleado.empresa}</strong>
+          <div className="muted">Recibo de Haberes</div>
         </div>
         <div className="muted" style={{ textAlign: 'right' }}>{MESES[recibo.periodo.mes - 1]} {recibo.periodo.anio}{recibo.periodo.tipoLabel ? ` · ${recibo.periodo.tipoLabel}` : ''}{recibo.periodo.fechaPago ? <><br/>Pago: {recibo.periodo.fechaPago}{recibo.periodo.ganPeriodo ? ` · Ganancias ${recibo.periodo.ganPeriodo}` : ''}</> : ''}</div>
+      </div>
+
+      <div className="card" style={{ marginTop: 12, padding: '10px 14px', fontSize: 13 }}>
+        <div className="row" style={{ gap: 24, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div className="muted" style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 0.5 }}>Empleador</div>
+            <div><strong>{recibo.empleador?.razonSocial || recibo.empleado.empresa}</strong></div>
+            <div className="muted">CUIT {recibo.empleador?.cuit || '—'}</div>
+            <div className="muted">Domicilio: {recibo.empleador?.domicilio || '—'}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div className="muted" style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 0.5 }}>Trabajador</div>
+            <div><strong>{recibo.empleado.nom}</strong></div>
+            <div className="muted">CUIL {recibo.empleado.cuil || '—'} · Legajo {recibo.empleado.legNum}</div>
+            <div className="muted">Categoría: {recibo.empleado.cat || '—'} · Ingreso: {fmtFecha(recibo.empleado.ingreso)}{recibo.empleado.antiguedadReconocida ? ` · Antig. reconocida: ${fmtFecha(recibo.empleado.antiguedadReconocida)}` : ''}</div>
+          </div>
+        </div>
       </div>
 
       <div className="grid2" style={{ marginTop: 14, alignItems: 'start' }}>

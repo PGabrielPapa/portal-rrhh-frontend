@@ -3,6 +3,34 @@ import type { Recibo } from '../components/ReciboView';
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const money = (n: number) => '$ ' + (Number(n) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const esc = (s: any) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[c]);
+const fmtFecha = (s: any) => { if (!s) return '—'; const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s); };
+
+// Importe en letras (art. 140 LCT) — pesos y centavos.
+const _UNI = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho', 'diecinueve', 'veinte'];
+const _DEC = ['', '', '', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
+const _CEN = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
+function _seccion(n: number): string {
+  if (n === 0) return ''; if (n === 100) return 'cien';
+  const c = Math.floor(n / 100), dd = n % 100, d = Math.floor(dd / 10), u = n % 10;
+  let t = c ? _CEN[c] + ' ' : '';
+  if (dd <= 20) t += _UNI[dd];
+  else if (dd < 30) t += 'veinti' + _UNI[u];
+  else { t += _DEC[d]; if (u) t += ' y ' + _UNI[u]; }
+  return t.trim();
+}
+function _enteroALetras(n: number): string {
+  n = Math.floor(n); if (n === 0) return 'cero';
+  const mill = Math.floor(n / 1000000), miles = Math.floor((n % 1000000) / 1000), resto = n % 1000;
+  const p: string[] = [];
+  if (mill) p.push(mill === 1 ? 'un millon' : _seccion(mill) + ' millones');
+  if (miles) p.push(miles === 1 ? 'mil' : _seccion(miles) + ' mil');
+  if (resto) p.push(_seccion(resto));
+  return p.join(' ').replace(/\s+/g, ' ').trim();
+}
+function numALetras(num: number): string {
+  const v = Math.abs(Number(num) || 0); const ent = Math.floor(v); const cts = Math.round((v - ent) * 100);
+  return `${_enteroALetras(ent)} con ${String(cts).padStart(2, '0')}/100`.replace(/^./, (c) => c.toUpperCase());
+}
 
 
 function pieDonut(r: Recibo): string {
@@ -69,12 +97,23 @@ function copia(r: Recibo, marca: string): string {
       <div><b>${esc(r.empleado.empresa)}</b><br/>Recibo de Haberes</div>
       <div class="right">${MESES[r.periodo.mes - 1]} ${r.periodo.anio}${r.periodo.tipoLabel ? ' · ' + esc(r.periodo.tipoLabel) : ''}${r.periodo.fechaPago ? '<br/>Pago: ' + esc(r.periodo.fechaPago) : ''}</div>
     </div>
-    <table class="datos"><tr>
-      <td><b>Empleado:</b> ${esc(r.empleado.nom)}</td>
-      <td><b>Legajo:</b> ${esc(r.empleado.legNum)}</td>
-      <td><b>CUIL:</b> ${esc(r.empleado.cuil || '')}</td>
-      <td><b>Categoría:</b> ${esc(r.empleado.cat || '')}</td>
-    </tr></table>
+    <table class="datos">
+      <tr>
+        <td><b>Empleador:</b> ${esc(r.empleador?.razonSocial || r.empleado.empresa)}</td>
+        <td><b>CUIT:</b> ${esc(r.empleador?.cuit || '—')}</td>
+        <td colspan="2"><b>Domicilio:</b> ${esc(r.empleador?.domicilio || '—')}</td>
+      </tr>
+      <tr>
+        <td><b>Empleado:</b> ${esc(r.empleado.nom)}</td>
+        <td><b>Legajo:</b> ${esc(r.empleado.legNum)}</td>
+        <td><b>CUIL:</b> ${esc(r.empleado.cuil || '')}</td>
+        <td><b>Categoría:</b> ${esc(r.empleado.cat || '')}</td>
+      </tr>
+      <tr>
+        <td colspan="2"><b>Fecha de ingreso:</b> ${fmtFecha(r.empleado.ingreso)}${r.empleado.antiguedadReconocida ? ` &nbsp;·&nbsp; <b>Antig. reconocida:</b> ${fmtFecha(r.empleado.antiguedadReconocida)}` : ''}</td>
+        <td colspan="2"><b>Período:</b> ${MESES[r.periodo.mes - 1]} ${r.periodo.anio}${r.periodo.tipoLabel ? ' · ' + esc(r.periodo.tipoLabel) : ''}</td>
+      </tr>
+    </table>
     <div class="cols">
       <table><thead><tr><th>Haberes</th><th class="n">Importe</th></tr></thead><tbody>${filasH}
         <tr class="tot"><td>Total haberes</td><td class="n">${money(r.totales.totalHaberes)}</td></tr></tbody></table>
@@ -82,6 +121,7 @@ function copia(r: Recibo, marca: string): string {
         <tr class="tot"><td>Total descuentos</td><td class="n">${money(r.totales.totalDescuentos)}</td></tr></tbody></table>
     </div>
     <div class="neto"><b>NETO A COBRAR</b><b>${money(r.totales.neto)}</b></div>
+    <div class="neto-letras">Son pesos: ${esc(numALetras(r.totales.neto))}.</div>
     ${contrib ? `<table class="contrib"><thead><tr><th>Costo del empleador (no afecta el neto)</th><th class="n"></th></tr></thead><tbody>${contrib}<tr class="tot"><td>Costo laboral total</td><td class="n">${money(r.costoEmpleador?.costoTotal || 0)}</td></tr></tbody></table>` : ''}
     ${pieDonut(r)}
     <div class="firmas">
@@ -105,7 +145,7 @@ export function imprimirRecibo(r: Recibo) {
     body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
     .copia { border: 1.5px solid #333; padding: 10px 12px; position: relative; page-break-after: always; }
     .copia:last-child { page-break-after: auto; }
-    .marca { position: absolute; top: 6px; right: 10px; font-size: 9px; color: #888; letter-spacing: 1px; }
+    .marca { display: block; text-align: right; font-size: 9px; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
     .head { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 6px; }
     .right { text-align: right; font-size: 10px; }
     table { width: 100%; border-collapse: collapse; }
@@ -117,6 +157,7 @@ export function imprimirRecibo(r: Recibo) {
     .n { text-align: right; font-family: 'Courier New', monospace; white-space: nowrap; }
     .tot td { font-weight: bold; background: #fafafa; }
     .neto { display: flex; justify-content: space-between; background: #eef6ff; border: 1px solid #99c; padding: 8px 12px; margin-top: 8px; font-size: 13px; }
+    .neto-letras { font-size: 9px; font-style: italic; color: #333; margin-top: 2px; }
     .contrib { margin-top: 8px; }
     .costo { margin-top: 10px; border-top: 1px solid #999; padding-top: 6px; }
     .costo-t { font-weight: bold; font-size: 10px; margin-bottom: 4px; }
@@ -147,7 +188,7 @@ export function imprimirVarios(recibos: Recibo[]) {
     body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
     .copia { border: 1.5px solid #333; padding: 10px 12px; position: relative; page-break-after: always; }
     .copia:last-child { page-break-after: auto; }
-    .marca { position: absolute; top: 6px; right: 10px; font-size: 9px; color: #888; letter-spacing: 1px; }
+    .marca { display: block; text-align: right; font-size: 9px; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
     .head { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 6px; }
     .right { text-align: right; font-size: 10px; }
     table { width: 100%; border-collapse: collapse; }
@@ -159,6 +200,7 @@ export function imprimirVarios(recibos: Recibo[]) {
     .n { text-align: right; font-family: 'Courier New', monospace; white-space: nowrap; }
     .tot td { font-weight: bold; background: #fafafa; }
     .neto { display: flex; justify-content: space-between; background: #eef6ff; border: 1px solid #99c; padding: 8px 12px; margin-top: 8px; font-size: 13px; }
+    .neto-letras { font-size: 9px; font-style: italic; color: #333; margin-top: 2px; }
     .contrib { margin-top: 8px; }
     .costo { margin-top: 10px; border-top: 1px solid #999; padding-top: 6px; }
     .costo-t { font-weight: bold; font-size: 10px; margin-bottom: 4px; }
