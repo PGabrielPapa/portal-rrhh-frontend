@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import { construirOrganigrama, type Emp, type OrgNode } from '../lib/organigrama';
 import { useAuth } from '../lib/auth';
+import Avatar from '../components/Avatar';
 
 const legD = (l?: string) => String(l || '').replace(/\D/g, '').padStart(6, '0');
 
@@ -18,11 +19,14 @@ function Nodo({ nodo, nivel, expandido, toggle, q }: { nodo: OrgNode; nivel: num
       <div className="card" style={{ padding: '8px 12px', borderLeft: `3px solid ${color}`, cursor: tieneHijos ? 'pointer' : 'default' }}
         onClick={() => tieneHijos && toggle(nodo.nombre)}>
         <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
-          <div>
+          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <Avatar nombre={nodo.nombre} foto={emp?.foto} size={30} />
+            <div>
             <strong style={{ color }}>{tieneHijos ? (abierto ? '▾ ' : '▸ ') : '• '}{nodo.nombre}</strong>
             {emp ? <span className="muted" style={{ fontSize: 11, marginLeft: 8, fontFamily: 'monospace' }}>Leg. {legD(emp.legNum || emp.leg)} · {emp.empresa || emp.emp} {emp.cat ? `· ${emp.cat} ${emp.tramo || ''}` : ''}</span>
                  : <span className="muted" style={{ fontSize: 11, marginLeft: 8, fontStyle: 'italic' }}>(Área / rol)</span>}
             {nodo.area && <div style={{ fontSize: 11, color, fontFamily: 'monospace' }}>{nodo.area}</div>}
+            </div>
           </div>
           <span className="badge" style={{ flexShrink: 0 }}>{nodo.totalRecursivo} pers.</span>
         </div>
@@ -36,10 +40,13 @@ function Nodo({ nodo, nivel, expandido, toggle, q }: { nodo: OrgNode; nivel: num
               const tarea = d.emp.tarea || d.emp.desc_categoria || [d.emp.cat, d.emp.tramo].filter(Boolean).join(' ');
               return (
               <div key={d.emp.legNum || d.emp.nom}
-                style={{ background: 'var(--bg2)', border: `1px solid ${match(d.emp.nom) ? 'rgba(234,179,8,.6)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '5px 9px', fontSize: 12, minWidth: 180 }}>
-                <div>{d.emp.nom} <span className="muted" style={{ fontFamily: 'monospace' }}>({legD(d.emp.legNum || d.emp.leg)})</span></div>
-                <div className="muted" style={{ fontSize: 10, fontFamily: 'monospace' }}>
-                  🏢 {d.emp.empresa || d.emp.emp || '—'}{tarea ? ` · 💼 ${tarea}` : ''}{d.emp.lugar ? ` · 📍 ${d.emp.lugar}` : ''}
+                style={{ background: 'var(--bg2)', border: `1px solid ${match(d.emp.nom) ? 'rgba(234,179,8,.6)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '5px 9px', fontSize: 12, minWidth: 180, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <Avatar nombre={d.emp.nom} foto={d.emp.foto} size={24} />
+                <div>
+                  <div>{d.emp.nom} <span className="muted" style={{ fontFamily: 'monospace' }}>({legD(d.emp.legNum || d.emp.leg)})</span></div>
+                  <div className="muted" style={{ fontSize: 10, fontFamily: 'monospace' }}>
+                    🏢 {d.emp.empresa || d.emp.emp || '—'}{tarea ? ` · 💼 ${tarea}` : ''}{d.emp.lugar ? ` · 📍 ${d.emp.lugar}` : ''}
+                  </div>
                 </div>
               </div>
             ); })}

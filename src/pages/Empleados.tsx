@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { loadCodigos, buscarObrasSociales, CAMPOS_SICOSS, defaultsSicoss, type CodigosArca, type ObraSocial } from '../lib/arca';
 import type { Empleado, ImportResult } from '../lib/types';
 import { useNavigate } from 'react-router-dom';
+import Avatar from '../components/Avatar';
 
 const PLANTILLA = ['Legajo*','DNI*','CUIL*','Apellido y Nombre*','Empresa*','Fecha Ingreso*',
   'Fecha Nacimiento','Ubicación','Categoría','Tramo','Sueldo Bruto','Sueldo Neto','E-mail',
@@ -113,7 +114,7 @@ export default function Empleados() {
               {items.map((e) => (
                 <tr key={e.id}>
                   <td style={{ fontFamily: 'monospace' }}>{e.legNum}</td>
-                  <td>{e.nom}</td>
+                  <td><div className="row" style={{ gap: 8, alignItems: 'center' }}><Avatar nombre={e.nom} foto={(e as any).foto} size={28} /><span>{e.nom}</span></div></td>
                   <td>{e.empresa}</td>
                   <td>{e.dni}</td>
                   <td>{e.cat || '—'}</td>
@@ -246,8 +247,26 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     return base;
   })();
   const [f, setF] = useState<Record<string, string>>(ini);
+  const [foto, setFoto] = useState<string>((e as any).foto || '');
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: ev.target.value });
+  function onFoto(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0]; if (!file) return; ev.target.value = '';
+    if (!/jpe?g$/i.test(file.type) && !/\.jpe?g$/i.test(file.name)) { onError('La foto debe estar en formato JPG'); return; }
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 320; let w = img.width, h = img.height;
+        if (w > h && w > max) { h = Math.round(h * max / w); w = max; } else if (h > max) { w = Math.round(w * max / h); h = max; }
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d'); if (!ctx) return; ctx.drawImage(img, 0, 0, w, h);
+        setFoto(cv.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = String(rd.result);
+    };
+    rd.readAsDataURL(file);
+  }
   // Codigos ARCA (desplegables) + obra social (buscador) + historico de OS.
   const [codigos, setCodigos] = useState<CodigosArca>({});
   const [osQ, setOsQ] = useState('');
@@ -273,7 +292,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   async function save() {
     setBusy(true);
     try {
-      const body: any = { ...f, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0 };
+      const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0 };
       delete body.cod_os; delete body.desc_os;
       if (esNueva) {
         if (osSel) { body.os_codigo = osSel.codigo; body.os_nombre = osSel.nombre; body.codigoObraSocial = osSicoss(osSel); }
@@ -296,6 +315,14 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
         <h3 style={{ marginTop: 0 }}>{esNueva ? 'Nueva alta de empleado' : `Editar — ${e.nom}`}</h3>
 
         <div className="sb-group-label" style={{ margin: '4px 0 6px' }}>Identificación</div>
+        <div className="row" style={{ gap: 14, alignItems: 'center', marginBottom: 12 }}>
+          <Avatar nombre={f.nom} foto={foto} size={64} />
+          <div>
+            <input type="file" accept="image/jpeg,.jpg,.jpeg" onChange={onFoto} />
+            <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Foto del empleado (JPG). Se redimensiona automáticamente.</div>
+            {foto && <button type="button" className="btn ghost" style={{ padding: '2px 8px', fontSize: 12, marginTop: 4 }} onClick={() => setFoto('')}>Quitar foto</button>}
+          </div>
+        </div>
         <div className="grid2">
           <div className="field"><label>Empresa *</label><select className="input" value={f.empresa} onChange={set('empresa')} disabled={!esNueva}>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
           <div className="field"><label>Apellido y Nombre *</label><input className="input" value={f.nom || ''} onChange={set('nom')} /></div>

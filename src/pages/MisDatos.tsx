@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { buscarObrasSociales, type ObraSocial } from '../lib/arca';
 import type { Empleado } from '../lib/types';
+import Avatar from '../components/Avatar';
 
 const v = (x: unknown) => (x === null || x === undefined || x === '' ? '—' : String(x));
 function Field({ label, value }: { label: string; value: unknown }) {
@@ -68,9 +69,7 @@ export default function MisDatos() {
   return (
     <>
       <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-        <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--accent-glow)', border: '1px solid rgba(61,127,255,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: 'var(--accent2)', flexShrink: 0 }}>
-          {String(p.nom || '').replace(/,/g, '').split(/\s+/).slice(0, 2).map((x) => x[0]).join('').toUpperCase()}
-        </div>
+        <Avatar nombre={p.nom} foto={(p as any).foto} size={52} />
         <div>
           <div style={{ fontSize: 16, fontWeight: 600 }}>{p.nom}</div>
           <div className="muted" style={{ fontFamily: 'var(--font-mono)', marginTop: 2 }}>Legajo {p.legNum} · {p.empresa}{p['lugar'] ? ` · ${p['lugar']}` : ''}</div>
