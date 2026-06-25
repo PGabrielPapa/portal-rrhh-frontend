@@ -394,6 +394,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <F k="sueldo" label="Sueldo" f={f} set={set} />
           <F k="bruto" label="Sueldo bruto" f={f} set={set} />
           <F k="neto" label="Sueldo neto" f={f} set={set} />
+          <div className="field" style={{ alignSelf: 'end' }}><label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={!!f.adicionalPresentismo} onChange={(ev) => setF({ ...f, adicionalPresentismo: ev.target.checked ? '1' : '' })} /> Adicional presentismo (lleva al 10%)</label></div>
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Domicilio</div>

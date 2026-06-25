@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
-interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: number; pctPatronal: number; pctAntigPorAnio: number; nota?: string; tituloSecundario: number; tituloUniversitario: number; presBase: string; }
-const PRES = [['basico', 'Solo básico'], ['basico+antig', 'Básico + antigüedad'], ['basico+antig+titulo', 'Básico + antig. + título']];
-const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctPatronal: 0, pctAntigPorAnio: 1, nota: '', tituloSecundario: 0, tituloUniversitario: 0, presBase: 'basico' });
+interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: number; pctPatronal: number; pctAntigPorAnio: number; nota?: string; tituloSecundario: number; tituloUniversitario: number; presBase: string; pctPresentismo: number; }
+const PRES = [['basico', 'Solo básico'], ['basico+antig', 'Básico + antigüedad'], ['basico+antig+titulo', 'Básico + antig. + título'], ['basico+antig+titulo+acuenta', 'Básico + antig. + título + a cuenta fut. aumentos']];
+const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctPatronal: 0, pctAntigPorAnio: 1, nota: '', tituloSecundario: 0, tituloUniversitario: 0, presBase: 'basico', pctPresentismo: 0 });
 
 export default function Sindicatos() {
   const { user } = useAuth();
@@ -40,6 +40,7 @@ export default function Sindicatos() {
             <div className="field"><label>% aporte empleado</label><input className="input" type="number" step="0.01" value={edit.pctEmpleado} onChange={(e) => setF('pctEmpleado', Number(e.target.value))} /></div>
             <div className="field"><label>% contribución patronal</label><input className="input" type="number" step="0.01" value={edit.pctPatronal} onChange={(e) => setF('pctPatronal', Number(e.target.value))} /></div>
             <div className="field"><label>% antigüedad por año</label><input className="input" type="number" step="0.01" value={edit.pctAntigPorAnio} onChange={(e) => setF('pctAntigPorAnio', Number(e.target.value))} /></div>
+            <div className="field"><label>% presentismo (CCT)</label><input className="input" type="number" step="0.01" value={edit.pctPresentismo} onChange={(e) => setF('pctPresentismo', Number(e.target.value))} placeholder="Ej: 8.33" /></div>
             <div className="field"><label>Base de presentismo</label><select className="input" value={edit.presBase} onChange={(e) => setF('presBase', e.target.value)}>{PRES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
             <div className="field"><label>Nota</label><input className="input" value={edit.nota || ''} onChange={(e) => setF('nota', e.target.value)} /></div>
             <div className="field"><label>Adicional título secundario ($)</label><input className="input" type="number" value={edit.tituloSecundario || 0} onChange={(e) => setF('tituloSecundario', Number(e.target.value))} placeholder="0 = no aplica" /></div>
