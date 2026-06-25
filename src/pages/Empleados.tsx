@@ -147,7 +147,7 @@ const CAUSAS_BAJA: [string, string][] = [
   ['mutuo', 'Mutuo acuerdo / retiro voluntario (Art. 241)'],
   ['jubilacion', 'Jubilación / Retiro (Art. 252)'],
   ['fallecimiento', 'Fallecimiento (Art. 248)'],
-  ['incapacidad', 'Incapacidad (Art. 212)'],
+  ['incapacidad_absoluta', 'Incapacidad absoluta (Art. 212 4°)'], ['incapacidad_parcial', 'Incapacidad parcial / sin tareas (Art. 212 1°-3°)'],
   ['abandono', 'Abandono de trabajo (Art. 244)'],
   ['fin_contrato', 'Vencimiento de plazo / fin de obra'],
   ['prueba', 'Período de prueba (Art. 92 bis)'],
