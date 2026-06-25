@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
-interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: number; pctPatronal: number; pctAntigPorAnio: number; nota?: string; tieneAdicionalTitulo: boolean; presBase: string; }
+interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: number; pctPatronal: number; pctAntigPorAnio: number; nota?: string; tituloSecundario: number; tituloUniversitario: number; presBase: string; }
 const PRES = [['basico', 'Solo básico'], ['basico+antig', 'Básico + antigüedad'], ['basico+antig+titulo', 'Básico + antig. + título']];
-const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctPatronal: 0, pctAntigPorAnio: 1, nota: '', tieneAdicionalTitulo: false, presBase: 'basico' });
+const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctPatronal: 0, pctAntigPorAnio: 1, nota: '', tituloSecundario: 0, tituloUniversitario: 0, presBase: 'basico' });
 
 export default function Sindicatos() {
   const { user } = useAuth();
@@ -42,7 +42,8 @@ export default function Sindicatos() {
             <div className="field"><label>% antigüedad por año</label><input className="input" type="number" step="0.01" value={edit.pctAntigPorAnio} onChange={(e) => setF('pctAntigPorAnio', Number(e.target.value))} /></div>
             <div className="field"><label>Base de presentismo</label><select className="input" value={edit.presBase} onChange={(e) => setF('presBase', e.target.value)}>{PRES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
             <div className="field"><label>Nota</label><input className="input" value={edit.nota || ''} onChange={(e) => setF('nota', e.target.value)} /></div>
-            <div className="field" style={{ alignSelf: 'end' }}><label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={edit.tieneAdicionalTitulo} onChange={(e) => setF('tieneAdicionalTitulo', e.target.checked)} /> Tiene adicional por título</label></div>
+            <div className="field"><label>Adicional título secundario ($)</label><input className="input" type="number" value={edit.tituloSecundario || 0} onChange={(e) => setF('tituloSecundario', Number(e.target.value))} placeholder="0 = no aplica" /></div>
+            <div className="field"><label>Adicional título universitario ($)</label><input className="input" type="number" value={edit.tituloUniversitario || 0} onChange={(e) => setF('tituloUniversitario', Number(e.target.value))} placeholder="0 = no aplica" /></div>
           </div>
           <button className="btn" onClick={guardar}>Guardar</button>
           <button className="btn ghost" style={{ marginLeft: 8 }} onClick={() => { setEdit(null); setErr(''); }}>Cancelar</button>
@@ -60,7 +61,7 @@ export default function Sindicatos() {
                 <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{s.pctPatronal}%</td>
                 <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{s.pctAntigPorAnio}%</td>
                 <td className="muted" style={{ fontSize: 12 }}>{presLbl(s.presBase)}</td>
-                <td>{s.tieneAdicionalTitulo ? '✓' : '—'}</td>
+                <td className="muted" style={{ fontSize: 12 }}>{(s.tituloSecundario || s.tituloUniversitario) ? `Sec $${s.tituloSecundario || 0} · Univ $${s.tituloUniversitario || 0}` : '—'}</td>
                 {puede && <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button className="btn ghost" style={{ padding: '3px 9px', fontSize: 12, marginRight: 6 }} onClick={() => setEdit({ ...s })}>✎</button>
                   <button className="btn ghost" style={{ padding: '3px 9px', fontSize: 12, color: 'var(--red)' }} onClick={() => borrar(s)}>✕</button>

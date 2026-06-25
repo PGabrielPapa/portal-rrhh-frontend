@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
-interface Concepto { id: number; codigo: string; descripcion: string; tipo: string; formula?: string; base_legal?: string; activo: boolean; }
+interface Concepto { id: number; codigo: string; descripcion: string; tipo: string; formula?: string; base_legal?: string; activo: boolean; data?: any; }
+const FLAGS: [string, string][] = [['rem', 'Remunerativo'], ['incideSac', 'Incide SAC'], ['incidePresentismo', 'Incide presentismo'], ['incideAntiguedad', 'Incide antigüedad'], ['remAsignada', 'Rem. asignada'], ['saleRecibo', 'Sale en recibo'], ['libroLey', 'Libro ley'], ['f931', 'F.931'], ['boletaSindical', 'Boleta sindical']];
 
 const TIPOS = [
   { v: 'remunerativo', l: 'Remunerativo' },
@@ -22,6 +23,7 @@ export default function Conceptos() {
   const [err, setErr] = useState('');
   const [edit, setEdit] = useState<Concepto | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [exp, setExp] = useState<Record<number, boolean>>({});
 
   async function load() {
     try {
@@ -51,22 +53,35 @@ export default function Conceptos() {
 
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
-          <thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>Base legal</th><th>Estado</th>{canEdit && <th></th>}</tr></thead>
+          <thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>Sindicato</th><th>Base legal</th><th>Estado</th>{canEdit && <th></th>}</tr></thead>
           <tbody>
-            {items.map((c) => (
-              <tr key={c.id}>
-                <td style={{ fontFamily: 'monospace' }}>{c.codigo}</td>
-                <td>{c.descripcion}</td>
-                <td><span className="badge">{tipoLabel(c.tipo)}</span></td>
-                <td className="muted">{c.base_legal || '—'}</td>
-                <td><span className="badge" style={{ color: c.activo ? 'var(--green)' : 'var(--t3)' }}>{c.activo ? 'Activo' : 'Inactivo'}</span></td>
-                {canEdit && <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => setEdit(c)}>Editar</button>
-                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => toggle(c)}>{c.activo ? 'Desactivar' : 'Activar'}</button>
-                </td>}
-              </tr>
-            ))}
-            {!items.length && <tr><td colSpan={canEdit ? 6 : 5} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin conceptos.</td></tr>}
+            {items.map((c) => {
+              const d = c.data || {};
+              const tieneFlags = !!(d.sindicato || 'rem' in d);
+              const abierto = !!exp[c.id];
+              return [
+                <tr key={c.id}>
+                  <td style={{ fontFamily: 'monospace', cursor: tieneFlags ? 'pointer' : undefined }} onClick={() => tieneFlags && setExp((s) => ({ ...s, [c.id]: !abierto }))}>{tieneFlags ? (abierto ? '▾ ' : '▸ ') : ''}{c.codigo}</td>
+                  <td>{c.descripcion}</td>
+                  <td><span className="badge">{tipoLabel(c.tipo)}</span></td>
+                  <td className="muted" style={{ fontSize: 12 }}>{d.sindicato ? `${d.sindicato}${d.cct ? ' · ' + d.cct : ''}` : '—'}</td>
+                  <td className="muted">{c.base_legal || '—'}</td>
+                  <td><span className="badge" style={{ color: c.activo ? 'var(--green)' : 'var(--t3)' }}>{c.activo ? 'Activo' : 'Inactivo'}</span></td>
+                  {canEdit && <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => setEdit(c)}>Editar</button>
+                    <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => toggle(c)}>{c.activo ? 'Desactivar' : 'Activar'}</button>
+                  </td>}
+                </tr>,
+                abierto && tieneFlags && (
+                  <tr key={`d${c.id}`}><td colSpan={canEdit ? 7 : 6} style={{ background: 'var(--bg2)', padding: '8px 14px' }}>
+                    <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>{FLAGS.map(([k, l]) => <span key={k} className="badge" style={{ color: d[k] ? 'var(--green)' : 'var(--t3)' }}>{d[k] ? '✓' : '✗'} {l}</span>)}</div>
+                    {d.base && <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Base de cálculo: {d.base}{d.valor ? ` · valor de referencia $${d.valor}` : ''}{d.nivelTitulo ? ` · nivel de título: ${d.nivelTitulo}` : ''}</div>}
+                    {d.confirmar && <div style={{ fontSize: 12, marginTop: 4, color: 'var(--yellow)' }}>⚠ Importe/criterio a confirmar con el CCT vigente.</div>}
+                  </td></tr>
+                ),
+              ].filter(Boolean);
+            })}
+            {!items.length && <tr><td colSpan={canEdit ? 7 : 6} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin conceptos.</td></tr>}
           </tbody>
         </table>
       </div>
