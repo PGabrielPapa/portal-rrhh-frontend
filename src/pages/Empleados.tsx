@@ -16,6 +16,28 @@ function F({ k, label, type = 'text', ph, f, set }: { k: string; label: string; 
   return <div className="field"><label>{label}</label><input className="input" type={type} value={f[k] || ''} onChange={set(k)} placeholder={ph} /></div>;
 }
 
+// Desplegable genérico. Si el valor actual no está en la lista, lo conserva como primera opción (no se pierden datos viejos).
+function Sel({ k, label, opts, f, set, ph }: { k: string; label: string; opts: [string, string][]; f: any; set: (k: string) => any; ph?: string }) {
+  const cur = f[k] || '';
+  const inList = opts.some(([v]) => v === cur);
+  return (
+    <div className="field"><label>{label}</label>
+      <select className="input" value={cur} onChange={set(k)}>
+        <option value="">{ph || '—'}</option>
+        {cur && !inList && <option value={cur}>{cur}</option>}
+        {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+    </div>
+  );
+}
+
+const SEXO_OPTS: [string, string][] = [['M', 'Masculino'], ['F', 'Femenino'], ['X', 'X / No binario']];
+const ESTADO_CIVIL_OPTS: [string, string][] = [['Soltero/a', 'Soltero/a'], ['Casado/a', 'Casado/a'], ['Divorciado/a', 'Divorciado/a'], ['Viudo/a', 'Viudo/a'], ['Separado/a', 'Separado/a'], ['Unión convivencial', 'Unión convivencial']];
+const NACIONALIDAD_OPTS: [string, string][] = [['Argentina', 'Argentina'], ['Boliviana', 'Boliviana'], ['Brasileña', 'Brasileña'], ['Chilena', 'Chilena'], ['Paraguaya', 'Paraguaya'], ['Peruana', 'Peruana'], ['Uruguaya', 'Uruguaya'], ['Colombiana', 'Colombiana'], ['Venezolana', 'Venezolana'], ['Española', 'Española'], ['Italiana', 'Italiana'], ['China', 'China'], ['Otra', 'Otra']];
+const CONDICION_OPTS: [string, string][] = [['Mensualizado', 'Mensualizado'], ['Jornalizado', 'Jornalizado']];
+const VINCULO_OPTS: [string, string][] = [['Cónyuge/Pareja', 'Cónyuge/Pareja'], ['Padre', 'Padre'], ['Madre', 'Madre'], ['Hijo/a', 'Hijo/a'], ['Hermano/a', 'Hermano/a'], ['Familiar', 'Familiar'], ['Amigo/a', 'Amigo/a'], ['Otro', 'Otro']];
+const PROVINCIAS_AR: [string, string][] = [['Buenos Aires', 'Buenos Aires'], ['CABA', 'CABA'], ['Catamarca', 'Catamarca'], ['Chaco', 'Chaco'], ['Chubut', 'Chubut'], ['Córdoba', 'Córdoba'], ['Corrientes', 'Corrientes'], ['Entre Ríos', 'Entre Ríos'], ['Formosa', 'Formosa'], ['Jujuy', 'Jujuy'], ['La Pampa', 'La Pampa'], ['La Rioja', 'La Rioja'], ['Mendoza', 'Mendoza'], ['Misiones', 'Misiones'], ['Neuquén', 'Neuquén'], ['Río Negro', 'Río Negro'], ['Salta', 'Salta'], ['San Juan', 'San Juan'], ['San Luis', 'San Luis'], ['Santa Cruz', 'Santa Cruz'], ['Santa Fe', 'Santa Fe'], ['Santiago del Estero', 'Santiago del Estero'], ['Tierra del Fuego', 'Tierra del Fuego'], ['Tucumán', 'Tucumán']];
+
 export default function Empleados() {
   const { user } = useAuth();
   const canEdit = user?.role === 'rrhh' || user?.role === 'admin';
@@ -236,6 +258,9 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     const base: Record<string, string> = {
       ...defaultsSicoss(),
       empresa: e.empresa || empresas[0] || '', legNum: e.legNum || '', dni: e.dni || '', cuil: e.cuil || '', nom: e.nom || '',
+      apellido: e.apellido || (String(e.nom || '').split(',')[0] || '').trim(), nombres: e.nombres || (String(e.nom || '').split(',').slice(1).join(',') || '').trim(),
+      email_laboral: e.email_laboral || '', email_personal: e.email_personal || '', tel_laboral: e.tel_laboral || '', tel_personal: e.tel_personal || '',
+      contacto_nombre: e.contacto_nombre || '', contacto_tel: e.contacto_tel || '', contacto_vinculo: e.contacto_vinculo || '',
       email: e.email || '', ingreso: e.ingreso || '', fecha_nac: e.fecha_nac || '', sexo: e.sexo || '', estado_civil: e.estado_civil || '', nacionalidad: e.nacionalidad || '',
       lugar: e.lugar || '', tarea: e.tarea || '', cat: e.cat || '', tramo: e.tramo || '', desc_categoria: e.desc_categoria || '', condicion: e.condicion || '',
       cod_convenio: e.cod_convenio || '', cod_sindicato: e.cod_sindicato || '',
@@ -269,6 +294,9 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   }
   // Codigos ARCA (desplegables) + obra social (buscador) + historico de OS.
   const [codigos, setCodigos] = useState<CodigosArca>({});
+  const [convs, setConvs] = useState<any[]>([]);
+  const [sinds, setSinds] = useState<any[]>([]);
+  const [escCats, setEscCats] = useState<any[]>([]);
   const [osQ, setOsQ] = useState('');
   const [osRes, setOsRes] = useState<ObraSocial[]>([]);
   const [osSel, setOsSel] = useState<ObraSocial | null>(() => {
@@ -278,6 +306,11 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [osHist, setOsHist] = useState<any[]>([]);
   const [osBusca, setOsBusca] = useState(false);
   useEffect(() => { loadCodigos().then(setCodigos).catch(() => {}); }, []);
+  useEffect(() => {
+    api.get<any[]>('/convenios').then(setConvs).catch(() => {});
+    api.get<any[]>('/sindicatos').then(setSinds).catch(() => {});
+    api.get<any>('/escala/activa').then((es) => setEscCats(es?.categorias || [])).catch(() => {});
+  }, []);
   useEffect(() => { if (!esNueva && e.id) api.get<any[]>(`/cambios-obra-social/empleado/${e.id}`).then(setOsHist).catch(() => {}); }, []);
   useEffect(() => { if (!osBusca) return; const t = setTimeout(() => { buscarObrasSociales(osQ).then(setOsRes).catch(() => setOsRes([])); }, 250); return () => clearTimeout(t); }, [osQ, osBusca]);
   // En alta, el legajo lo asigna el sistema: traemos el próximo de la empresa elegida.
@@ -293,6 +326,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     setBusy(true);
     try {
       const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0 };
+      body.nom = [f.apellido, f.nombres].filter(Boolean).join(', ').toUpperCase().trim();
       delete body.cod_os; delete body.desc_os;
       if (esNueva) {
         if (osSel) { body.os_codigo = osSel.codigo; body.os_nombre = osSel.nombre; body.codigoObraSocial = osSicoss(osSel); }
@@ -309,6 +343,12 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     } catch (err: any) { onError(err.message); } finally { setBusy(false); }
   }
 
+  const catOpts: [string, string][] = escCats.map((c: any) => [String(c.cat), c.nombre ? `${c.cat} — ${c.nombre}` : String(c.cat)]);
+  const tramoCat = escCats.find((c: any) => String(c.cat) === String(f.cat));
+  const tramoOpts: [string, string][] = tramoCat && tramoCat.tramos ? Object.keys(tramoCat.tramos).map((t) => [t, t] as [string, string]) : [];
+  const convOpts: [string, string][] = convs.map((c: any) => [String(c.codigo), `${c.codigo} — ${c.nombre}`]);
+  const sindOpts: [string, string][] = sinds.map((sd: any) => [String(sd.codigo), `${sd.codigo} — ${sd.nombre}`]);
+
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: 760, maxHeight: '90vh', overflow: 'auto' }}>
@@ -316,7 +356,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
 
         <div className="sb-group-label" style={{ margin: '4px 0 6px' }}>Identificación</div>
         <div className="row" style={{ gap: 14, alignItems: 'center', marginBottom: 12 }}>
-          <Avatar nombre={f.nom} foto={foto} size={64} />
+          <Avatar nombre={[f.apellido, f.nombres].filter(Boolean).join(', ') || f.nom} foto={foto} size={64} />
           <div>
             <input type="file" accept="image/jpeg,.jpg,.jpeg" onChange={onFoto} />
             <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Foto del empleado (JPG). Se redimensiona automáticamente.</div>
@@ -325,28 +365,44 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
         </div>
         <div className="grid2">
           <div className="field"><label>Empresa *</label><select className="input" value={f.empresa} onChange={set('empresa')} disabled={!esNueva}>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
-          <div className="field"><label>Apellido y Nombre *</label><input className="input" value={f.nom || ''} onChange={set('nom')} /></div>
           <div className="field"><label>Legajo {esNueva ? '(automático)' : '*'}</label><input className="input" value={f.legNum || (esNueva ? '…' : '')} disabled readOnly title={esNueva ? 'Lo asigna el sistema según el último legajo de la empresa' : ''} /></div>
+          <F k="apellido" label="Apellido *" f={f} set={set} />
+          <F k="nombres" label="Nombres *" f={f} set={set} />
           <div className="field"><label>DNI *</label><input className="input" value={f.dni || ''} onChange={set('dni')} disabled={!esNueva} /></div>
           <F k="cuil" label="CUIL" ph="XX-XXXXXXXX-X" f={f} set={set} />
-          <F k="email" label="E-mail" f={f} set={set} />
           <F k="ingreso" label="Fecha de ingreso" type="date" f={f} set={set} />
           <F k="fecha_nac" label="Fecha de nacimiento" ph="AAAA-MM-DD o DD/MM/AAAA" f={f} set={set} />
-          <F k="sexo" label="Sexo" f={f} set={set} />
-          <F k="estado_civil" label="Estado civil" f={f} set={set} />
-          <F k="nacionalidad" label="Nacionalidad" f={f} set={set} />
+          <Sel k="sexo" label="Sexo" opts={SEXO_OPTS} f={f} set={set} />
+          <Sel k="estado_civil" label="Estado civil" opts={ESTADO_CIVIL_OPTS} f={f} set={set} />
+          <Sel k="nacionalidad" label="Nacionalidad" opts={NACIONALIDAD_OPTS} f={f} set={set} />
+        </div>
+
+        <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Contacto</div>
+        <div className="grid2">
+          <F k="email" label="E-mail (cuenta del sistema / notificaciones)" f={f} set={set} />
+          <F k="email_laboral" label="Mail laboral" f={f} set={set} />
+          <F k="email_personal" label="Mail personal" f={f} set={set} />
+          <F k="tel_laboral" label="Teléfono laboral" f={f} set={set} />
+          <F k="tel_personal" label="Teléfono personal" f={f} set={set} />
+        </div>
+
+        <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Persona de contacto (emergencia)</div>
+        <div className="grid2">
+          <F k="contacto_nombre" label="Nombre y apellido" f={f} set={set} />
+          <F k="contacto_tel" label="Teléfono" f={f} set={set} />
+          <Sel k="contacto_vinculo" label="Vínculo" opts={VINCULO_OPTS} f={f} set={set} />
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Datos laborales</div>
         <div className="grid2">
           <F k="lugar" label="Ubicación / Lugar de trabajo" f={f} set={set} />
           <F k="tarea" label="Tarea / Puesto" f={f} set={set} />
-          <F k="cat" label="Categoría (código)" f={f} set={set} />
-          <F k="tramo" label="Tramo" f={f} set={set} />
+          <Sel k="cat" label="Categoría" opts={catOpts} f={f} set={set} />
+          <Sel k="tramo" label="Tramo" opts={tramoOpts} f={f} set={set} />
           <F k="desc_categoria" label="Descripción de categoría" f={f} set={set} />
-          <F k="condicion" label="Condición" f={f} set={set} />
-          <F k="cod_convenio" label="Código de convenio" f={f} set={set} />
-          <F k="cod_sindicato" label="Código de sindicato" f={f} set={set} />
+          <Sel k="condicion" label="Condición" opts={CONDICION_OPTS} f={f} set={set} />
+          <Sel k="cod_convenio" label="Convenio (CCT)" opts={convOpts} f={f} set={set} />
+          <Sel k="cod_sindicato" label="Sindicato" opts={sindOpts} f={f} set={set} />
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Obra social</div>
@@ -435,12 +491,12 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <F k="dom_bloque" label="Bloque" f={f} set={set} />
           <F k="dom_loc" label="Localidad" f={f} set={set} />
           <F k="dom_cp" label="C.P." f={f} set={set} />
-          <F k="dom_prov" label="Provincia" f={f} set={set} />
+          <Sel k="dom_prov" label="Provincia" opts={PROVINCIAS_AR} f={f} set={set} />
         </div>
 
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 18 }}>
           <button className="btn ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn" onClick={save} disabled={busy || !f.empresa || !f.nom || (!f.dni && !f.cuil)}>{busy ? 'Guardando…' : (esNueva ? 'Crear' : 'Guardar cambios')}</button>
+          <button className="btn" onClick={save} disabled={busy || !f.empresa || !f.apellido || (!f.dni && !f.cuil)}>{busy ? 'Guardando…' : (esNueva ? 'Crear' : 'Guardar cambios')}</button>
         </div>
       </div>
     </div>
