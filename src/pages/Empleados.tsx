@@ -36,6 +36,17 @@ const ESTADO_CIVIL_OPTS: [string, string][] = [['Soltero/a', 'Soltero/a'], ['Cas
 const NACIONALIDAD_OPTS: [string, string][] = [['Argentina', 'Argentina'], ['Boliviana', 'Boliviana'], ['Brasileña', 'Brasileña'], ['Chilena', 'Chilena'], ['Paraguaya', 'Paraguaya'], ['Peruana', 'Peruana'], ['Uruguaya', 'Uruguaya'], ['Colombiana', 'Colombiana'], ['Venezolana', 'Venezolana'], ['Española', 'Española'], ['Italiana', 'Italiana'], ['China', 'China'], ['Otra', 'Otra']];
 const CONDICION_OPTS: [string, string][] = [['Mensualizado', 'Mensualizado'], ['Jornalizado', 'Jornalizado']];
 const VINCULO_OPTS: [string, string][] = [['Cónyuge/Pareja', 'Cónyuge/Pareja'], ['Padre', 'Padre'], ['Madre', 'Madre'], ['Hijo/a', 'Hijo/a'], ['Hermano/a', 'Hermano/a'], ['Familiar', 'Familiar'], ['Amigo/a', 'Amigo/a'], ['Otro', 'Otro']];
+function cuilError(cuil?: string, dni?: string): string {
+  const s = String(cuil || '').replace(/\D/g, '');
+  if (!s) return 'El CUIL es obligatorio';
+  if (s.length !== 11) return 'El CUIL debe tener 11 dígitos';
+  const mult = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  let sum = 0; for (let i = 0; i < 10; i++) sum += Number(s[i]) * mult[i];
+  let ver = 11 - (sum % 11); if (ver === 11) ver = 0;
+  if (ver === 10 || ver !== Number(s[10])) return 'El dígito verificador del CUIL no es correcto';
+  if (dni) { const d = String(dni).replace(/\D/g, ''); if (d && String(parseInt(s.slice(2, 10), 10)) !== String(parseInt(d, 10))) return 'El CUIL no coincide con el DNI'; }
+  return '';
+}
 const PROVINCIAS_AR: [string, string][] = [['Buenos Aires', 'Buenos Aires'], ['CABA', 'CABA'], ['Catamarca', 'Catamarca'], ['Chaco', 'Chaco'], ['Chubut', 'Chubut'], ['Córdoba', 'Córdoba'], ['Corrientes', 'Corrientes'], ['Entre Ríos', 'Entre Ríos'], ['Formosa', 'Formosa'], ['Jujuy', 'Jujuy'], ['La Pampa', 'La Pampa'], ['La Rioja', 'La Rioja'], ['Mendoza', 'Mendoza'], ['Misiones', 'Misiones'], ['Neuquén', 'Neuquén'], ['Río Negro', 'Río Negro'], ['Salta', 'Salta'], ['San Juan', 'San Juan'], ['San Luis', 'San Luis'], ['Santa Cruz', 'Santa Cruz'], ['Santa Fe', 'Santa Fe'], ['Santiago del Estero', 'Santiago del Estero'], ['Tierra del Fuego', 'Tierra del Fuego'], ['Tucumán', 'Tucumán']];
 
 export default function Empleados() {
@@ -263,7 +274,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
       contacto_nombre: e.contacto_nombre || '', contacto_tel: e.contacto_tel || '', contacto_vinculo: e.contacto_vinculo || '',
       email: e.email || '', ingreso: e.ingreso || '', fecha_nac: e.fecha_nac || '', sexo: e.sexo || '', estado_civil: e.estado_civil || '', nacionalidad: e.nacionalidad || '',
       lugar: e.lugar || '', tarea: e.tarea || '', cat: e.cat || '', tramo: e.tramo || '', desc_categoria: e.desc_categoria || '', condicion: e.condicion || '',
-      cod_convenio: e.cod_convenio || '', cod_sindicato: e.cod_sindicato || '',
+      cod_convenio: e.cod_convenio || '', cod_sindicato: e.cod_sindicato || '', categoria_convenio: e.categoria_convenio || '',
       basico: e.basico ?? '', antiguedad_monto: e.antiguedad_monto ?? '', complemento: e.complemento ?? '', norem: e.norem ?? '', sueldo: e.sueldo ?? '',
       bruto: e.bruto != null ? String(e.bruto) : '', neto: e.neto != null ? String(e.neto) : '',
       dom_calle: e.dom_calle || '', dom_nro: e.dom_nro || '', dom_piso: e.dom_piso || '', dom_depto: e.dom_depto || '', dom_torre: e.dom_torre || '', dom_bloque: e.dom_bloque || '', dom_loc: e.dom_loc || '', dom_cp: e.dom_cp || '', dom_prov: e.dom_prov || '',
@@ -297,6 +308,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [convs, setConvs] = useState<any[]>([]);
   const [sinds, setSinds] = useState<any[]>([]);
   const [escCats, setEscCats] = useState<any[]>([]);
+  const [escTramos, setEscTramos] = useState<any[]>([]);
   const [osQ, setOsQ] = useState('');
   const [osRes, setOsRes] = useState<ObraSocial[]>([]);
   const [osSel, setOsSel] = useState<ObraSocial | null>(() => {
@@ -310,7 +322,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   useEffect(() => {
     api.get<any[]>('/convenios').then(setConvs).catch(() => {});
     api.get<any[]>('/sindicatos').then(setSinds).catch(() => {});
-    api.get<any>('/escala/activa').then((es) => setEscCats(es?.categorias || [])).catch(() => {});
+    api.get<any>('/escala/activa').then((es) => { setEscCats(es?.categorias || []); setEscTramos(es?.tramos || []); }).catch(() => {});
   }, []);
   useEffect(() => { if (!esNueva && e.id) api.get<any[]>(`/cambios-obra-social/empleado/${e.id}`).then(setOsHist).catch(() => {}); }, []);
   useEffect(() => { if (!esNueva && e.id) api.get<any[]>(`/empleados/${e.id}/cambios-perfil`).then(setPerfHist).catch(() => {}); }, []);
@@ -325,6 +337,8 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const osSicoss = (o: ObraSocial) => o.codigo_sicoss || String(o.codigo).replace(/\D/g, '').slice(-6);
 
   async function save() {
+    const ce = cuilError(f.cuil, f.dni);
+    if (ce) { onError(ce); return; }
     setBusy(true);
     try {
       const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0 };
@@ -345,11 +359,14 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     } catch (err: any) { onError(err.message); } finally { setBusy(false); }
   }
 
-  const catOpts: [string, string][] = escCats.map((c: any) => [String(c.cat), c.nombre ? `${c.cat} — ${c.nombre}` : String(c.cat)]);
-  const tramoCat = escCats.find((c: any) => String(c.cat) === String(f.cat));
-  const tramoOpts: [string, string][] = tramoCat && tramoCat.tramos ? Object.keys(tramoCat.tramos).map((t) => [t, t] as [string, string]) : [];
+  const catOpts: [string, string][] = escCats.map((c: any) => [String(c.cat), c.label ? `${c.cat} — ${c.label}` : String(c.cat)]);
+  const tramoOpts: [string, string][] = escTramos.map((t: any) => [String(t.key), t.label ? `${t.key} — ${t.label}` : String(t.key)] as [string, string]);
   const convOpts: [string, string][] = convs.map((c: any) => [String(c.codigo), `${c.codigo} — ${c.nombre}`]);
   const sindOpts: [string, string][] = sinds.map((sd: any) => [String(sd.codigo), `${sd.codigo} — ${sd.nombre}`]);
+  const convSel = convs.find((c: any) => String(c.codigo) === String(f.cod_convenio));
+  const catConvOpts: [string, string][] = [];
+  for (const t of (convSel?.tablas || [])) for (const c of (t.cats || [])) catConvOpts.push([`${t.titulo}||${c.cat}`, `${t.titulo} · ${c.cat}`]);
+  const cuilErr = cuilError(f.cuil, f.dni);
 
   return (
     <div className="modal-bg" onClick={onClose}>
@@ -371,7 +388,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <F k="apellido" label="Apellido *" f={f} set={set} />
           <F k="nombres" label="Nombres *" f={f} set={set} />
           <div className="field"><label>DNI *</label><input className="input" value={f.dni || ''} onChange={set('dni')} disabled={!esNueva} /></div>
-          <F k="cuil" label="CUIL" ph="XX-XXXXXXXX-X" f={f} set={set} />
+          <div className="field"><label>CUIL *</label><input className="input" value={f.cuil || ''} onChange={set('cuil')} placeholder="XX-XXXXXXXX-X" />{(f.cuil || '') !== '' && cuilErr && <div className="err" style={{ fontSize: 11, marginTop: 4 }}>⚠ {cuilErr}</div>}</div>
           <F k="ingreso" label="Fecha de ingreso" type="date" f={f} set={set} />
           <F k="fecha_nac" label="Fecha de nacimiento" ph="AAAA-MM-DD o DD/MM/AAAA" f={f} set={set} />
           <Sel k="sexo" label="Sexo" opts={SEXO_OPTS} f={f} set={set} />
@@ -399,11 +416,12 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
         <div className="grid2">
           <F k="lugar" label="Ubicación / Lugar de trabajo" f={f} set={set} />
           <F k="tarea" label="Tarea / Puesto" f={f} set={set} />
-          <Sel k="cat" label="Categoría" opts={catOpts} f={f} set={set} />
-          <Sel k="tramo" label="Tramo" opts={tramoOpts} f={f} set={set} />
+          <Sel k="cat" label="Categoría (escala unificada)" opts={catOpts} f={f} set={set} />
+          <Sel k="tramo" label="Tramo (escala unificada)" opts={tramoOpts} f={f} set={set} />
           <F k="desc_categoria" label="Descripción de categoría" f={f} set={set} />
           <Sel k="condicion" label="Condición" opts={CONDICION_OPTS} f={f} set={set} />
           <Sel k="cod_convenio" label="Convenio (CCT)" opts={convOpts} f={f} set={set} />
+          <Sel k="categoria_convenio" label="Categoría de convenio (define básico)" opts={catConvOpts} f={f} set={set} />
           <Sel k="cod_sindicato" label="Sindicato" opts={sindOpts} f={f} set={set} />
         </div>
 
@@ -508,7 +526,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
         </>}
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 18 }}>
           <button className="btn ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn" onClick={save} disabled={busy || !f.empresa || !f.apellido || (!f.dni && !f.cuil)}>{busy ? 'Guardando…' : (esNueva ? 'Crear' : 'Guardar cambios')}</button>
+          <button className="btn" onClick={save} disabled={busy || !f.empresa || !f.apellido || !!cuilErr}>{busy ? 'Guardando…' : (esNueva ? 'Crear' : 'Guardar cambios')}</button>
         </div>
       </div>
     </div>
