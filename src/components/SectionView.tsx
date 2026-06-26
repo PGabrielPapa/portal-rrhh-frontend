@@ -52,6 +52,7 @@ import CostoEquipo from '../pages/CostoEquipo';
 import Justificaciones from '../pages/Justificaciones';
 import FichadasImport from '../pages/FichadasImport';
 import FichadasConsulta from '../pages/FichadasConsulta';
+import FichadasEquipo from '../pages/FichadasEquipo';
 import DatosEquipo from '../pages/DatosEquipo';
 
 // Módulos ya migrados (clave de sección → componente).
@@ -115,6 +116,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'justificar-licencia': Justificaciones,
   'fichadas-import': FichadasImport,
   'fichadas-consulta': FichadasConsulta,
+  'fichadas-equipo': FichadasEquipo,
 };
 
 export default function SectionView() {

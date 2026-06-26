@@ -1,42 +1,25 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, fetchBlob } from '../lib/api';
+import {
+  minToHhmm, DetalleDias, aprobBadge, calcLiquidable,
+  type FichadaData, type EstadoAprob,
+} from '../components/FichadasDetalle';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const fmt = (d?: string) => d ? new Date(d).toLocaleString('es-AR') : '—';
 
-function minToHhmm(min: number): string {
-  const neg = min < 0;
-  const a = Math.abs(Math.round(min || 0));
-  const h = Math.floor(a / 60), m = a % 60;
-  return `${neg ? '-' : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-type Estado = 'ok' | 'no-laborable' | 'revisar' | 'licencia' | 'licencia-portal' | 'injustificado' | 'home-office';
-interface DiaDetalle {
-  fecha: string; dia: string; entrada?: string; salida?: string;
-  hsNetasMin: number; hsNormalMin: number; saldoMin: number | null;
-  extra50Min: number; extra100Min: number; extraComputa: boolean;
-  tardeMin: number; completa: boolean; estado: Estado;
-  comentario?: string; licenciaPortal?: string | null;
-  sinLicenciaPortal?: boolean; licenciaConflicto?: boolean; licenciaSoloPortal?: boolean;
-}
-interface DiaRevisar { fecha: string; motivo: string; tarde?: string; }
-interface FichadaData {
-  legajoProsoft?: string; diasTrabajados?: number; horasExtra50Min?: number; horasExtra100Min?: number;
-  horasExtraDescartadaMin?: number; tardanzasMin?: number; diasTardanza?: number;
-  diasARevisar?: DiaRevisar[]; bancoNetoMin?: number; dias?: DiaDetalle[];
-  licenciasProsoft?: Record<string, number>; diasLicencia?: number; diasInjustificados?: number;
-  diasLicenciaConflicto?: number;
-}
 interface Row {
-  empleado_id: number; leg_num: string; nom: string; empresa: string;
+  id: number; empleado_id: number; leg_num: string; nom: string; empresa: string;
   data: FichadaData; importado_por?: string; updated_at?: string;
+  estado?: EstadoAprob; responsable?: string | null;
+  rrhh_por?: string; rrhh_at?: string; rrhh_obs?: string;
+  ger_por?: string; ger_at?: string; ger_obs?: string;
 }
 interface ImportLog {
   id: number; anio: number; mes: number; archivo?: string; filas: number; legajos: number;
   matcheados: number; sin_match: number; importado_por?: string; created_at?: string;
 }
-type Filtro = 'todos' | 'revisar' | 'injustificado' | 'conflicto';
+type Filtro = 'todos' | 'revisar' | 'injustificado' | 'conflicto' | 'pendientes' | 'observadas' | 'autorizadas';
 
 export default function FichadasConsulta() {
   const now = new Date();
@@ -48,6 +31,9 @@ export default function FichadasConsulta() {
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState('');
+  const [ok, setOk] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [bajando, setBajando] = useState<'xlsx' | 'pdf' | null>(null);
 
   async function load() {
     setErr(''); setExpand(new Set());
@@ -63,31 +49,83 @@ export default function FichadasConsulta() {
     setExpand((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
 
+  async function descargar(formato: 'xlsx' | 'pdf') {
+    setErr(''); setBajando(formato);
+    try {
+      const blob = await fetchBlob(`/fichadas/${anio}/${mes}/export?formato=${formato}`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Fichadas_${anio}-${String(mes).padStart(2, '0')}.${formato}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) { setErr(e.message || 'No se pudo generar la descarga.'); }
+    finally { setBajando(null); }
+  }
+
+  // Aprobar / rechazar una novedad (etapa RR.HH.).
+  async function resolver(r: Row, accion: 'aprobar' | 'rechazar') {
+    setErr(''); setOk('');
+    let obs: string | undefined;
+    if (accion === 'rechazar') {
+      const c = window.prompt(`Observación para devolver la novedad de ${r.nom}:`, r.rrhh_obs || '');
+      if (c == null) return;            // canceló
+      if (!c.trim()) { setErr('Para rechazar tenés que escribir un comentario.'); return; }
+      obs = c.trim();
+    }
+    setBusy(true);
+    try {
+      await api.patch(`/fichadas/${r.id}/aprobacion`, { etapa: 'rrhh', accion, obs });
+      setOk(accion === 'aprobar' ? `Aceptada la novedad de ${r.nom}; pasa a ${r.responsable || 'su responsable directo'}.` : `Novedad de ${r.nom} devuelta con observación.`);
+      await load();
+    } catch (e: any) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  // Aprobar en bloque todas las novedades visibles que estén pendientes/observadas.
+  async function aprobarTodo() {
+    const ids = visibles.filter((r) => r.estado === 'pendiente' || r.estado === 'observada').map((r) => r.id);
+    if (!ids.length) { setErr('No hay novedades pendientes en la vista actual.'); return; }
+    if (!window.confirm(`Vas a aceptar ${ids.length} novedad(es). Cada una pasará a su responsable directo. ¿Confirmás?`)) return;
+    setErr(''); setOk(''); setBusy(true);
+    try {
+      const r = await api.post<{ actualizados: number }>(`/fichadas/${anio}/${mes}/aprobacion-masiva`, { etapa: 'rrhh', accion: 'aprobar', ids });
+      setOk(`${r.actualizados} novedad(es) aceptadas y enviadas al 2º control.`);
+      await load();
+    } catch (e: any) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
   const visibles = rows.filter((r) => {
     if (filtro === 'revisar') return (r.data.diasARevisar?.length || 0) > 0;
     if (filtro === 'injustificado') return (r.data.diasInjustificados || 0) > 0;
     if (filtro === 'conflicto') return (r.data.diasLicenciaConflicto || 0) > 0;
+    if (filtro === 'pendientes') return r.estado === 'pendiente' || r.estado === 'observada';
+    if (filtro === 'observadas') return r.estado === 'observada';
+    if (filtro === 'autorizadas') return r.estado === 'autorizada';
     return true;
   });
   const tot = rows.reduce((acc, r) => {
     acc.dias += r.data.diasTrabajados || 0;
-    acc.banco += r.data.bancoNetoMin || 0;
-    acc.e50 += r.data.horasExtra50Min || 0;
-    acc.tarde += r.data.tardanzasMin || 0;
     acc.rev += (r.data.diasARevisar?.length || 0);
     acc.lic += (r.data.diasLicencia || 0);
     acc.inj += (r.data.diasInjustificados || 0);
     acc.conf += (r.data.diasLicenciaConflicto || 0);
+    if (r.estado === 'pendiente' || r.estado === 'observada') acc.pend += 1;
+    if (r.estado === 'autorizada') acc.autoriz += 1;
     return acc;
-  }, { dias: 0, e50: 0, tarde: 0, rev: 0, banco: 0, lic: 0, inj: 0, conf: 0 });
+  }, { dias: 0, rev: 0, lic: 0, inj: 0, conf: 0, pend: 0, autoriz: 0 });
+
+  const pendientesVisibles = visibles.filter((r) => r.estado === 'pendiente' || r.estado === 'observada').length;
 
   return (
     <>
       <p className="muted" style={{ marginTop: -6, marginBottom: 14 }}>
-        Hacé clic en un empleado para ver el <b>detalle día por día</b>. Doble cruce de licencias: las del <b>reloj</b> (comentarios de Pro-Soft) y las <b>aprobadas en el portal</b>, marcando inconsistencias (licencia sin reflejo, o licencia aprobada con marcas = no la tomó). Para cargar un período usá <b>Importar fichadas</b>.
+        Hacé clic en un empleado para ver el <b>detalle día por día</b>. Cuando las novedades están OK, <b>aceptalas</b>: cada una pasa al <b>responsable directo</b> (según el organigrama) para el 2º control. Solo las <b>autorizadas</b> quedan listas para liquidar. Lo que se autoriza/liquida son las <b>horas extra</b> y el <b>tiempo en contra (a recuperar)</b>; las <b>horas a favor</b> son solo de control y no se liquidan. Para cargar un período usá <b>Importar fichadas</b>.
       </p>
 
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
+      {ok && <div className="ok" style={{ marginBottom: 12 }}>✓ {ok}</div>}
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -104,10 +142,24 @@ export default function FichadasConsulta() {
             <div className="field"><label>Filtro</label>
               <select className="input" value={filtro} onChange={(e) => setFiltro(e.target.value as Filtro)}>
                 <option value="todos">Todos</option>
+                <option value="pendientes">Pendientes de aceptar</option>
+                <option value="observadas">Observadas</option>
+                <option value="autorizadas">Autorizadas</option>
                 <option value="revisar">Con días a revisar</option>
                 <option value="injustificado">Con injustificados</option>
                 <option value="conflicto">Con conflicto de licencia</option>
               </select>
+            </div>
+          )}
+          {loaded && rows.length > 0 && (
+            <div className="row" style={{ gap: 8, marginLeft: 'auto', alignItems: 'flex-end' }}>
+              {pendientesVisibles > 0 && (
+                <button className="btn" style={{ background: '#16a34a' }} onClick={aprobarTodo} disabled={busy}>
+                  ✓ Aprobar todo lo visible ({pendientesVisibles})
+                </button>
+              )}
+              <button className="btn" onClick={() => descargar('xlsx')} disabled={!!bajando}>{bajando === 'xlsx' ? '…' : '⬇ Excel'}</button>
+              <button className="btn" onClick={() => descargar('pdf')} disabled={!!bajando}>{bajando === 'pdf' ? '…' : '⬇ PDF'}</button>
             </div>
           )}
         </div>
@@ -117,10 +169,9 @@ export default function FichadasConsulta() {
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="row" style={{ gap: 20, flexWrap: 'wrap' }}>
             <Stat n={rows.length} label={`Empleados (${MESES[mes - 1]} ${anio})`} />
+            <Stat n={tot.pend} label="Pendientes de aceptar" color={tot.pend ? '#d97706' : undefined} />
+            <Stat n={tot.autoriz} label="Autorizadas" color={tot.autoriz ? '#16a34a' : undefined} />
             <Stat n={tot.dias} label="Días trabajados" />
-            <Stat txt={minToHhmm(tot.banco)} label="Banco (saldo total)" color={tot.banco < 0 ? '#dc2626' : '#16a34a'} />
-            <Stat txt={minToHhmm(tot.e50)} label="Hs extra 50" />
-            <Stat txt={minToHhmm(tot.tarde)} label="Tardanzas" />
             <Stat n={tot.lic} label="Días licencia" />
             <Stat n={tot.rev} label="A revisar" color={tot.rev ? '#d97706' : undefined} />
             <Stat n={tot.inj} label="Injustificados" color={tot.inj ? '#dc2626' : undefined} />
@@ -132,12 +183,12 @@ export default function FichadasConsulta() {
       {loaded && (
         <div className="card" style={{ padding: 0, overflow: 'auto', marginBottom: 16 }}>
           <table>
-            <thead><tr><th style={{ width: 24 }}></th><th>Legajo</th><th>Empleado</th><th>Empresa</th><th style={{ textAlign: 'right' }}>Días trab.</th><th style={{ textAlign: 'right' }}>Banco mes</th><th style={{ textAlign: 'right' }}>Hs Extra 50</th><th style={{ textAlign: 'right' }}>Tard.</th><th style={{ textAlign: 'right' }}>Lic.</th><th style={{ textAlign: 'right' }}>Revisar</th><th style={{ textAlign: 'right' }}>Injustif.</th><th style={{ textAlign: 'right' }}>Conflic.</th></tr></thead>
+            <thead><tr><th style={{ width: 24 }}></th><th>Legajo</th><th>Empleado</th><th>Empresa</th><th>Aprobación</th><th style={{ textAlign: 'right' }}>Días trab.</th><th style={{ textAlign: 'right' }}>Banco mes</th><th style={{ textAlign: 'right' }}>Extra neto</th><th style={{ textAlign: 'right' }}>Tard.</th><th style={{ textAlign: 'right' }}>Lic.</th><th style={{ textAlign: 'right' }}>Revisar</th><th style={{ textAlign: 'right' }}>Injustif.</th><th style={{ textAlign: 'right' }}>Conflic.</th></tr></thead>
             <tbody>
               {visibles.map((r) => (
-                <FilaEmpleado key={r.empleado_id} r={r} abierto={expand.has(r.empleado_id)} onToggle={() => toggle(r.empleado_id)} />
+                <FilaEmpleado key={r.empleado_id} r={r} abierto={expand.has(r.empleado_id)} onToggle={() => toggle(r.empleado_id)} onResolver={resolver} busy={busy} />
               ))}
-              {!visibles.length && <tr><td colSpan={12} className="muted" style={{ textAlign: 'center', padding: 20 }}>{rows.length ? 'Ningún empleado coincide con el filtro.' : `No hay fichadas importadas para ${MESES[mes - 1]} ${anio}.`}</td></tr>}
+              {!visibles.length && <tr><td colSpan={13} className="muted" style={{ textAlign: 'center', padding: 20 }}>{rows.length ? 'Ningún empleado coincide con el filtro.' : `No hay fichadas importadas para ${MESES[mes - 1]} ${anio}.`}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -168,11 +219,16 @@ export default function FichadasConsulta() {
   );
 }
 
-function FilaEmpleado({ r, abierto, onToggle }: { r: Row; abierto: boolean; onToggle: () => void }) {
+function FilaEmpleado({ r, abierto, onToggle, onResolver, busy }: {
+  r: Row; abierto: boolean; onToggle: () => void;
+  onResolver: (r: Row, accion: 'aprobar' | 'rechazar') => void; busy: boolean;
+}) {
   const d = r.data || {};
   const nRev = d.diasARevisar?.length || 0;
   const nInj = d.diasInjustificados || 0;
   const nConf = d.diasLicenciaConflicto || 0;
+  const { extraLiquidable } = calcLiquidable(d);
+  const aceptable = r.estado === 'pendiente' || r.estado === 'observada';
   return (
     <>
       <tr onClick={onToggle} style={{ cursor: 'pointer' }}>
@@ -180,9 +236,10 @@ function FilaEmpleado({ r, abierto, onToggle }: { r: Row; abierto: boolean; onTo
         <td className="muted">{r.leg_num}</td>
         <td>{r.nom}</td>
         <td className="muted">{r.empresa}</td>
+        <td>{aprobBadge(r.estado)}</td>
         <td style={{ textAlign: 'right' }}>{d.diasTrabajados ?? 0}</td>
         <td style={{ textAlign: 'right', color: (d.bancoNetoMin || 0) < 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{minToHhmm(d.bancoNetoMin || 0)}</td>
-        <td style={{ textAlign: 'right' }}>{minToHhmm(d.horasExtra50Min || 0)}</td>
+        <td style={{ textAlign: 'right', color: extraLiquidable > 0 ? '#16a34a' : undefined, fontWeight: 600 }}>{extraLiquidable > 0 ? minToHhmm(extraLiquidable) : '—'}</td>
         <td style={{ textAlign: 'right' }}>{minToHhmm(d.tardanzasMin || 0)}{d.diasTardanza ? <span className="muted"> ({d.diasTardanza})</span> : null}</td>
         <td style={{ textAlign: 'right' }} className="muted">{d.diasLicencia || '—'}</td>
         <td style={{ textAlign: 'right', color: nRev ? '#d97706' : undefined }}>{nRev || '—'}</td>
@@ -191,84 +248,22 @@ function FilaEmpleado({ r, abierto, onToggle }: { r: Row; abierto: boolean; onTo
       </tr>
       {abierto && (
         <tr>
-          <td colSpan={12} style={{ background: 'rgba(120,130,160,.06)', padding: '4px 10px 14px' }}>
+          <td colSpan={13} style={{ background: 'rgba(120,130,160,.06)', padding: '4px 10px 14px' }}>
+            <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '8px 2px' }}>
+              <span className="muted" style={{ fontSize: 13 }}>2º control: <b>{r.responsable || 'CEO / Admin'}</b></span>
+              {r.rrhh_obs && <span style={{ fontSize: 13, color: '#dc2626' }}>Obs. RR.HH.: {r.rrhh_obs}</span>}
+              {r.ger_obs && <span style={{ fontSize: 13, color: '#dc2626' }}>Obs. gerente: {r.ger_obs}</span>}
+              {r.ger_por && r.estado === 'autorizada' && <span className="muted" style={{ fontSize: 13 }}>Autorizada por {r.ger_por}</span>}
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                {aceptable && <button className="btn" style={{ background: '#16a34a' }} disabled={busy} onClick={(e) => { e.stopPropagation(); onResolver(r, 'aprobar'); }}>✓ Aceptar</button>}
+                {aceptable && <button className="btn danger" disabled={busy} onClick={(e) => { e.stopPropagation(); onResolver(r, 'rechazar'); }}>✗ Observar</button>}
+              </span>
+            </div>
             <DetalleDias d={d} nom={r.nom} />
           </td>
         </tr>
       )}
     </>
-  );
-}
-
-function estadoBadge(e: Estado) {
-  switch (e) {
-    case 'ok': return <span style={{ color: '#16a34a' }}>OK</span>;
-    case 'no-laborable': return <span className="muted">finde/feriado (a favor)</span>;
-    case 'revisar': return <span style={{ color: '#d97706' }}>⚠ revisar (marca incompleta)</span>;
-    case 'licencia': return <span style={{ color: '#2563eb' }}>licencia</span>;
-    case 'licencia-portal': return <span style={{ color: '#2563eb' }}>licencia (portal)</span>;
-    case 'injustificado': return <span style={{ color: '#dc2626', fontWeight: 600 }}>⚠ INJUSTIFICADO</span>;
-    case 'home-office': return <span style={{ color: '#16a34a' }}>Home Office (trabajado)</span>;
-  }
-}
-function bgFila(x: DiaDetalle) {
-  if (x.licenciaConflicto) return 'rgba(220,38,38,.12)';
-  if (x.estado === 'revisar') return 'rgba(217,119,6,.10)';
-  if (x.estado === 'injustificado') return 'rgba(220,38,38,.10)';
-  if (x.estado === 'licencia' || x.estado === 'licencia-portal') return 'rgba(37,99,235,.07)';
-  return undefined;
-}
-function novedadDe(x: DiaDetalle) {
-  if (x.licenciaConflicto) return <span style={{ color: '#dc2626', fontWeight: 600 }}>⚠ {x.licenciaPortal || 'Licencia'} aprobada — pero HAY MARCAS (no la tomó)</span>;
-  if (x.comentario) return <span style={{ color: '#2563eb' }}>{x.comentario}{x.sinLicenciaPortal ? <span style={{ color: '#d97706' }}> · ⚠ no está cargada en el portal</span> : ''}</span>;
-  if (x.licenciaPortal) return <span style={{ color: '#2563eb' }}>{x.licenciaPortal} (portal){x.licenciaSoloPortal ? <span style={{ color: '#d97706' }}> · ⚠ no figura en el reloj</span> : ''}</span>;
-  return <span className="muted">—</span>;
-}
-
-function DetalleDias({ d, nom }: { d: FichadaData; nom: string }) {
-  const dias = d.dias || [];
-  if (!dias.length) return <span className="muted">Sin detalle diario para este empleado (importado con una versión anterior; reimportá el período).</span>;
-  const extraDe = (x: DiaDetalle) => {
-    const e = (x.extra50Min || 0) + (x.extra100Min || 0);
-    if (e <= 0) return '—';
-    return minToHhmm(e) + (x.extraComputa ? '' : ' (<30m)');
-  };
-  return (
-    <div style={{ overflow: 'auto' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, margin: '8px 2px 6px' }}>Detalle diario de {nom} — el banco del mes es la suma de "Saldo día". Licencias y findes/feriados no suman al banco.</div>
-      <table style={{ fontSize: 12.5 }}>
-        <thead><tr>
-          <th>Fecha</th><th>Día</th><th>Entrada</th><th>Salida</th>
-          <th style={{ textAlign: 'right' }}>Hs Netas</th><th style={{ textAlign: 'right' }}>Jornada</th>
-          <th style={{ textAlign: 'right' }}>Saldo día</th><th style={{ textAlign: 'right' }}>Extra</th>
-          <th style={{ textAlign: 'right' }}>Tarde</th><th>Estado</th><th>Novedad / Licencia</th>
-        </tr></thead>
-        <tbody>
-          {dias.map((x, i) => (
-            <tr key={i} style={{ background: bgFila(x) }}>
-              <td className="muted">{x.fecha}</td>
-              <td>{x.dia}</td>
-              <td>{x.entrada || '—'}</td>
-              <td>{x.salida || '—'}</td>
-              <td style={{ textAlign: 'right' }}>{x.hsNetasMin > 0 ? minToHhmm(x.hsNetasMin) : '—'}</td>
-              <td style={{ textAlign: 'right' }} className="muted">{minToHhmm(x.hsNormalMin)}</td>
-              <td style={{ textAlign: 'right', color: x.saldoMin == null ? '#888' : (x.saldoMin < 0 ? '#dc2626' : '#16a34a') }}>{x.saldoMin == null ? '—' : minToHhmm(x.saldoMin)}</td>
-              <td style={{ textAlign: 'right' }}>{extraDe(x)}</td>
-              <td style={{ textAlign: 'right', color: x.tardeMin > 0 && x.completa ? '#d97706' : undefined }}>{x.tardeMin > 0 ? minToHhmm(x.tardeMin) : '—'}</td>
-              <td>{estadoBadge(x.estado)}</td>
-              <td>{novedadDe(x)}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr style={{ fontWeight: 600, borderTop: '2px solid rgba(120,130,160,.3)' }}>
-            <td colSpan={6} style={{ textAlign: 'right' }}>Banco del mes (suma de saldos):</td>
-            <td style={{ textAlign: 'right', color: (d.bancoNetoMin || 0) < 0 ? '#dc2626' : '#16a34a' }}>{minToHhmm(d.bancoNetoMin || 0)}</td>
-            <td colSpan={4}></td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
   );
 }
 

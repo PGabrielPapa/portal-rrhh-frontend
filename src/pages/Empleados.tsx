@@ -74,7 +74,8 @@ export default function Empleados() {
       if (soloActivos) params.set('activos', 'true');
       const data = await api.get<Empleado[]>(`/empleados?${params.toString()}`);
       setItems(data);
-      if (!empresas.length) setEmpresas([...new Set(data.map((e) => e.empresa))].sort());
+      // Acumula las empresas vistas (nunca pierde opciones al filtrar y suma las nuevas, p.ej. tras importar).
+      setEmpresas((prev) => [...new Set([...prev, ...data.map((e) => e.empresa)])].filter(Boolean).sort());
     } catch (e: any) { setMsg({ t: e.message, ok: false }); } finally { setLoading(false); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, empresa, soloActivos]);
@@ -110,7 +111,12 @@ export default function Empleados() {
       const rows = aoa.slice(1).filter((r) => String(r[0] ?? '').trim())
         .map((r) => Object.fromEntries(hdr.map((h, j) => [h, String(r[j] ?? '').trim()])));
       const res = await api.post<ImportResult>('/empleados/import', { rows });
-      setMsg({ t: res.mensaje, ok: res.ok > 0 });
+      // Mostramos el motivo real de los errores (antes solo iban a la consola).
+      const unicos = res.errores?.length ? Array.from(new Set(res.errores)) : [];
+      const detalle = unicos.length
+        ? ' — ' + unicos.slice(0, 5).join(' · ') + (unicos.length > 5 ? ` · …(+${unicos.length - 5} más)` : '')
+        : '';
+      setMsg({ t: res.mensaje + detalle, ok: res.ok > 0 });
       if (res.errores?.length) console.warn('Import avisos:', res.errores);
       load();
     } catch (err: any) { setMsg({ t: 'No se pudo procesar el archivo: ' + err.message, ok: false }); }
