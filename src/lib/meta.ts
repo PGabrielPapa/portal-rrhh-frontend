@@ -16,6 +16,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'licencias-equipo': { ico: '🏖', col: '34,197,94', desc: 'Licencias y vacaciones de tu equipo' },
   'organigrama': { ico: '🗂', col: '61,127,255', desc: 'Estructura y personas a cargo' },
   'costo-equipo': { ico: '💰', col: '34,197,94', desc: 'Costo laboral de tus empleados a cargo' },
+  'datos-equipo': { ico: '🪪', col: '61,127,255', desc: 'Datos personales y de contacto de tu equipo' },
   'sanciones-equipo': { ico: '⚖️', col: '239,68,68', desc: 'Solicitá y seguí sanciones de tu equipo' },
   'evaluaciones-equipo': { ico: '📈', col: '94,194,255', desc: 'Evaluá el desempeño de tu equipo' },
   // RR.HH.

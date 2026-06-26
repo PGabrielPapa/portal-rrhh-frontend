@@ -5,6 +5,7 @@ import type { Empleado } from '../lib/types';
 import Avatar from '../components/Avatar';
 
 const v = (x: unknown) => (x === null || x === undefined || x === '' ? '—' : String(x));
+const sexoLabel = (x: unknown) => (({ M: 'Masculino', F: 'Femenino', X: 'X / No binario' } as Record<string, string>)[String(x || '')] || (x ? String(x) : '—'));
 function Field({ label, value }: { label: string; value: unknown }) {
   return (<div className="field" style={{ marginBottom: 10 }}><label>{label}</label><div style={{ fontSize: 14 }}>{v(value)}</div></div>);
 }
@@ -80,9 +81,11 @@ export default function MisDatos() {
         <h3 style={{ marginTop: 0 }}>Datos personales</h3>
         <div className="grid2">
           <Field label="DNI" value={p.dni} /><Field label="CUIL" value={p.cuil} />
-          <Field label="Fecha de nacimiento" value={p['fecha_nac']} /><Field label="Sexo" value={p['sexo']} />
+          <Field label="Fecha de nacimiento" value={p['fecha_nac']} /><Field label="Sexo" value={sexoLabel(p['sexo'])} />
           <Field label="Estado civil" value={p['estado_civil']} /><Field label="Nacionalidad" value={p['nacionalidad']} />
-          <Field label="E-mail" value={p.email} />
+          <Field label="E-mail (sistema)" value={p.email} />
+          <Field label="Mail laboral" value={p['email_laboral']} /><Field label="Mail personal" value={p['email_personal']} />
+          <Field label="Teléfono laboral" value={p['tel_laboral']} /><Field label="Teléfono personal" value={p['tel_personal']} />
         </div>
       </div>
 
@@ -93,6 +96,15 @@ export default function MisDatos() {
           <Field label="Fecha de ingreso" value={p.ingreso} /><Field label="Categoría" value={p.cat} />
           <Field label="Tramo" value={p.tramo} /><Field label="Tarea" value={p['tarea']} />
           <Field label="Condición" value={p['condicion']} /><Field label="Convenio" value={p['cod_convenio']} />
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Contacto de emergencia</h3>
+        <div className="grid2">
+          <Field label="Nombre y apellido" value={p['contacto_nombre']} />
+          <Field label="Teléfono" value={p['contacto_tel']} />
+          <Field label="Vínculo" value={p['contacto_vinculo']} />
         </div>
       </div>
 
