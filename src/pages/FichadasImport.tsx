@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const mm = (m: number) => String(m).padStart(2, '0');
+const finDeMes = (a: number, m: number) => String(new Date(a, m, 0).getDate()).padStart(2, '0');
 
 interface DiaRevisar { fecha: string; motivo: string; tarde?: string; }
 interface Matcheado {
@@ -20,17 +22,45 @@ export default function FichadasImport() {
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [anio, setAnio] = useState(now.getFullYear());
+  const [desde, setDesde] = useState(`${now.getFullYear()}-${mm(now.getMonth() + 1)}-01`);
+  const [hasta, setHasta] = useState(`${now.getFullYear()}-${mm(now.getMonth() + 1)}-${finDeMes(now.getFullYear(), now.getMonth() + 1)}`);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
+  const [prosoftOk, setProsoftOk] = useState<boolean | null>(null);
+  const [prosoftBusy, setProsoftBusy] = useState(false);
+
+  useEffect(() => { api.get<{ configurado: boolean }>('/prosoft/estado').then((r) => setProsoftOk(r.configurado)).catch(() => setProsoftOk(false)); }, []);
+
+  // Al cambiar el período (mes/año a liquidar) el rango se ajusta a ese mes; después se puede extender.
+  function cambiarPeriodo(a: number, m: number) {
+    setAnio(a); setMes(m);
+    setDesde(`${a}-${mm(m)}-01`);
+    setHasta(`${a}-${mm(m)}-${finDeMes(a, m)}`);
+    setPreview(null); setOk('');
+  }
+
+  // Trae el período directamente desde la API de Pro-Soft (sin Excel).
+  async function traerProsoft(confirmarFlag: boolean) {
+    setErr(''); setOk(''); if (!confirmarFlag) setPreview(null);
+    setProsoftBusy(true);
+    try {
+      const r = await api.post<Preview>(`/prosoft/importar${confirmarFlag ? '?confirmar=true' : ''}`, { anio, mes, desde, hasta });
+      setPreview(r);
+      if (confirmarFlag) setOk(`Traído de Pro-Soft y confirmado: ${r.resumen.matcheados} empleados para el período ${MESES[mes - 1]} ${anio} (${desde} → ${hasta}).`);
+    } catch (e: any) { setErr(e.message); }
+    finally { setProsoftBusy(false); }
+  }
 
   function buildForm(): FormData {
     const fd = new FormData();
     fd.append('archivo', file as File);
     fd.append('anio', String(anio));
     fd.append('mes', String(mes));
+    fd.append('desde', desde);
+    fd.append('hasta', hasta);
     return fd;
   }
 
@@ -60,9 +90,7 @@ export default function FichadasImport() {
   return (
     <>
       <p className="muted" style={{ marginTop: -6, marginBottom: 14 }}>
-        Subí el <b>Reporte Marcas Extendido</b> de Pro-Soft (Reportes → Resumen → Excel Extendido) del período. El sistema lo cruza por
-        legajo y carga, por empleado, los días trabajados, horas extra y tardanzas. Las tardanzas solo se cuentan en días con marca completa;
-        el resto queda <b>a revisar</b>. Las horas extra son <b>informativas</b> (no se liquidan automáticamente).
+        El <b>Período</b> es el mes que se liquida (bajo el que se guarda y aprueba). El <b>rango Desde/Hasta</b> es lo que realmente se trae y controla: puede arrancar en el mes anterior (ej. los días no liquidados) y terminar en el día de control. Al cambiar el período, el rango se ajusta a ese mes; después lo extendés a mano. Podés subir el <b>Reporte Marcas Extendido</b> de Pro-Soft o <b>traerlo directo por API</b> (abajo). El cruce es por legajo; las horas extra surgen de Hs netas − jornada (no de la columna del reloj).
       </p>
 
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
@@ -70,21 +98,41 @@ export default function FichadasImport() {
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="field"><label>Mes</label>
-            <select className="input" value={mes} onChange={(e) => { setMes(Number(e.target.value)); setPreview(null); }}>
+          <div className="field"><label>Período (mes a liquidar)</label>
+            <select className="input" value={mes} onChange={(e) => cambiarPeriodo(anio, Number(e.target.value))}>
               {MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
           </div>
           <div className="field"><label>Año</label>
-            <input className="input" type="number" style={{ width: 100 }} value={anio} onChange={(e) => { setAnio(Number(e.target.value)); setPreview(null); }} />
+            <input className="input" type="number" style={{ width: 90 }} value={anio} onChange={(e) => cambiarPeriodo(Number(e.target.value), mes)} />
           </div>
-          <div className="field" style={{ flex: 1, minWidth: 240 }}><label>Archivo Excel (.xlsx)</label>
+          <div className="field"><label>Desde</label>
+            <input className="input" type="date" value={desde} onChange={(e) => { setDesde(e.target.value); setPreview(null); }} />
+          </div>
+          <div className="field"><label>Hasta</label>
+            <input className="input" type="date" value={hasta} onChange={(e) => { setHasta(e.target.value); setPreview(null); }} />
+          </div>
+          <div className="field" style={{ flex: 1, minWidth: 200 }}><label>Archivo Excel (.xlsx)</label>
             <input className="input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               onChange={(e) => { setFile(e.target.files?.[0] || null); setPreview(null); setOk(''); }} />
           </div>
           <button className="btn" onClick={previsualizar} disabled={busy || !file}>{busy ? '…' : '👁 Previsualizar'}</button>
           {preview && !preview.confirmado && (
             <button className="btn" style={{ background: '#16a34a' }} onClick={confirmar} disabled={busy}>✓ Confirmar importación</button>
+          )}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Traer directo de Pro-Soft (sin Excel)</h3>
+        <p className="muted" style={{ marginTop: -4 }}>
+          Se conecta a la app de fichadas y trae el <b>rango Desde/Hasta</b> de arriba por API, cruzando por legajo, y lo guarda bajo el <b>período</b> elegido. El cálculo y el circuito de aprobación son los mismos que con el Excel.
+          {prosoftOk === false && <span style={{ color: '#d97706' }}> — ⚠ La conexión no está configurada en el servidor (faltan PROSOFT_USER / PROSOFT_PASS).</span>}
+        </p>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <button className="btn" onClick={() => traerProsoft(false)} disabled={prosoftBusy || prosoftOk === false}>{prosoftBusy ? '…' : '⬇ Previsualizar de Pro-Soft'}</button>
+          {preview && !preview.confirmado && (
+            <button className="btn" style={{ background: '#16a34a' }} onClick={() => traerProsoft(true)} disabled={prosoftBusy}>✓ Confirmar (Pro-Soft)</button>
           )}
         </div>
       </div>

@@ -29,6 +29,7 @@ export default function FichadasConsulta() {
   const [log, setLog] = useState<ImportLog[]>([]);
   const [expand, setExpand] = useState<Set<number>>(new Set());
   const [filtro, setFiltro] = useState<Filtro>('todos');
+  const [empresaFiltro, setEmpresaFiltro] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
@@ -52,11 +53,11 @@ export default function FichadasConsulta() {
   async function descargar(formato: 'xlsx' | 'pdf') {
     setErr(''); setBajando(formato);
     try {
-      const blob = await fetchBlob(`/fichadas/${anio}/${mes}/export?formato=${formato}`);
+      const blob = await fetchBlob(`/fichadas/${anio}/${mes}/export?formato=${formato}${empresaFiltro ? `&empresa=${encodeURIComponent(empresaFiltro)}` : ''}`);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Fichadas_${anio}-${String(mes).padStart(2, '0')}.${formato}`;
+      a.download = `Fichadas_${anio}-${String(mes).padStart(2, '0')}${empresaFiltro ? '_' + empresaFiltro.replace(/[^\w]+/g, '') : ''}.${formato}`;
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
     } catch (e: any) { setErr(e.message || 'No se pudo generar la descarga.'); }
@@ -96,7 +97,12 @@ export default function FichadasConsulta() {
     finally { setBusy(false); }
   }
 
-  const visibles = rows.filter((r) => {
+  // Empresas presentes en el período (para el filtro de control).
+  const empresas = [...new Set(rows.map((r) => r.empresa).filter(Boolean))].sort();
+  // Alcance por empresa: acota tabla y totales a la empresa elegida.
+  const baseRows = empresaFiltro ? rows.filter((r) => r.empresa === empresaFiltro) : rows;
+
+  const visibles = baseRows.filter((r) => {
     if (filtro === 'revisar') return (r.data.diasARevisar?.length || 0) > 0;
     if (filtro === 'injustificado') return (r.data.diasInjustificados || 0) > 0;
     if (filtro === 'conflicto') return (r.data.diasLicenciaConflicto || 0) > 0;
@@ -105,7 +111,7 @@ export default function FichadasConsulta() {
     if (filtro === 'autorizadas') return r.estado === 'autorizada';
     return true;
   });
-  const tot = rows.reduce((acc, r) => {
+  const tot = baseRows.reduce((acc, r) => {
     acc.dias += r.data.diasTrabajados || 0;
     acc.rev += (r.data.diasARevisar?.length || 0);
     acc.lic += (r.data.diasLicencia || 0);
@@ -138,6 +144,14 @@ export default function FichadasConsulta() {
             <input className="input" type="number" style={{ width: 100 }} value={anio} onChange={(e) => setAnio(Number(e.target.value))} />
           </div>
           <button className="btn" onClick={load}>🔍 Consultar</button>
+          {loaded && empresas.length > 1 && (
+            <div className="field"><label>Empresa</label>
+              <select className="input" value={empresaFiltro} onChange={(e) => { setEmpresaFiltro(e.target.value); setExpand(new Set()); }}>
+                <option value="">Todas</option>
+                {empresas.map((em) => <option key={em} value={em}>{em}</option>)}
+              </select>
+            </div>
+          )}
           {loaded && rows.length > 0 && (
             <div className="field"><label>Filtro</label>
               <select className="input" value={filtro} onChange={(e) => setFiltro(e.target.value as Filtro)}>
@@ -168,7 +182,7 @@ export default function FichadasConsulta() {
       {loaded && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="row" style={{ gap: 20, flexWrap: 'wrap' }}>
-            <Stat n={rows.length} label={`Empleados (${MESES[mes - 1]} ${anio})`} />
+            <Stat n={baseRows.length} label={`Empleados${empresaFiltro ? ` · ${empresaFiltro}` : ''} (${MESES[mes - 1]} ${anio})`} />
             <Stat n={tot.pend} label="Pendientes de aceptar" color={tot.pend ? '#d97706' : undefined} />
             <Stat n={tot.autoriz} label="Autorizadas" color={tot.autoriz ? '#16a34a' : undefined} />
             <Stat n={tot.dias} label="Días trabajados" />
