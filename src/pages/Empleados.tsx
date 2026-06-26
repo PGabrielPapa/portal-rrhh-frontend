@@ -284,6 +284,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   })();
   const [f, setF] = useState<Record<string, string>>(ini);
   const [foto, setFoto] = useState<string>((e as any).foto || '');
+  const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: ev.target.value });
   function onFoto(ev: React.ChangeEvent<HTMLInputElement>) {
@@ -393,7 +394,14 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <F k="fecha_nac" label="Fecha de nacimiento" ph="AAAA-MM-DD o DD/MM/AAAA" f={f} set={set} />
           <Sel k="sexo" label="Sexo" opts={SEXO_OPTS} f={f} set={set} />
           <Sel k="estado_civil" label="Estado civil" opts={ESTADO_CIVIL_OPTS} f={f} set={set} />
-          <Sel k="nacionalidad" label="Nacionalidad" opts={NACIONALIDAD_OPTS} f={f} set={set} />
+          <div className="field"><label>Nacionalidad</label>
+            <select className="input" value={nacOtra ? 'Otra' : (f.nacionalidad || '')} onChange={(ev) => { if (ev.target.value === 'Otra') { setNacOtra(true); setF({ ...f, nacionalidad: '' }); } else { setNacOtra(false); setF({ ...f, nacionalidad: ev.target.value }); } }}>
+              <option value="">—</option>
+              {NACIONALIDAD_OPTS.filter(([v]) => v !== 'Otra').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="Otra">Otra…</option>
+            </select>
+            {nacOtra && <input className="input" style={{ marginTop: 6 }} placeholder="Indicá la nacionalidad" value={f.nacionalidad || ''} onChange={set('nacionalidad')} />}
+          </div>
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Contacto</div>
