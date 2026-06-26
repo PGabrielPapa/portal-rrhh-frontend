@@ -12,6 +12,8 @@ function Field({ label, value }: { label: string; value: unknown }) {
 interface Cambio { id: number; dom_anterior?: string; dom_nuevo?: string; estado: string; created_at: string; resuelto_at?: string; resuelto_por?: string; }
 const fmtFecha = (s?: string) => s ? new Date(s).toLocaleDateString('es-AR') : '';
 const estadoColor = (e: string) => e === 'aprobado' ? 'var(--green)' : e === 'rechazado' ? 'var(--red)' : 'var(--yellow)';
+const EST_CIV = ['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Separado/a', 'Unión convivencial'];
+const VINCULOS = ['Cónyuge/Pareja', 'Padre', 'Madre', 'Hijo/a', 'Hermano/a', 'Familiar', 'Amigo/a', 'Otro'];
 
 export default function MisDatos() {
   const [p, setP] = useState<Empleado | null>(null);
@@ -27,6 +29,12 @@ export default function MisDatos() {
   const [osRes, setOsRes] = useState<ObraSocial[]>([]);
   const [osSel, setOsSel] = useState<ObraSocial | null>(null);
   const [osMsg, setOsMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  // Autogestión de datos de contacto (impacto directo + histórico)
+  const [editC, setEditC] = useState(false);
+  const [fc, setFc] = useState<Record<string, string>>({});
+  const [msgC, setMsgC] = useState<{ t: string; ok: boolean } | null>(null);
+  const [histC, setHistC] = useState<any[]>([]);
+  const setC = (k: string) => (e: any) => setFc({ ...fc, [k]: e.target.value });
 
   async function load() {
     try { setP(await api.get<Empleado>('/empleados/mi-perfil')); }
@@ -34,6 +42,7 @@ export default function MisDatos() {
     // Secundario: si falla (p.ej. backend sin actualizar), no rompe la página.
     try { setCambios(await api.get<Cambio[]>('/cambios-domicilio/mias')); } catch { /* opcional */ }
     try { setOsCambios(await api.get<any[]>('/cambios-obra-social/mias')); } catch { /* opcional */ }
+    try { setHistC(await api.get<any[]>('/empleados/mi-perfil/cambios')); } catch { /* opcional */ }
   }
   useEffect(() => { load(); }, []);
 
@@ -60,6 +69,15 @@ export default function MisDatos() {
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
+  function abrirEditC() {
+    setFc({ estado_civil: String(p?.['estado_civil'] || ''), email_personal: String(p?.['email_personal'] || ''), tel_personal: String(p?.['tel_personal'] || ''), contacto_nombre: String(p?.['contacto_nombre'] || ''), contacto_tel: String(p?.['contacto_tel'] || ''), contacto_vinculo: String(p?.['contacto_vinculo'] || '') });
+    setEditC(true); setMsgC(null);
+  }
+  async function guardarC(e: React.FormEvent) {
+    e.preventDefault();
+    try { await api.patch('/empleados/mi-perfil', fc); setMsgC({ t: 'Datos actualizados', ok: true }); setEditC(false); await load(); }
+    catch (err: any) { setMsgC({ t: err.message, ok: false }); }
+  }
 
   if (err) return <div className="err">⚠ {err}</div>;
   if (!p) return <div className="muted">Cargando…</div>;
@@ -100,12 +118,45 @@ export default function MisDatos() {
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3 style={{ marginTop: 0 }}>Contacto de emergencia</h3>
-        <div className="grid2">
-          <Field label="Nombre y apellido" value={p['contacto_nombre']} />
-          <Field label="Teléfono" value={p['contacto_tel']} />
-          <Field label="Vínculo" value={p['contacto_vinculo']} />
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>Contacto y datos editables</h3>
+          {!editC && <button className="btn ghost" onClick={abrirEditC}>✏ Editar</button>}
         </div>
+        {!editC ? (
+          <div className="grid2" style={{ marginTop: 12 }}>
+            <Field label="Estado civil" value={p['estado_civil']} />
+            <Field label="Mail personal" value={p['email_personal']} />
+            <Field label="Teléfono personal" value={p['tel_personal']} />
+            <Field label="Contacto de emergencia" value={[p['contacto_nombre'], p['contacto_tel'], p['contacto_vinculo']].filter(Boolean).join(' · ')} />
+          </div>
+        ) : (
+          <form onSubmit={guardarC} style={{ marginTop: 12 }}>
+            <div className="grid2">
+              <div className="field"><label>Estado civil</label><select className="input" value={fc.estado_civil} onChange={setC('estado_civil')}><option value="">—</option>{!EST_CIV.includes(fc.estado_civil) && fc.estado_civil && <option value={fc.estado_civil}>{fc.estado_civil}</option>}{EST_CIV.map((o) => <option key={o} value={o}>{o}</option>)}</select></div>
+              <div className="field"><label>Mail personal</label><input className="input" type="email" value={fc.email_personal} onChange={setC('email_personal')} /></div>
+              <div className="field"><label>Teléfono personal</label><input className="input" value={fc.tel_personal} onChange={setC('tel_personal')} /></div>
+            </div>
+            <div className="sb-group-label" style={{ margin: '10px 0 6px' }}>Contacto de emergencia</div>
+            <div className="grid2">
+              <div className="field"><label>Nombre y apellido</label><input className="input" value={fc.contacto_nombre} onChange={setC('contacto_nombre')} /></div>
+              <div className="field"><label>Teléfono</label><input className="input" value={fc.contacto_tel} onChange={setC('contacto_tel')} /></div>
+              <div className="field"><label>Vínculo</label><select className="input" value={fc.contacto_vinculo} onChange={setC('contacto_vinculo')}><option value="">—</option>{!VINCULOS.includes(fc.contacto_vinculo) && fc.contacto_vinculo && <option value={fc.contacto_vinculo}>{fc.contacto_vinculo}</option>}{VINCULOS.map((o) => <option key={o} value={o}>{o}</option>)}</select></div>
+            </div>
+            <div className="row" style={{ marginTop: 10 }}><button className="btn">Guardar</button><button type="button" className="btn ghost" onClick={() => setEditC(false)}>Cancelar</button></div>
+            <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>Los cambios se aplican al instante y quedan registrados (RR.HH. los ve en tu legajo).</div>
+          </form>
+        )}
+        {msgC && <div className={msgC.ok ? 'ok' : 'err'} style={{ marginTop: 10 }}>{msgC.ok ? '✓ ' : '⚠ '}{msgC.t}</div>}
+        {histC.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div className="muted" style={{ marginBottom: 6, textTransform: 'uppercase', fontSize: 11, letterSpacing: '.05em' }}>Histórico de cambios</div>
+            {histC.map((c) => (
+              <div key={c.id} style={{ fontSize: 12, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                <b>{c.etiqueta || c.campo}</b>: <span className="muted">{c.valor_anterior || '—'}</span> → {c.valor_nuevo || '—'}<span className="muted"> · {fmtFecha(c.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card">

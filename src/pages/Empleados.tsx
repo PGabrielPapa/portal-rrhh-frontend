@@ -304,6 +304,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     return cod ? { codigo: String(cod), codigo_sicoss: '', nombre: String(nom || '') } : null;
   });
   const [osHist, setOsHist] = useState<any[]>([]);
+  const [perfHist, setPerfHist] = useState<any[]>([]);
   const [osBusca, setOsBusca] = useState(false);
   useEffect(() => { loadCodigos().then(setCodigos).catch(() => {}); }, []);
   useEffect(() => {
@@ -312,6 +313,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     api.get<any>('/escala/activa').then((es) => setEscCats(es?.categorias || [])).catch(() => {});
   }, []);
   useEffect(() => { if (!esNueva && e.id) api.get<any[]>(`/cambios-obra-social/empleado/${e.id}`).then(setOsHist).catch(() => {}); }, []);
+  useEffect(() => { if (!esNueva && e.id) api.get<any[]>(`/empleados/${e.id}/cambios-perfil`).then(setPerfHist).catch(() => {}); }, []);
   useEffect(() => { if (!osBusca) return; const t = setTimeout(() => { buscarObrasSociales(osQ).then(setOsRes).catch(() => setOsRes([])); }, 250); return () => clearTimeout(t); }, [osQ, osBusca]);
   // En alta, el legajo lo asigna el sistema: traemos el próximo de la empresa elegida.
   useEffect(() => {
@@ -494,6 +496,16 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <Sel k="dom_prov" label="Provincia" opts={PROVINCIAS_AR} f={f} set={set} />
         </div>
 
+        {perfHist.length > 0 && <>
+          <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Cambios informados por el empleado</div>
+          <div style={{ maxHeight: 160, overflow: 'auto' }}>
+            {perfHist.map((c) => (
+              <div key={c.id} style={{ fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+                <b>{c.etiqueta || c.campo}</b>: <span className="muted">{c.valor_anterior || '—'}</span> → {c.valor_nuevo || '—'}<span className="muted"> · {new Date(c.created_at).toLocaleDateString('es-AR')}</span>
+              </div>
+            ))}
+          </div>
+        </>}
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 18 }}>
           <button className="btn ghost" onClick={onClose}>Cancelar</button>
           <button className="btn" onClick={save} disabled={busy || !f.empresa || !f.apellido || (!f.dni && !f.cuil)}>{busy ? 'Guardando…' : (esNueva ? 'Crear' : 'Guardar cambios')}</button>
