@@ -55,6 +55,8 @@ import FichadasImport from '../pages/FichadasImport';
 import FichadasConsulta from '../pages/FichadasConsulta';
 import FichadasEquipo from '../pages/FichadasEquipo';
 import DatosEquipo from '../pages/DatosEquipo';
+import ChsMinutas from '../pages/ChsMinutas';
+import ChsPolitica from '../pages/ChsPolitica';
 
 // Módulos ya migrados (clave de sección → componente).
 const COMPONENTS: Record<string, ComponentType> = {
@@ -90,6 +92,8 @@ const COMPONENTS: Record<string, ComponentType> = {
   'aprobaciones': Adelantos,
   'costo-equipo': CostoEquipo,
   'datos-equipo': DatosEquipo,
+  'chs-minutas': ChsMinutas,
+  'chs-politica': ChsPolitica,
   'adelantos-rrhh': Adelantos,
   'parametros': Parametros,
   'conceptos': Conceptos,
