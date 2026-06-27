@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 
 interface Periodo { id: number; empresa?: string; legajo?: string; fechaIngreso?: string; fechaEgreso?: string; funcion?: string; catEscala?: string; tramoEscala?: string; catConvenio?: string; codConvenio?: string; codSindicato?: string; vigente?: boolean }
-interface Persona { id: number; cuil?: string; dni: string; apellido?: string; nombres?: string; nom?: string; tipos: string[]; data?: any; empleadoActivo?: boolean; nPeriodos?: number; periodos?: Periodo[] }
+interface Persona { id: number; cuil?: string; dni: string; apellido?: string; nombres?: string; nom?: string; tipos: string[]; data?: any; empleadoActivo?: boolean; nPeriodos?: number; periodos?: Periodo[]; accesoComite?: string | null; tieneClave?: boolean }
 
 const TIPOS: [string, string][] = [['empleado', 'Empleado'], ['familiar', 'Familiar'], ['prestador_hys', 'Prestador HyS'], ['medicina_laboral', 'Medicina Laboral'], ['postulante', 'Postulante'], ['contratista', 'Contratista'], ['otro', 'Otro']];
 const tipoLbl = (t: string) => TIPOS.find((x) => x[0] === t)?.[1] || t;
@@ -93,6 +93,15 @@ function PersonaModal({ persona, onClose, onSaved, onError }: { persona: Persona
   });
   const [tipos, setTipos] = useState<string[]>(p.tipos || []);
   const [busy, setBusy] = useState(false);
+  const [accesoC, setAccesoC] = useState<string>(p.accesoComite || '');
+  const [accNote, setAccNote] = useState('');
+  async function aplicarAcceso() {
+    if (!persona) return;
+    try {
+      const r: any = await api.post(`/personas/${persona.id}/acceso-comite`, { acceso: accesoC || null });
+      setAccNote(accesoC ? `Acceso "${accesoC === 'dashboard' ? 'Solo dashboard' : 'Completo'}" habilitado.${r.claveInicial ? ` Clave inicial: ${r.claveInicial} (el DNI).` : ''}` : 'Acceso al comité quitado.');
+    } catch (e: any) { setAccNote('⚠ ' + e.message); }
+  }
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
   const toggleTipo = (t: string) => setTipos((s) => s.includes(t) ? s.filter((x) => x !== t) : [...s, t]);
   async function save() {
@@ -122,6 +131,20 @@ function PersonaModal({ persona, onClose, onSaved, onError }: { persona: Persona
           {TIPOS.map(([v, l]) => <label key={v} className="row" style={{ gap: 5, fontSize: 13, cursor: 'pointer' }}><input type="checkbox" checked={tipos.includes(v)} onChange={() => toggleTipo(v)} /> {l}</label>)}
         </div>
         {tipos.includes('empleado') && !persona?.empleadoActivo && <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>Para que sea empleado operativo (con liquidación), se da de alta su período desde ABM Empleados. Acá queda marcada como tipo "Empleado".</div>}
+        {persona && <>
+          <div className="sb-group-label" style={{ margin: '14px 0 6px' }}>Acceso al Comité de HyS (login por DNI)</div>
+          <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <select className="input" style={{ maxWidth: 240 }} value={accesoC} onChange={(e) => setAccesoC(e.target.value)}>
+              <option value="">Sin acceso</option>
+              <option value="dashboard">Solo dashboard de HyS</option>
+              <option value="full">Acceso completo al comité</option>
+            </select>
+            <button type="button" className="btn ghost" onClick={aplicarAcceso}>Aplicar acceso</button>
+            {persona.tieneClave && <span className="muted" style={{ fontSize: 12 }}>🔑 clave configurada</span>}
+          </div>
+          {accNote && <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{accNote}</div>}
+          <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Al habilitar acceso, la clave inicial es el DNI. "Solo dashboard" ve únicamente los indicadores.</div>
+        </>}
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 18 }}>
           <button className="btn ghost" onClick={onClose}>Cancelar</button>
           <button className="btn" onClick={save} disabled={busy || !f.dni}>{busy ? 'Guardando…' : 'Guardar'}</button>

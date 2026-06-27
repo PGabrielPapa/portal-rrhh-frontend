@@ -106,7 +106,13 @@ export const GROUPS: Group[] = [
   },
 ];
 
-export function groupsForRole(role: string, flags?: { comiteHys?: boolean }): Group[] {
+export function groupsForRole(role: string, flags?: { comiteHys?: boolean; comiteAcceso?: string }): Group[] {
+  if (role === 'comite') {
+    const chs = GROUPS.find((g) => g.flag === 'comiteHys');
+    if (!chs) return [];
+    const items = flags?.comiteAcceso === 'full' ? chs.items : chs.items.filter((i) => i.key === 'chs-dashboard');
+    return [{ ...chs, roles: [], items }];
+  }
   return GROUPS
     .filter((g) => g.roles.includes(role as Role) || (g.flag && flags && flags[g.flag]))
     .map((g) => ({ ...g }));

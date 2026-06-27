@@ -18,6 +18,6 @@ export interface Empleado {
   esAlta: boolean;
   [k: string]: unknown;
 }
-export interface AuthUser { id: number; dni: string; nom: string; role: string; empresa: string; comiteHys?: boolean; }
+export interface AuthUser { id: number | null; dni: string; nom: string; role: string; empresa?: string; comiteHys?: boolean; acceso?: string; personaId?: number; }
 export interface LoginResult { token: string; mustChangePassword: boolean; user: AuthUser; }
 export interface ImportResult { ok: number; dup: number; err: number; errores: string[]; mensaje: string; }

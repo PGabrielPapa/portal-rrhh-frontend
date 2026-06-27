@@ -151,7 +151,12 @@ export default function SectionView() {
   const { user } = useAuth();
   const section = key ? findSection(key) : undefined;
   if (!section) return <Navigate to="/" replace />;
-  if (section.key.startsWith('chs-') && !(user?.comiteHys || user?.role === 'rrhh' || user?.role === 'admin')) return <Navigate to="/" replace />;
+  if (section.key.startsWith('chs-')) {
+    const r = user?.role; const full = user?.comiteHys || r === 'rrhh' || r === 'admin' || (r === 'comite' && user?.acceso === 'full');
+    const dash = r === 'comite' && user?.acceso === 'dashboard';
+    if (dash) { if (section.key !== 'chs-dashboard') return <Navigate to="/" replace />; }
+    else if (!full) return <Navigate to="/" replace />;
+  }
   const Comp = COMPONENTS[section.key];
   return (
     <>

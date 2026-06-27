@@ -5,7 +5,7 @@ import { groupsForRole } from '../lib/sections';
 export default function Layout() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
-  const groups = groupsForRole(user?.role || 'employee', { comiteHys: !!user?.comiteHys });
+  const groups = groupsForRole(user?.role || 'employee', { comiteHys: !!user?.comiteHys, comiteAcceso: user?.acceso });
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>

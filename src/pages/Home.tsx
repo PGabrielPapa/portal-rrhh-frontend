@@ -76,7 +76,7 @@ function Cumpleanios() {
 export default function Home() {
   const { user } = useAuth();
   const nav = useNavigate();
-  const groups = groupsForRole(user?.role || 'employee').filter((g) => g.items.some((it) => it.ready));
+  const groups = groupsForRole(user?.role || 'employee', { comiteHys: !!user?.comiteHys, comiteAcceso: user?.acceso }).filter((g) => g.items.some((it) => it.ready));
   const hora = new Date().getHours();
   const saludo = hora < 13 ? 'Buen día' : hora < 20 ? 'Buenas tardes' : 'Buenas noches';
   const nombre = (user?.nom || '').split(',')[1]?.trim() || (user?.nom || '').split(' ')[0] || '';
