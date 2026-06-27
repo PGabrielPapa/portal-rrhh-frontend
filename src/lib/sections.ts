@@ -90,7 +90,7 @@ export const GROUPS: Group[] = [
       { key: 'chs-noconf', label: 'No Conformidades y Mejoras', ready: true },
       { key: 'chs-mediciones', label: 'Mediciones de HyS', ready: true },
       { key: 'chs-evidencias', label: 'Evidencias de Mejoras', ready: true },
-      { key: 'chs-dashboard', label: 'Indicadores (Dashboard)' },
+      { key: 'chs-dashboard', label: 'Indicadores (Dashboard)', ready: true },
     ],
   },
   {
