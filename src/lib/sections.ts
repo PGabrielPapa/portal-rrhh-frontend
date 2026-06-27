@@ -40,6 +40,7 @@ export const GROUPS: Group[] = [
   {
     panel: 'RR.HH.', roles: ['rrhh', 'admin'],
     items: [
+      { key: 'personas', label: 'Personas (base)', ready: true },
       { key: 'empleados', label: 'ABM Empleados', ready: true },
       { key: 'adelantos-rrhh', label: 'Adelantos (otorgamiento)', ready: true },
       { key: 'liquidacion', label: 'Liquidación', ready: true },

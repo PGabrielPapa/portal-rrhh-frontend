@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { META, fallback } from '../lib/meta';
 import Placeholder from './Placeholder';
 import Empleados from '../pages/Empleados';
+import Personas from '../pages/Personas';
 import MisDatos from '../pages/MisDatos';
 import Mensajes from '../pages/Mensajes';
 import MensajesRRHH from '../pages/MensajesRRHH';
@@ -71,6 +72,7 @@ import ChsEpp from '../pages/ChsEpp';
 // Módulos ya migrados (clave de sección → componente).
 const COMPONENTS: Record<string, ComponentType> = {
   'empleados': Empleados,
+  'personas': Personas,
   'mis-datos': MisDatos,
   'mensajes': Mensajes,
   'mensajes-rrhh': MensajesRRHH,
