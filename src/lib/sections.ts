@@ -88,7 +88,7 @@ export const GROUPS: Group[] = [
       { key: 'chs-carteleria', label: 'Cartelería' },
       { key: 'chs-minutas', label: 'Minutas del Comité', ready: true },
       { key: 'chs-noconf', label: 'No Conformidades y Mejoras' },
-      { key: 'chs-mediciones', label: 'Mediciones de HyS' },
+      { key: 'chs-mediciones', label: 'Mediciones de HyS', ready: true },
       { key: 'chs-evidencias', label: 'Evidencias de Mejoras' },
       { key: 'chs-dashboard', label: 'Indicadores (Dashboard)' },
     ],
