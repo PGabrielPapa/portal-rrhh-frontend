@@ -84,7 +84,7 @@ export const GROUPS: Group[] = [
       { key: 'chs-siniestros', label: 'Siniestros (ART / Med. Laboral)', ready: true },
       { key: 'chs-auditorias', label: 'Auditorías e Inspecciones', ready: true },
       { key: 'chs-epp', label: 'EPP (matriz y entregas)' },
-      { key: 'chs-riesgos', label: 'Matriz de Riesgos (procesos)' },
+      { key: 'chs-riesgos', label: 'Matriz de Riesgos (procesos)', ready: true },
       { key: 'chs-carteleria', label: 'Cartelería', ready: true },
       { key: 'chs-minutas', label: 'Minutas del Comité', ready: true },
       { key: 'chs-noconf', label: 'No Conformidades y Mejoras', ready: true },

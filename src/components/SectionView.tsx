@@ -63,6 +63,7 @@ import ChsAuditorias from '../pages/ChsAuditorias';
 import ChsNoConf from '../pages/ChsNoConf';
 import ChsCarteleria from '../pages/ChsCarteleria';
 import ChsEvidencias from '../pages/ChsEvidencias';
+import ChsRiesgos from '../pages/ChsRiesgos';
 
 // Módulos ya migrados (clave de sección → componente).
 const COMPONENTS: Record<string, ComponentType> = {
@@ -106,6 +107,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'chs-noconf': ChsNoConf,
   'chs-carteleria': ChsCarteleria,
   'chs-evidencias': ChsEvidencias,
+  'chs-riesgos': ChsRiesgos,
   'adelantos-rrhh': Adelantos,
   'parametros': Parametros,
   'conceptos': Conceptos,
