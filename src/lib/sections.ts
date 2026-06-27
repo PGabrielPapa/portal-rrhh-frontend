@@ -80,10 +80,10 @@ export const GROUPS: Group[] = [
     panel: 'Comité de HyS', roles: ['rrhh', 'admin'], flag: 'comiteHys',
     items: [
       { key: 'chs-politica', label: 'Política de HyS', ready: true },
-      { key: 'chs-capacitaciones', label: 'Plan Anual de Capacitaciones' },
+      { key: 'chs-capacitaciones', label: 'Plan Anual de Capacitaciones', ready: true },
       { key: 'chs-siniestros', label: 'Siniestros (ART / Med. Laboral)', ready: true },
       { key: 'chs-auditorias', label: 'Auditorías e Inspecciones', ready: true },
-      { key: 'chs-epp', label: 'EPP (matriz y entregas)' },
+      { key: 'chs-epp', label: 'EPP (matriz y entregas)', ready: true },
       { key: 'chs-riesgos', label: 'Matriz de Riesgos (procesos)', ready: true },
       { key: 'chs-carteleria', label: 'Cartelería', ready: true },
       { key: 'chs-minutas', label: 'Minutas del Comité', ready: true },
