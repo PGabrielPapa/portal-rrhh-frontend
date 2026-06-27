@@ -7,9 +7,13 @@ import type { Empleado, ImportResult } from '../lib/types';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 
-const PLANTILLA = ['Legajo*','DNI*','CUIL*','Apellido y Nombre*','Empresa*','Fecha Ingreso*',
-  'Fecha Nacimiento','Ubicación','Categoría','Tramo','Sueldo Bruto','Sueldo Neto','E-mail',
-  'Domicilio Calle','Localidad','Provincia','Código Postal'];
+const PLANTILLA = ['Legajo*','DNI*','CUIL*','Apellido*','Nombres*','Empresa*','Fecha Ingreso*',
+  'Fecha Nacimiento','Sexo','Estado Civil','Nacionalidad',
+  'Ubicación','Tarea','Categoría','Tramo','Categoría de convenio','Convenio','Sindicato','Condición','Nivel de título',
+  'Sueldo Bruto','Sueldo Neto',
+  'E-mail','Mail laboral','Mail personal','Teléfono laboral','Teléfono personal',
+  'Contacto emergencia nombre','Contacto emergencia teléfono','Contacto emergencia vínculo',
+  'Domicilio Calle','Número','Piso','Depto','Localidad','Provincia','Código Postal','Obra Social'];
 
 // Campo de formulario (a nivel de módulo para conservar identidad estable y no perder el foco al tipear).
 function F({ k, label, type = 'text', ph, f, set }: { k: string; label: string; type?: string; ph?: string; f: any; set: (k: string) => any }) {
