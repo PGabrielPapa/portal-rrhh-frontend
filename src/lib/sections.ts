@@ -81,7 +81,7 @@ export const GROUPS: Group[] = [
     items: [
       { key: 'chs-politica', label: 'Política de HyS', ready: true },
       { key: 'chs-capacitaciones', label: 'Plan Anual de Capacitaciones' },
-      { key: 'chs-siniestros', label: 'Siniestros (ART / Med. Laboral)' },
+      { key: 'chs-siniestros', label: 'Siniestros (ART / Med. Laboral)', ready: true },
       { key: 'chs-auditorias', label: 'Auditorías e Inspecciones' },
       { key: 'chs-epp', label: 'EPP (matriz y entregas)' },
       { key: 'chs-riesgos', label: 'Matriz de Riesgos (procesos)' },
