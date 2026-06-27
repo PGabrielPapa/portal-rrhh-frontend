@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { useNavigate } from 'react-router-dom';
 
 interface Periodo { id: number; empresa?: string; legajo?: string; fechaIngreso?: string; fechaEgreso?: string; funcion?: string; catEscala?: string; tramoEscala?: string; catConvenio?: string; codConvenio?: string; codSindicato?: string; vigente?: boolean }
 interface Persona { id: number; cuil?: string; dni: string; apellido?: string; nombres?: string; nom?: string; tipos: string[]; data?: any; empleadoActivo?: boolean; nPeriodos?: number; periodos?: Periodo[]; accesoComite?: string | null; tieneClave?: boolean }
@@ -16,12 +17,16 @@ export default function Personas() {
   const [exp, setExp] = useState<Record<number, Persona | null>>({});
   const [edit, setEdit] = useState<Persona | null>(null);
   const [show, setShow] = useState(false);
+  const [empresas, setEmpresas] = useState<string[]>([]);
+  const [asc, setAsc] = useState<Persona | null>(null);
+  const nav = useNavigate();
 
   async function load() {
     try { const p = new URLSearchParams(); if (tipo) p.set('tipo', tipo); if (q) p.set('q', q); setItems(await api.get<Persona[]>(`/personas?${p}`)); }
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [tipo, q]);
+  useEffect(() => { api.get<string[]>('/personas/_empresas').then(setEmpresas).catch(() => {}); }, []);
 
   async function toggle(id: number) {
     if (exp[id] !== undefined) { setExp((s) => { const n = { ...s }; delete n[id]; return n; }); return; }
@@ -54,7 +59,10 @@ export default function Personas() {
                   <td>{p.dni}</td><td>{p.cuil || '—'}</td>
                   <td>{(p.tipos || []).map((t) => <span key={t} className="badge" style={{ marginRight: 4 }}>{tipoLbl(t)}</span>)}</td>
                   <td>{p.nPeriodos ?? 0}</td>
-                  <td style={{ textAlign: 'right' }}><button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => { setEdit(p); setShow(true); }}>Editar</button></td>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {!p.empleadoActivo && <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => setAsc(p)}>⬆ Dar de alta empleado</button>}
+                    <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => { setEdit(p); setShow(true); }}>Editar</button>
+                  </td>
                 </tr>,
                 abierto && (
                   <tr key={`d${p.id}`}><td colSpan={7} style={{ background: 'var(--bg2)', padding: '10px 16px' }}>
@@ -79,7 +87,33 @@ export default function Personas() {
       <p className="muted" style={{ marginTop: 10 }}>{items.length} persona(s)</p>
 
       {show && <PersonaModal persona={edit} onClose={() => setShow(false)} onSaved={(t) => { setShow(false); setMsg({ t, ok: true }); load(); }} onError={(t) => setMsg({ t, ok: false })} />}
+      {asc && <AscenderModal persona={asc} empresas={empresas} onClose={() => setAsc(null)} onDone={(empId) => { setAsc(null); setMsg({ t: 'Empleado dado de alta — completá sus datos en ABM Empleados', ok: true }); nav('/m/empleados'); void empId; }} onError={(t) => { setAsc(null); setMsg({ t, ok: false }); }} />}
     </>
+  );
+}
+
+function AscenderModal({ persona, empresas, onClose, onDone, onError }: { persona: Persona; empresas: string[]; onClose: () => void; onDone: (empId: number) => void; onError: (t: string) => void }) {
+  const [empresa, setEmpresa] = useState(empresas[0] || '');
+  const [busy, setBusy] = useState(false);
+  async function go() {
+    if (!empresa) { onError('Elegí una empresa'); return; }
+    setBusy(true);
+    try { const r: any = await api.post(`/personas/${persona.id}/ascender`, { empresa }); onDone(r.empleadoId); }
+    catch (e: any) { onError(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+        <h3 style={{ marginTop: 0 }}>Dar de alta como empleado</h3>
+        <p className="muted" style={{ fontSize: 13 }}>{persona.nom || `${persona.apellido || ''} ${persona.nombres || ''}`} · DNI {persona.dni}</p>
+        <div className="field"><label>Empresa</label><select className="input" value={empresa} onChange={(e) => setEmpresa(e.target.value)}>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
+        <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Se crea el empleado con legajo automático y su período de prestación vigente. Después completás categoría, sueldo, etc. en ABM Empleados.</div>
+        <div className="row" style={{ justifyContent: 'flex-end', marginTop: 16 }}>
+          <button className="btn ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn" onClick={go} disabled={busy || !empresa}>{busy ? 'Creando…' : 'Dar de alta'}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
