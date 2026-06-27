@@ -19,7 +19,9 @@ export default function Personas() {
   const [show, setShow] = useState(false);
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [asc, setAsc] = useState<Persona | null>(null);
+  const [perEdit, setPerEdit] = useState<{ pe: Periodo; personaId: number } | null>(null);
   const nav = useNavigate();
+  async function refrescar(id: number) { try { const full = await api.get<Persona>(`/personas/${id}`); setExp((s) => ({ ...s, [id]: full })); } catch { /* */ } }
 
   async function load() {
     try { const p = new URLSearchParams(); if (tipo) p.set('tipo', tipo); if (q) p.set('q', q); setItems(await api.get<Persona[]>(`/personas?${p}`)); }
@@ -68,11 +70,12 @@ export default function Personas() {
                   <tr key={`d${p.id}`}><td colSpan={7} style={{ background: 'var(--bg2)', padding: '10px 16px' }}>
                     {!full ? <span className="muted">Cargando…</span> : (full.periodos && full.periodos.length ? (
                       <table style={{ width: '100%', fontSize: 13 }}>
-                        <thead><tr><th style={{ textAlign: 'left' }}>Empresa</th><th style={{ textAlign: 'left' }}>Legajo</th><th style={{ textAlign: 'left' }}>Ingreso</th><th style={{ textAlign: 'left' }}>Egreso</th><th style={{ textAlign: 'left' }}>Función</th><th style={{ textAlign: 'left' }}>Cat. escala</th><th style={{ textAlign: 'left' }}>Cat. convenio</th><th style={{ textAlign: 'left' }}>Estado</th></tr></thead>
+                        <thead><tr><th style={{ textAlign: 'left' }}>Empresa</th><th style={{ textAlign: 'left' }}>Legajo</th><th style={{ textAlign: 'left' }}>Ingreso</th><th style={{ textAlign: 'left' }}>Egreso</th><th style={{ textAlign: 'left' }}>Función</th><th style={{ textAlign: 'left' }}>Cat. escala</th><th style={{ textAlign: 'left' }}>Cat. convenio</th><th style={{ textAlign: 'left' }}>Estado</th><th></th></tr></thead>
                         <tbody>{full.periodos.map((pe) => (
                           <tr key={pe.id}><td>{pe.empresa || '—'}</td><td>{pe.legajo || '—'}</td><td>{fmt(pe.fechaIngreso)}</td><td>{fmt(pe.fechaEgreso)}</td><td>{pe.funcion || '—'}</td>
                             <td>{[pe.catEscala, pe.tramoEscala].filter(Boolean).join(' ') || '—'}</td><td>{pe.catConvenio || '—'}</td>
-                            <td><span className="badge" style={{ color: pe.vigente ? 'var(--green)' : 'var(--t3)' }}>{pe.vigente ? 'Vigente' : 'Cerrado'}</span></td></tr>
+                            <td><span className="badge" style={{ color: pe.vigente ? 'var(--green)' : 'var(--t3)' }}>{pe.vigente ? 'Vigente' : 'Cerrado'}</span></td>
+                            <td style={{ textAlign: 'right' }}><button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12 }} onClick={() => setPerEdit({ pe, personaId: p.id })}>Editar</button></td></tr>
                         ))}</tbody>
                       </table>
                     ) : <span className="muted">Sin períodos de prestación registrados.</span>)}
@@ -87,8 +90,50 @@ export default function Personas() {
       <p className="muted" style={{ marginTop: 10 }}>{items.length} persona(s)</p>
 
       {show && <PersonaModal persona={edit} onClose={() => setShow(false)} onSaved={(t) => { setShow(false); setMsg({ t, ok: true }); load(); }} onError={(t) => setMsg({ t, ok: false })} />}
+      {perEdit && <PeriodoModal pe={perEdit.pe} onClose={() => setPerEdit(null)} onSaved={() => { const pid = perEdit.personaId; setPerEdit(null); refrescar(pid); setMsg({ t: 'Período actualizado', ok: true }); }} onError={(t) => setMsg({ t, ok: false })} />}
       {asc && <AscenderModal persona={asc} empresas={empresas} onClose={() => setAsc(null)} onDone={(empId) => { setAsc(null); setMsg({ t: 'Empleado dado de alta — completá sus datos en ABM Empleados', ok: true }); nav('/m/empleados'); void empId; }} onError={(t) => { setAsc(null); setMsg({ t, ok: false }); }} />}
     </>
+  );
+}
+
+function PeriodoModal({ pe, onClose, onSaved, onError }: { pe: Periodo; onClose: () => void; onSaved: () => void; onError: (t: string) => void }) {
+  const [f, setF] = useState<any>({ funcion: pe.funcion || '', catEscala: pe.catEscala || '', tramoEscala: pe.tramoEscala || '', catConvenio: pe.catConvenio || '', codConvenio: pe.codConvenio || '', codSindicato: pe.codSindicato || '', fechaIngreso: (pe.fechaIngreso || '').slice(0, 10), fechaEgreso: (pe.fechaEgreso || '').slice(0, 10), vigente: pe.vigente !== false, motivo: '' });
+  const [hist, setHist] = useState<any[]>([]);
+  const [busy, setBusy] = useState(false);
+  const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
+  useEffect(() => { api.get<any[]>(`/personas/periodos/${pe.id}/cambios`).then(setHist).catch(() => {}); }, [pe.id]);
+  async function save() {
+    setBusy(true);
+    try { await api.put(`/personas/periodos/${pe.id}`, { ...f, vigente: !!f.vigente }); onSaved(); }
+    catch (e: any) { onError(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 620, maxHeight: '90vh', overflow: 'auto' }}>
+        <h3 style={{ marginTop: 0 }}>Editar período {pe.empresa ? `· ${pe.empresa}` : ''} {pe.legajo ? `(leg. ${pe.legajo})` : ''}</h3>
+        <div className="grid2">
+          <div className="field"><label>Función</label><input className="input" value={f.funcion} onChange={set('funcion')} /></div>
+          <div className="field"><label>Categoría (escala)</label><input className="input" value={f.catEscala} onChange={set('catEscala')} /></div>
+          <div className="field"><label>Tramo (escala)</label><input className="input" value={f.tramoEscala} onChange={set('tramoEscala')} /></div>
+          <div className="field"><label>Categoría de convenio</label><input className="input" value={f.catConvenio} onChange={set('catConvenio')} /></div>
+          <div className="field"><label>Convenio (CCT)</label><input className="input" value={f.codConvenio} onChange={set('codConvenio')} /></div>
+          <div className="field"><label>Sindicato</label><input className="input" value={f.codSindicato} onChange={set('codSindicato')} /></div>
+          <div className="field"><label>Fecha de ingreso</label><input className="input" type="date" value={f.fechaIngreso} onChange={set('fechaIngreso')} /></div>
+          <div className="field"><label>Fecha de egreso</label><input className="input" type="date" value={f.fechaEgreso} onChange={set('fechaEgreso')} /></div>
+        </div>
+        <label className="row" style={{ gap: 6, marginTop: 10, cursor: 'pointer' }}><input type="checkbox" checked={!!f.vigente} onChange={(e) => setF({ ...f, vigente: e.target.checked })} /> Período vigente</label>
+        <div className="field" style={{ marginTop: 10 }}><label>Motivo del cambio (opcional)</label><input className="input" value={f.motivo} onChange={set('motivo')} /></div>
+        <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>Si es el período vigente del empleado, la categoría/función se sincroniza con su legajo (afecta la liquidación).</div>
+        {hist.length > 0 && <div style={{ marginTop: 12 }}>
+          <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>Histórico de cambios</div>
+          {hist.map((c) => <div key={c.id} style={{ fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border)' }}><b>{c.etiqueta || c.campo}</b>: <span className="muted">{c.valor_anterior || '—'}</span> → {c.valor_nuevo || '—'}<span className="muted"> · {fmt(c.created_at)}{c.motivo ? ` · ${c.motivo}` : ''}</span></div>)}
+        </div>}
+        <div className="row" style={{ justifyContent: 'flex-end', marginTop: 16 }}>
+          <button className="btn ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn" onClick={save} disabled={busy}>{busy ? 'Guardando…' : 'Guardar'}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
