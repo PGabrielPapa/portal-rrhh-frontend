@@ -3,7 +3,7 @@
 export type Role = 'employee' | 'manager' | 'rrhh' | 'admin';
 
 export interface Section { key: string; label: string; ready?: boolean; }
-export interface Group { panel: string; roles: Role[]; items: Section[]; }
+export interface Group { panel: string; roles: Role[]; items: Section[]; flag?: 'comiteHys'; }
 
 export const GROUPS: Group[] = [
   {
@@ -77,6 +77,23 @@ export const GROUPS: Group[] = [
     ],
   },
   {
+    panel: 'Comité de HyS', roles: ['rrhh', 'admin'], flag: 'comiteHys',
+    items: [
+      { key: 'chs-politica', label: 'Política de HyS' },
+      { key: 'chs-capacitaciones', label: 'Plan Anual de Capacitaciones' },
+      { key: 'chs-siniestros', label: 'Siniestros (ART / Med. Laboral)' },
+      { key: 'chs-auditorias', label: 'Auditorías e Inspecciones' },
+      { key: 'chs-epp', label: 'EPP (matriz y entregas)' },
+      { key: 'chs-riesgos', label: 'Matriz de Riesgos (procesos)' },
+      { key: 'chs-carteleria', label: 'Cartelería' },
+      { key: 'chs-minutas', label: 'Minutas del Comité' },
+      { key: 'chs-noconf', label: 'No Conformidades y Mejoras' },
+      { key: 'chs-mediciones', label: 'Mediciones de HyS' },
+      { key: 'chs-evidencias', label: 'Evidencias de Mejoras' },
+      { key: 'chs-dashboard', label: 'Indicadores (Dashboard)' },
+    ],
+  },
+  {
     panel: 'Administración', roles: ['admin'],
     items: [
       { key: 'admin-empresas', label: 'Empresas', ready: true },
@@ -88,9 +105,9 @@ export const GROUPS: Group[] = [
   },
 ];
 
-export function groupsForRole(role: string): Group[] {
+export function groupsForRole(role: string, flags?: { comiteHys?: boolean }): Group[] {
   return GROUPS
-    .filter((g) => g.roles.includes(role as Role))
+    .filter((g) => g.roles.includes(role as Role) || (g.flag && flags && flags[g.flag]))
     .map((g) => ({ ...g }));
 }
 

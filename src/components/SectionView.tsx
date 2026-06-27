@@ -1,6 +1,7 @@
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { ComponentType } from 'react';
 import { findSection } from '../lib/sections';
+import { useAuth } from '../lib/auth';
 import { META, fallback } from '../lib/meta';
 import Placeholder from './Placeholder';
 import Empleados from '../pages/Empleados';
@@ -121,8 +122,10 @@ const COMPONENTS: Record<string, ComponentType> = {
 
 export default function SectionView() {
   const { key } = useParams();
+  const { user } = useAuth();
   const section = key ? findSection(key) : undefined;
   if (!section) return <Navigate to="/" replace />;
+  if (section.key.startsWith('chs-') && !(user?.comiteHys || user?.role === 'rrhh' || user?.role === 'admin')) return <Navigate to="/" replace />;
   const Comp = COMPONENTS[section.key];
   return (
     <>

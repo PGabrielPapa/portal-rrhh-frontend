@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
-interface U { id: number; leg_num: string; dni: string; nom: string; role: string; disabled: boolean; must_change_pwd: boolean; empresa: string; }
+interface U { id: number; leg_num: string; dni: string; nom: string; role: string; disabled: boolean; must_change_pwd: boolean; empresa: string; comite_hys?: boolean; }
 const ROLES = [{ v: 'employee', l: 'Empleado' }, { v: 'manager', l: 'Gerente' }, { v: 'rrhh', l: 'RR.HH.' }, { v: 'admin', l: 'Admin' }];
 
 export default function AdminUsuarios() {
@@ -26,6 +26,7 @@ export default function AdminUsuarios() {
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   async function toggle(u: U) { try { await api.patch(`/admin/usuarios/${u.id}`, { disabled: !u.disabled }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
+  async function toggleComite(u: U) { try { await api.patch(`/admin/usuarios/${u.id}`, { comiteHys: !u.comite_hys }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   async function blanquear(u: U) {
     if (!confirm(`¿Blanquear la contraseña de ${u.nom}? Quedará igual al DNI (${u.dni}) con cambio forzado.`)) return;
     try { await api.post(`/admin/usuarios/${u.id}/blanquear`); setMsg({ t: `Clave de ${u.nom} blanqueada al DNI`, ok: true }); load(); }
@@ -46,7 +47,7 @@ export default function AdminUsuarios() {
       </div>
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
-          <thead><tr><th>Empleado</th><th>Empresa</th><th>DNI</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>Empleado</th><th>Empresa</th><th>DNI</th><th>Rol</th><th>Comité HyS</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             {items.map((u) => (
               <tr key={u.id}>
@@ -56,6 +57,9 @@ export default function AdminUsuarios() {
                   <select className="input" style={{ padding: '4px 8px', fontSize: 12, width: 130 }} value={u.role} onChange={(e) => cambiarRol(u, e.target.value)} disabled={u.id === user?.id}>
                     {ROLES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
                   </select>
+                </td>
+                <td style={{ textAlign: 'center' }}>
+                  <input type="checkbox" checked={!!u.comite_hys} onChange={() => toggleComite(u)} title="Integrante Comité HyS" />
                 </td>
                 <td>
                   <span className="badge" style={{ color: u.disabled ? 'var(--red)' : 'var(--green)' }}>{u.disabled ? 'Desactivado' : 'Activo'}</span>
@@ -67,7 +71,7 @@ export default function AdminUsuarios() {
                 </td>
               </tr>
             ))}
-            {!items.length && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin usuarios.</td></tr>}
+            {!items.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin usuarios.</td></tr>}
           </tbody>
         </table>
       </div>
