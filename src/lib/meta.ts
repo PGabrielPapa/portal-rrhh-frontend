@@ -76,6 +76,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'sindicatos': { ico: '🤝', col: '168,85,247', desc: 'Sindicatos y convenios colectivos' },
   'reglamento': { ico: '📜', col: '92,104,128', desc: 'Reglamento y licencias especiales' },
   'cierre-periodos': { ico: '🔒', col: '239,68,68', desc: 'Cierre de períodos de liquidación' },
+  'valores-legales': { ico: '🏛', col: '239,68,68', desc: 'Tope SIPA, SMVM, Seguro de Vida Obligatorio y FFEP versionados por vigencia (se verifican antes de cada corrida)' },
   // Administración
   'admin-empresas': { ico: '🏢', col: '61,127,255', desc: 'Gestión de empresas del grupo' },
   'admin-usuarios': { ico: '👤', col: '61,127,255', desc: 'Usuarios y accesos al sistema' },

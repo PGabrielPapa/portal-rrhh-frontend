@@ -84,6 +84,7 @@ export const GROUPS: Group[] = [
       { key: 'sindicatos', label: 'Sindicatos', ready: true },
       { key: 'reglamento', label: 'Reglamento / licencias esp.', ready: true },
       { key: 'cierre-periodos', label: 'Cierre de períodos', ready: true },
+      { key: 'valores-legales', label: 'Valores legales (topes y mínimos)', ready: true },
     ],
   },
   {

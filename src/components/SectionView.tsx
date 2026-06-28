@@ -28,6 +28,7 @@ import GananciasFinal from '../pages/GananciasFinal';
 import Embargos from '../pages/Embargos';
 import Provision from '../pages/Provision';
 import Alertas from '../pages/Alertas';
+import ValoresLegales from '../pages/ValoresLegales';
 import DdjjSindical from '../pages/DdjjSindical';
 import Sindicatos from '../pages/Sindicatos';
 import DocumentosFirmados from '../pages/DocumentosFirmados';
@@ -105,6 +106,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'embargos': Embargos,
   'provision': Provision,
   'alertas': Alertas,
+  'valores-legales': ValoresLegales,
   'ddjj-sindical': DdjjSindical,
   'sindicatos': Sindicatos,
   'documentos': DocumentosFirmados,
