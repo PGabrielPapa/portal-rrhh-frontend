@@ -94,7 +94,7 @@ export default function Home() {
 
       <Cumpleanios />
 
-      <MisFichadas nom={user?.nom} />
+      <MisFichadas nom={user?.nom} mostrarVacio={user?.role === 'employee'} />
 
       {groups.map((g) => (
         <div key={g.panel} style={{ marginBottom: 26 }}>

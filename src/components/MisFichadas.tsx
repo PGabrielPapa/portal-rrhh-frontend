@@ -10,31 +10,29 @@ function Stat({ n, label, color }: { n: string; label: string; color?: string })
   return <div><div style={{ fontSize: 20, fontWeight: 700, color }}>{n}</div><div className="muted" style={{ fontSize: 11 }}>{label}</div></div>;
 }
 
-export default function MisFichadas({ nom }: { nom?: string }) {
-  const now = new Date();
+export default function MisFichadas({ nom, mostrarVacio }: { nom?: string; mostrarVacio?: boolean }) {
   const [row, setRow] = useState<Periodo | null>(null);
-  const [per, setPer] = useState<{ anio: number; mes: number } | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      let m = now.getMonth() + 1, y = now.getFullYear();
-      const intentos = [{ anio: y, mes: m }];
-      let pm = m - 1, py = y; if (pm === 0) { pm = 12; py--; }
-      intentos.push({ anio: py, mes: pm });
-      for (const p of intentos) {
-        try {
-          const r = await api.get<Periodo | null>(`/fichadas/mias/${p.anio}/${p.mes}`);
-          if (r) { setRow(r); setPer(p); break; }
-        } catch { /* sin fichada en ese período */ }
-      }
-      setLoaded(true);
-    })();
-    /* eslint-disable-next-line */
+    api.get<Periodo | null>('/fichadas/mias/ultima')
+      .then((r) => setRow(r))
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
 
-  if (!loaded || !row) return null;
+  if (!loaded) return null;
+  if (!row) {
+    if (!mostrarVacio) return null;
+    return (
+      <div className="card" style={{ marginBottom: 22 }}>
+        <h4 style={{ margin: 0 }}>🕒 Mis fichadas</h4>
+        <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Todavía no hay fichadas cargadas para tu legajo. Cuando RR.HH. importe el reloj, las vas a ver acá.</div>
+      </div>
+    );
+  }
+
   const d = row.data || {};
   const { extraLiquidable, aRecuperar } = calcLiquidable(d);
   const inj = d.diasInjustificados || 0;
@@ -42,7 +40,7 @@ export default function MisFichadas({ nom }: { nom?: string }) {
   return (
     <div className="card" style={{ marginBottom: 22 }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <h4 style={{ margin: 0 }}>🕒 Mis fichadas — {per ? `${MESES[per.mes - 1]} ${per.anio}` : ''}</h4>
+        <h4 style={{ margin: 0 }}>🕒 Mis fichadas — {MESES[row.mes - 1]} {row.anio}</h4>
         {aprobBadge(row.estado)}
       </div>
       <div className="row" style={{ gap: 20, flexWrap: 'wrap', margin: '12px 0 6px' }}>
