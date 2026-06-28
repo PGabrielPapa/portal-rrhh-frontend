@@ -17,6 +17,8 @@ interface Presentacion {
   cuil: string; anio: number; nroPresentacion: number; fechaPresentacion?: string; version?: string;
   empleado?: any; cargasFamilia: Carga[]; deducciones: Deduccion[]; archivoNombre?: string;
 }
+interface Cfg { mapaTipos: Record<string, string>; topes: Record<string, number | string>; conceptos: Record<string, { label: string; regla: string }>; tabla4Default: Record<string, number | string>; }
+const TOPE_LABELS: [string, string][] = [['gni', 'Ganancia No Imponible (servicio doméstico)'], ['gni40', '40% GNI (tope alquiler)'], ['seguroMuerte', 'Seguros muerte/mixtos + FCI'], ['seguroRetiro', 'Seguros de retiro'], ['hipotecario', 'Intereses hipotecarios'], ['sepelio', 'Gastos de sepelio'], ['pctNeta', '% sobre ganancia neta (médicos/donac.)']];
 interface Fila {
   id: number; cuil: string; empleadoId: number | null; empleadoNom: string | null; legNum: string | null;
   nom: string; anio: number; nroPresentacion: number; fechaPresentacion?: string; version?: string;
@@ -108,6 +110,8 @@ export default function Siradig() {
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [exp, setExp] = useState<Record<number, boolean>>({});
   const [busy, setBusy] = useState(false);
+  const [cfg, setCfg] = useState<Cfg | null>(null);
+  const [showCfg, setShowCfg] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
@@ -118,6 +122,20 @@ export default function Siradig() {
     } catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [anio, q]);
+  useEffect(() => { api.get<Cfg>('/siradig/_config').then(setCfg).catch(() => {}); }, []);
+
+  // Tipos a mapear: los que aparecen en las presentaciones importadas + los ya mapeados.
+  const tiposDetectados = (): string[] => {
+    const set = new Set<string>();
+    for (const f of items) for (const d of f.deducciones) if (d.tipo) set.add(String(d.tipo));
+    if (cfg) for (const k of Object.keys(cfg.mapaTipos)) set.add(String(k));
+    return Array.from(set).sort((a, b) => Number(a) - Number(b));
+  };
+  async function guardarCfg() {
+    if (!cfg) return;
+    try { await api.put('/siradig/_config', { mapaTipos: cfg.mapaTipos, topes: cfg.topes }); setMsg({ t: 'Configuración guardada. Se aplica en el F.1357.', ok: true }); }
+    catch (e: any) { setMsg({ t: e.message, ok: false }); }
+  }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []); if (!files.length) return;
@@ -162,6 +180,56 @@ export default function Siradig() {
         </div>
         {msg && <p className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 0 }}>{msg.t}</p>}
       </div>
+
+      {cfg && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="row" style={{ alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowCfg((v) => !v)}>
+            <b style={{ flex: 1 }}>⚙ Configuración: mapeo de códigos y topes (RG 4003)</b>
+            <span className="muted">{showCfg ? '▲' : '▼'}</span>
+          </div>
+          {showCfg && (
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              <p className="muted" style={{ marginTop: 0 }}>
+                El XML del SiRADIG identifica cada deducción con un <b>código «tipo»</b>. Mapeá cada código a su concepto para que el F.1357 aplique el tope correcto.
+                Los no mapeados <b>no se deducen</b>. (La tabla oficial está en el ZIP «Manual del Desarrollador» de ARCA.)
+              </p>
+              <h4 style={{ margin: '8px 0 4px' }}>Mapeo código «tipo» → concepto</h4>
+              <table style={{ borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead><tr><th style={{ textAlign: 'left', padding: '2px 10px' }}>Tipo</th><th style={{ textAlign: 'left', padding: '2px 10px' }}>Concepto</th></tr></thead>
+                <tbody>
+                  {tiposDetectados().map((tp) => (
+                    <tr key={tp}>
+                      <td style={{ padding: '2px 10px', fontFamily: 'monospace' }}>{tp}</td>
+                      <td style={{ padding: '2px 10px' }}>
+                        <select className="input" value={cfg.mapaTipos[tp] || ''} onChange={(e) => setCfg({ ...cfg, mapaTipos: { ...cfg.mapaTipos, [tp]: e.target.value } })}>
+                          <option value="">(sin clasificar — no se deduce)</option>
+                          {Object.entries(cfg.conceptos).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                  {!tiposDetectados().length && <tr><td colSpan={2} className="muted" style={{ padding: 8 }}>Importá presentaciones para ver los códigos a mapear.</td></tr>}
+                </tbody>
+              </table>
+              <h4 style={{ margin: '14px 0 4px' }}>Topes (valores anuales)</h4>
+              <div className="grid2">
+                {TOPE_LABELS.map(([k, lbl]) => (
+                  <div className="field" key={k}><label>{lbl}</label>
+                    <input className="input" type="number" step="0.01" value={Number(cfg.topes[k] ?? 0)} onChange={(e) => setCfg({ ...cfg, topes: { ...cfg.topes, [k]: Number(e.target.value) } })} />
+                  </div>
+                ))}
+                <div className="field"><label>Modo de tope</label>
+                  <select className="input" value={String(cfg.topes.modo || 'MENSUAL_PRORRATEADO')} onChange={(e) => setCfg({ ...cfg, topes: { ...cfg.topes, modo: e.target.value } })}>
+                    <option value="MENSUAL_PRORRATEADO">Prorrateado mes a mes (tope anual ÷ 12 × meses)</option>
+                    <option value="FIJO_PERIODO">Fijo durante todo el período fiscal</option>
+                  </select>
+                </div>
+              </div>
+              <div className="row" style={{ marginTop: 10 }}><button className="btn" onClick={guardarCfg}>Guardar configuración</button></div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="row" style={{ flexWrap: 'wrap', marginBottom: 14, gap: 10 }}>
         <input className="input" style={{ maxWidth: 260 }} placeholder="Buscar nombre o CUIL…" value={q} onChange={(e) => setQ(e.target.value)} />
