@@ -60,8 +60,8 @@ export default function FichadasEquipo() {
 
   async function aprobarTodo() {
     const ids = visibles.filter((r) => r.estado === 'aprob_rrhh').map((r) => r.id);
-    if (!ids.length) { setErr('No hay novedades pendientes de tu visto bueno.'); return; }
-    if (!window.confirm(`Vas a autorizar ${ids.length} novedad(es). ¿Confirmás?`)) return;
+    if (!ids.length) { setErr('No hay horas extra pendientes de autorizar.'); return; }
+    if (!window.confirm(`Vas a autorizar las horas extra de ${ids.length} fichada(s). ¿Confirmás?`)) return;
     setErr(''); setOk(''); setBusy(true);
     try {
       const r = await api.post<{ actualizados: number }>(`/fichadas/${anio}/${mes}/aprobacion-masiva`, { etapa: 'gerencia', accion: 'aprobar', ids });
@@ -71,14 +71,16 @@ export default function FichadasEquipo() {
     finally { setBusy(false); }
   }
 
-  const visibles = soloPendientes ? rows.filter((r) => r.estado === 'aprob_rrhh') : rows;
-  const pendientes = rows.filter((r) => r.estado === 'aprob_rrhh').length;
-  const autorizadas = rows.filter((r) => r.estado === 'autorizada').length;
+  // El gerente solo ve fichadas que generaron horas extra netas.
+  const conExtra = rows.filter((r) => calcLiquidable(r.data).extraLiquidable > 0);
+  const visibles = soloPendientes ? conExtra.filter((r) => r.estado === 'aprob_rrhh') : conExtra;
+  const pendientes = conExtra.filter((r) => r.estado === 'aprob_rrhh').length;
+  const autorizadas = conExtra.filter((r) => r.estado === 'autorizada').length;
 
   return (
     <>
       <p className="muted" style={{ marginTop: -6, marginBottom: 14 }}>
-        Novedades de fichadas de tu equipo que <b>RR.HH. ya controló y aceptó</b>. Revisá el detalle día por día y <b>autorizá</b> las que estén OK; las autorizadas quedan listas para liquidar. Lo que autorizás son las <b>horas extra</b> y el <b>tiempo en contra (a recuperar)</b>. También ves las <b>faltas injustificadas</b>. Si algo no cierra, <b>devolvelo</b> a RR.HH. con un comentario.
+        Acá aparecen <b>solo las fichadas de tu equipo que generaron horas extra</b> y que <b>RR.HH. ya controló y aceptó</b>. Revisá el detalle día por día y <b>autorizá las horas extra</b> que estén OK; las autorizadas quedan listas para liquidar. Si algo no cierra, <b>devolvelo</b> a RR.HH. con un comentario. Las fichadas <b>sin horas extra</b> quedan firmes con RR.HH. y no necesitan tu autorización.
       </p>
 
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
@@ -97,7 +99,7 @@ export default function FichadasEquipo() {
           <button className="btn" onClick={load}>🔍 Consultar</button>
           <label className="row" style={{ gap: 6, alignItems: 'center', fontSize: 13 }}>
             <input type="checkbox" checked={soloPendientes} onChange={(e) => setSoloPendientes(e.target.checked)} />
-            Solo pendientes de mi visto bueno
+            Solo horas extra pendientes de autorizar
           </label>
           {loaded && pendientes > 0 && (
             <button className="btn" style={{ background: '#16a34a', marginLeft: 'auto' }} onClick={aprobarTodo} disabled={busy}>
@@ -112,7 +114,7 @@ export default function FichadasEquipo() {
           <div className="row" style={{ gap: 24, flexWrap: 'wrap' }}>
             <Stat n={pendientes} label="Esperando tu visto bueno" color={pendientes ? '#d97706' : undefined} />
             <Stat n={autorizadas} label="Autorizadas" color={autorizadas ? '#16a34a' : undefined} />
-            <Stat n={rows.length} label={`Novedades del equipo (${MESES[mes - 1]} ${anio})`} />
+            <Stat n={rows.length} label={`Con horas extra (${MESES[mes - 1]} ${anio})`} />
           </div>
         </div>
       )}
@@ -125,7 +127,7 @@ export default function FichadasEquipo() {
               {visibles.map((r) => (
                 <FilaEquipo key={r.empleado_id} r={r} abierto={expand.has(r.empleado_id)} onToggle={() => toggle(r.empleado_id)} onResolver={resolver} busy={busy} />
               ))}
-              {!visibles.length && <tr><td colSpan={11} className="muted" style={{ textAlign: 'center', padding: 20 }}>{rows.length ? 'No hay novedades pendientes de tu visto bueno.' : `Sin novedades de tu equipo para ${MESES[mes - 1]} ${anio}. (RR.HH. todavía no aceptó nada, o no tenés reportes con fichadas.)`}</td></tr>}
+              {!visibles.length && <tr><td colSpan={11} className="muted" style={{ textAlign: 'center', padding: 20 }}>{conExtra.length ? 'No hay horas extra pendientes de tu autorización.' : `Sin horas extra de tu equipo para ${MESES[mes - 1]} ${anio}. (RR.HH. todavía no aceptó fichadas con extra, o tu equipo no generó horas extra.)`}</td></tr>}
             </tbody>
           </table>
         </div>

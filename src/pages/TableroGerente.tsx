@@ -91,7 +91,7 @@ export default function TableroGerente() {
         <h4 style={{ margin: '4px 0 8px' }}>Qué requiere tu atención</h4>
         <div className="row" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
           <Pend t="Adelantos para recomendar" n={data.pendientes.adelantos} ico="💸" onClick={() => nav('/m/aprobaciones')} />
-          <Pend t="Fichadas para autorizar" n={data.pendientes.fichadas} ico="🕒" onClick={() => nav('/m/fichadas-equipo')} />
+          <Pend t="Horas extra para autorizar" n={data.pendientes.fichadas} ico="🕒" onClick={() => nav('/m/fichadas-equipo')} />
           <Pend t="Licencias para aprobar" n={data.pendientes.licencias} ico="🏖" onClick={() => nav('/m/licencias-equipo')} />
           <Pend t={data.pendientes.anualAbierto ? 'Evaluaciones (período abierto)' : 'Evaluaciones de prueba'} n={data.pendientes.evaluaciones} ico="📈" onClick={() => nav('/m/evaluaciones-equipo')} />
         </div>
