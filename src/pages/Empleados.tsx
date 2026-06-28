@@ -294,6 +294,8 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   })();
   const [f, setF] = useState<Record<string, string>>(ini);
   const [foto, setFoto] = useState<string>((e as any).foto || '');
+  const { user: _u } = useAuth();
+  const [esAdmin, setEsAdmin] = useState<boolean>((e as any).role === 'admin');
   const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: ev.target.value });
@@ -352,7 +354,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     if (ce) { onError(ce); return; }
     setBusy(true);
     try {
-      const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0 };
+      const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0, esAdmin };
       body.nom = [f.apellido, f.nombres].filter(Boolean).join(', ').toUpperCase().trim();
       delete body.cod_os; delete body.desc_os;
       if (esNueva) {
@@ -417,6 +419,11 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Contacto</div>
         <div className="grid2">
           <F k="email" label="E-mail (cuenta del sistema / notificaciones)" f={f} set={set} />
+          {_u?.role === 'admin' && (
+            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={esAdmin} onChange={(ev) => setEsAdmin(ev.target.checked)} /> Administrador</label>
+            </div>
+          )}
           <F k="email_laboral" label="Mail laboral" f={f} set={set} />
           <F k="email_personal" label="Mail personal" f={f} set={set} />
           <F k="tel_laboral" label="Teléfono laboral" f={f} set={set} />

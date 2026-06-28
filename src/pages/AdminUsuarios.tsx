@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { GROUPS } from '../lib/sections';
 
-interface U { id: number; leg_num: string; dni: string; nom: string; role: string; disabled: boolean; must_change_pwd: boolean; empresa: string; comite_hys?: boolean; }
+interface U { id: number; leg_num: string; dni: string; nom: string; role: string; disabled: boolean; must_change_pwd: boolean; empresa: string; comite_hys?: boolean; modulos_ocultos?: string[]; twofa?: boolean; }
 const ROLES = [{ v: 'employee', l: 'Empleado' }, { v: 'manager', l: 'Gerente' }, { v: 'rrhh', l: 'RR.HH.' }, { v: 'admin', l: 'Admin' }];
 
 export default function AdminUsuarios() {
@@ -13,6 +14,9 @@ export default function AdminUsuarios() {
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [empresa, setEmpresa] = useState('');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const [perms, setPerms] = useState<U | null>(null);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const todasSecciones = GROUPS.flatMap((g) => g.items.map((it) => ({ key: it.key, label: it.label, panel: g.panel })));
 
   async function load() {
     try { const p = new URLSearchParams(); if (q) p.set('q', q); if (role) p.set('role', role); if (empresa) p.set('empresa', empresa); setItems(await api.get<U[]>(`/admin/usuarios?${p}`)); }
@@ -27,6 +31,17 @@ export default function AdminUsuarios() {
   }
   async function toggle(u: U) { try { await api.patch(`/admin/usuarios/${u.id}`, { disabled: !u.disabled }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   async function toggleComite(u: U) { try { await api.patch(`/admin/usuarios/${u.id}`, { comiteHys: !u.comite_hys }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
+  function abrirPerms(u: U) { setPerms(u); setSel(new Set(u.modulos_ocultos || [])); }
+  async function guardarPerms() {
+    if (!perms) return;
+    try { await api.patch(`/admin/usuarios/${perms.id}`, { modulosOcultos: [...sel] }); setMsg({ t: `Módulos actualizados para ${perms.nom}`, ok: true }); setPerms(null); load(); }
+    catch (e: any) { setMsg({ t: e.message, ok: false }); }
+  }
+  async function reset2fa(u: U) {
+    if (!confirm(`¿Restablecer el 2FA de ${u.nom}? Tendrá que volver a configurarlo.`)) return;
+    try { await api.patch(`/admin/usuarios/${u.id}`, { reset2fa: true }); setMsg({ t: `2FA restablecido para ${u.nom}`, ok: true }); load(); }
+    catch (e: any) { setMsg({ t: e.message, ok: false }); }
+  }
   async function blanquear(u: U) {
     if (!confirm(`¿Blanquear la contraseña de ${u.nom}? Quedará igual al DNI (${u.dni}) con cambio forzado.`)) return;
     try { await api.post(`/admin/usuarios/${u.id}/blanquear`); setMsg({ t: `Clave de ${u.nom} blanqueada al DNI`, ok: true }); load(); }
@@ -47,7 +62,7 @@ export default function AdminUsuarios() {
       </div>
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
-          <thead><tr><th>Empleado</th><th>Empresa</th><th>DNI</th><th>Rol</th><th>Comité HyS</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>Empleado</th><th>Empresa</th><th>DNI</th><th>Rol</th><th>Comité HyS</th><th>2FA</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             {items.map((u) => (
               <tr key={u.id}>
@@ -61,21 +76,46 @@ export default function AdminUsuarios() {
                 <td style={{ textAlign: 'center' }}>
                   <input type="checkbox" checked={!!u.comite_hys} onChange={() => toggleComite(u)} title="Integrante Comité HyS" />
                 </td>
+                <td style={{ textAlign: 'center', fontSize: 12 }}>{u.twofa ? <span style={{ color: 'var(--green)' }} title="2FA activo">✔</span> : <span className="muted">—</span>}</td>
                 <td>
                   <span className="badge" style={{ color: u.disabled ? 'var(--red)' : 'var(--green)' }}>{u.disabled ? 'Desactivado' : 'Activo'}</span>
                   {u.must_change_pwd && <span className="badge" title="Debe cambiar la contraseña" style={{ marginLeft: 4, color: 'var(--yellow)' }}>🔑</span>}
                 </td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => abrirPerms(u)}>Módulos</button>
+                  {u.twofa && <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => reset2fa(u)}>Reset 2FA</button>}
                   <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => blanquear(u)}>Blanquear clave</button>
                   <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => toggle(u)} disabled={u.id === user?.id}>{u.disabled ? 'Activar' : 'Desactivar'}</button>
                 </td>
               </tr>
             ))}
-            {!items.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin usuarios.</td></tr>}
+            {!items.length && <tr><td colSpan={8} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin usuarios.</td></tr>}
           </tbody>
         </table>
       </div>
       <p className="muted" style={{ marginTop: 10 }}>{items.length} usuario(s) · No podés cambiar tu propio rol/estado.</p>
+
+      {perms && (
+        <div className="modal-bg" onClick={() => setPerms(null)}>
+          <div className="modal" style={{ maxWidth: 680, maxHeight: '80vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>Módulos ocultos — {perms.nom}</h3>
+            <p className="muted">Tildá los módulos que querés OCULTAR para este usuario (además de lo que ya restringe su rol).</p>
+            {GROUPS.map((g) => (
+              <div key={g.panel} style={{ marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 4 }}>{g.panel}</div>
+                <div className="grid2">
+                  {g.items.map((it) => (
+                    <label key={it.key} className="row muted" style={{ gap: 6, fontSize: 13 }}>
+                      <input type="checkbox" checked={sel.has(it.key)} onChange={(e) => { const n = new Set(sel); if (e.target.checked) n.add(it.key); else n.delete(it.key); setSel(n); }} /> {it.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="row" style={{ marginTop: 10 }}><button className="btn" onClick={guardarPerms}>Guardar</button><button className="btn ghost" onClick={() => setPerms(null)}>Cancelar</button><button className="btn ghost" onClick={() => setSel(new Set())}>Limpiar todo</button></div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

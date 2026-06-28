@@ -12,6 +12,7 @@ export const GROUPS: Group[] = [
       { key: 'mis-recibos', label: 'Mis recibos', ready: true },
       { key: 'mis-ganancias', label: 'Ganancias (F.1357)', ready: true },
       { key: 'mis-datos', label: 'Mis datos', ready: true },
+      { key: 'seguridad', label: 'Seguridad (2FA)', ready: true },
       { key: 'anticipos', label: 'Adelantos', ready: true },
       { key: 'mis-licencias', ready: true, label: 'Mis licencias' },
       { key: 'justificar-licencia', ready: true, label: 'Justificación de licencias' },
@@ -68,6 +69,8 @@ export const GROUPS: Group[] = [
       { key: 'evaluaciones', label: 'Evaluaciones de desempeño', ready: true },
       { key: 'simulaciones', label: 'Simulaciones', ready: true },
       { key: 'licencias-rrhh', ready: true, label: 'Licencias (gestión)' },
+      { key: 'vacaciones', label: 'Vacaciones (saldos)', ready: true },
+      { key: 'legajo-docs', label: 'Legajo digital (documentos)', ready: true },
       { key: 'hys', label: 'Higiene y Seguridad', ready: true },
       { key: 'beneficios', label: 'Beneficios', ready: true },
       { key: 'elementos-trabajo', label: 'Elementos de trabajo', ready: true },
@@ -119,16 +122,17 @@ export const GROUPS: Group[] = [
   },
 ];
 
-export function groupsForRole(role: string, flags?: { comiteHys?: boolean; comiteAcceso?: string }): Group[] {
+export function groupsForRole(role: string, flags?: { comiteHys?: boolean; comiteAcceso?: string; modulosOcultos?: string[] }): Group[] {
   if (role === 'comite') {
     const chs = GROUPS.find((g) => g.flag === 'comiteHys');
     if (!chs) return [];
     const items = flags?.comiteAcceso === 'full' ? chs.items : chs.items.filter((i) => i.key === 'chs-dashboard');
     return [{ ...chs, roles: [], items }];
   }
+  const ocultos = new Set(flags?.modulosOcultos || []);
   return GROUPS
     .filter((g) => g.roles.includes(role as Role) || (g.flag && flags && flags[g.flag]))
-    .map((g) => ({ ...g }));
+    .map((g) => ({ ...g, items: g.items.filter((it) => !ocultos.has(it.key)) }));
 }
 
 export function findSection(key: string): Section | undefined {

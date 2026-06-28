@@ -7,6 +7,7 @@ import Placeholder from './Placeholder';
 import Empleados from '../pages/Empleados';
 import Personas from '../pages/Personas';
 import MisDatos from '../pages/MisDatos';
+import Seguridad from '../pages/Seguridad';
 import Mensajes from '../pages/Mensajes';
 import MensajesRRHH from '../pages/MensajesRRHH';
 import Organigrama from '../pages/Organigrama';
@@ -31,6 +32,8 @@ import Alertas from '../pages/Alertas';
 import ValoresLegales from '../pages/ValoresLegales';
 import ControlesLiq from '../pages/ControlesLiq';
 import Novedades from '../pages/Novedades';
+import Vacaciones from '../pages/Vacaciones';
+import LegajoDocs from '../pages/LegajoDocs';
 import ParametrosHist from '../pages/ParametrosHist';
 import DdjjSindical from '../pages/DdjjSindical';
 import Sindicatos from '../pages/Sindicatos';
@@ -87,6 +90,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'empleados': Empleados,
   'personas': Personas,
   'mis-datos': MisDatos,
+  'seguridad': Seguridad,
   'mensajes': Mensajes,
   'mensajes-rrhh': MensajesRRHH,
   'organigrama': Organigrama,
@@ -112,6 +116,8 @@ const COMPONENTS: Record<string, ComponentType> = {
   'valores-legales': ValoresLegales,
   'controles-liq': ControlesLiq,
   'novedades': Novedades,
+  'vacaciones': Vacaciones,
+  'legajo-docs': LegajoDocs,
   'parametros-hist': ParametrosHist,
   'ddjj-sindical': DdjjSindical,
   'sindicatos': Sindicatos,
@@ -177,6 +183,7 @@ export default function SectionView() {
   const { user } = useAuth();
   const section = key ? findSection(key) : undefined;
   if (!section) return <Navigate to="/" replace />;
+  if (user?.modulosOcultos && user.modulosOcultos.includes(section.key)) return <Navigate to="/" replace />;
   if (section.key.startsWith('chs-')) {
     const r = user?.role; const full = user?.comiteHys || r === 'rrhh' || r === 'admin' || (r === 'comite' && user?.acceso === 'full');
     const dash = r === 'comite' && user?.acceso === 'dashboard';
