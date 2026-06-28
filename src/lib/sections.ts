@@ -45,6 +45,7 @@ export const GROUPS: Group[] = [
       { key: 'empleados', label: 'ABM Empleados', ready: true },
       { key: 'adelantos-rrhh', label: 'Adelantos (otorgamiento)', ready: true },
       { key: 'liquidacion', label: 'Liquidación', ready: true },
+      { key: 'controles-liq', label: 'Controles de liquidación', ready: true },
       { key: 'fichadas-import', label: 'Importar fichadas (Pro-Soft)', ready: true },
       { key: 'fichadas-consulta', label: 'Fichadas — consulta', ready: true },
       { key: 'recibos-gestion', label: 'Recibos (gestión)', ready: true },
