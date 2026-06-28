@@ -41,6 +41,12 @@ export default function Novedades() {
       load();
     } catch (err: any) { setMsg({ t: 'No se pudo procesar: ' + err.message, ok: false }); }
   }
+  async function desdeFichadas() {
+    if (!confirm(`Generar novedades de horas extra desde las fichadas AUTORIZADAS de ${MESES[mes]} ${anio}? (reemplaza las generadas antes desde fichadas)`)) return;
+    setMsg(null);
+    try { const r = await api.post<{ fichadasAutorizadas: number; conExtra: number; creadas: number }>('/novedades/desde-fichadas', { anio, mes, reemplazar: true }); setMsg({ t: `Fichadas autorizadas: ${r.fichadasAutorizadas}. Novedades de horas extra generadas: ${r.creadas}.`, ok: true }); load(); }
+    catch (e: any) { setMsg({ t: e.message, ok: false }); }
+  }
   async function borrar(n: Nov) { if (!confirm('¿Eliminar esta novedad?')) return; try { await api.del(`/novedades/${n.id}`); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
 
   return (
@@ -53,6 +59,7 @@ export default function Novedades() {
           <input ref={fileRef} type="file" accept=".xlsx,.csv" style={{ display: 'none' }} onChange={onFile} />
           <button className="btn" onClick={() => fileRef.current?.click()}>⬆ Importar Excel</button>
           <button className="btn ghost" onClick={plantilla}>⬇ Plantilla</button>
+          <button className="btn ghost" onClick={desdeFichadas}>↳ Generar desde fichadas (autorizadas)</button>
         </div>
         {msg && <p className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 0 }}>{msg.t}</p>}
       </div>
