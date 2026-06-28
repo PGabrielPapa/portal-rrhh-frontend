@@ -25,6 +25,7 @@ import GananciasControl from '../pages/GananciasControl';
 import GananciasApertura from '../pages/GananciasApertura';
 import Acumuladores from '../pages/Acumuladores';
 import Tablero from '../pages/Tablero';
+import TableroGerente from '../pages/TableroGerente';
 import GananciasFinal from '../pages/GananciasFinal';
 import Embargos from '../pages/Embargos';
 import Provision from '../pages/Provision';
@@ -109,6 +110,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'ganancias-apertura': GananciasApertura,
   'acumuladores': Acumuladores,
   'tablero': Tablero,
+  'tablero-equipo': TableroGerente,
   'ganancias-final': GananciasFinal,
   'embargos': Embargos,
   'provision': Provision,
