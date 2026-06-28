@@ -419,7 +419,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Contacto</div>
         <div className="grid2">
           <F k="email" label="E-mail (cuenta del sistema / notificaciones)" f={f} set={set} />
-          {_u?.role === 'admin' && (
+          {(_u?.role === 'admin' || _u?.role === 'rrhh') && (
             <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={esAdmin} onChange={(ev) => setEsAdmin(ev.target.checked)} /> Administrador</label>
             </div>
