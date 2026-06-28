@@ -27,7 +27,7 @@ interface Fila {
 }
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-const PARENTESCO: Record<string, string> = { '1': 'Cónyuge/conviviente', '2': 'Hijo/a', '3': 'Hijo/a menor 18', '4': 'Hijastro/a' };
+const PARENTESCO: Record<string, string> = { '1': 'Cónyuge', '3': 'Hijo/a', '30': 'Hijastro/a', '31': 'Hijo/a incapacitado', '32': 'Hijastro/a incapacitado', '33': 'Padre', '34': 'Madre', '35': 'Nieto/a', '39': 'Abuelo/a', '41': 'Padrastro/Madrastra', '42': 'Hermano/a', '43': 'Hermano/a incapacitado', '44': 'Suegro/a', '51': 'Unión convivencial', '103': 'Hijo/a 18-24 (educación)' };
 const peso = (n: number) => '$ ' + (Number(n) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtFecha = (s?: string) => { const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || '—'); };
 const num = (v: any) => { const n = parseFloat(String(v ?? '').replace(/[^0-9.\-]/g, '')); return Number.isFinite(n) ? n : 0; };
