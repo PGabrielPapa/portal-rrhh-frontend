@@ -39,7 +39,7 @@ export const GROUPS: Group[] = [
     ],
   },
   {
-    panel: 'Tablero y control', roles: ['rrhh', 'admin'],
+    panel: 'RRHH — Tablero y control', roles: ['rrhh', 'admin'],
     items: [
       { key: 'tablero', label: 'Tablero de RR.HH.', ready: true },
       { key: 'alertas', label: 'Alertas de vencimientos', ready: true },
@@ -48,7 +48,7 @@ export const GROUPS: Group[] = [
     ],
   },
   {
-    panel: 'Personal y legajos', roles: ['rrhh', 'admin'],
+    panel: 'RRHH — Personal y legajos', roles: ['rrhh', 'admin'],
     items: [
       { key: 'personas', label: 'Personas (base)', ready: true },
       { key: 'empleados', label: 'ABM Empleados', ready: true },
@@ -67,14 +67,14 @@ export const GROUPS: Group[] = [
     ],
   },
   {
-    panel: 'Asistencia', roles: ['rrhh', 'admin'],
+    panel: 'RRHH — Asistencia', roles: ['rrhh', 'admin'],
     items: [
       { key: 'fichadas-import', label: 'Importar fichadas (Pro-Soft)', ready: true },
       { key: 'fichadas-consulta', label: 'Fichadas — consulta', ready: true },
     ],
   },
   {
-    panel: 'Liquidación de haberes', roles: ['rrhh', 'admin'],
+    panel: 'RRHH — Liquidación de haberes', roles: ['rrhh', 'admin'],
     items: [
       { key: 'liquidacion', label: 'Liquidación', ready: true },
       { key: 'novedades', label: 'Novedades variables', ready: true },
@@ -90,7 +90,7 @@ export const GROUPS: Group[] = [
     ],
   },
   {
-    panel: 'Impuesto a las Ganancias', roles: ['rrhh', 'admin'],
+    panel: 'RRHH — Impuesto a las Ganancias', roles: ['rrhh', 'admin'],
     items: [
       { key: 'ganancias-rrhh', label: 'Ganancias / F.1357', ready: true },
       { key: 'ganancias-control', label: 'Ganancias — informe de control', ready: true },
@@ -103,7 +103,7 @@ export const GROUPS: Group[] = [
     ],
   },
   {
-    panel: 'Cargas sociales y AFIP', roles: ['rrhh', 'admin'],
+    panel: 'RRHH — Cargas sociales y AFIP', roles: ['rrhh', 'admin'],
     items: [
       { key: 'f931', label: 'F.931', ready: true },
       { key: 'libro-sueldos', label: 'Libro de sueldos', ready: true },
@@ -114,7 +114,7 @@ export const GROUPS: Group[] = [
     ],
   },
   {
-    panel: 'Tablas y configuración', roles: ['rrhh', 'admin'],
+    panel: 'RRHH — Tablas y configuración', roles: ['rrhh', 'admin'],
     items: [
       { key: 'valores-legales', label: 'Valores legales (topes y mínimos)', ready: true },
       { key: 'art-empresas', label: 'ART por empresa', ready: true },
