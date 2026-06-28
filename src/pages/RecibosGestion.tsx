@@ -90,6 +90,12 @@ export default function RecibosGestion() {
     setErr(''); setOk('');
     try { await api.patch(`/recibos/${it.id}/pagar`, { pagado: !it.pagado }); setOk(!it.pagado ? `Recibo de ${it.nom} marcado como pagado.` : 'Pago quitado.'); load(); } catch (e: any) { setErr(e.message); }
   }
+  async function enviarMail(it: Item) {
+    if (!confirm(`¿Enviar el recibo de ${it.nom} por correo al empleado?`)) return;
+    setErr(''); setOk('');
+    try { const r = await api.post<{ to: string }>(`/recibos/${it.id}/enviar-mail`, {}); setOk(`Recibo enviado por mail a ${r.to}.`); }
+    catch (e: any) { setErr(e.message); }
+  }
   async function avisar(it: Item) {
     setErr(''); setOk('');
     try { await api.post(`/recibos/${it.id}/avisar`, {}); setOk(`Aviso enviado a ${it.nom}.`); } catch (e: any) { setErr(e.message); }
@@ -205,6 +211,7 @@ export default function RecibosGestion() {
                                     <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4 }} onClick={() => ver(it)}>Ver</button>
                                     <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4, color: it.pagado ? 'var(--muted)' : 'var(--green)' }} onClick={() => togglePagar(it)}>{it.pagado ? 'Quitar pago' : '✓ Pagar'}</button>
                                     {it.publicado && <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4 }} title="Avisar al empleado" onClick={() => avisar(it)}>🔔</button>}
+                                    {it.publicado && <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4 }} title="Enviar por mail" onClick={() => enviarMail(it)}>✉</button>}
                                     <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, marginRight: 4 }} title="Re-liquidar" onClick={() => reLiquidar(it)}>↻</button>
                                     <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 12, color: 'var(--red)' }} onClick={() => eliminar(it)}>✕</button>
                                   </td>

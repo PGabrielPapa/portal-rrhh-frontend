@@ -12,13 +12,16 @@ const LABELS: Record<string, string> = {
   scvoPercapita: 'SCVO ($ per cápita)', gan_topeRetencionPct: 'Tope retención Ganancias %',
   pctPresentismo: 'Presentismo %', pctAntiguedadPorAnio: 'Antigüedad por año %',
   smvmMensual: 'SMVM mensual', f931TopeJub: 'F.931 tope jubilación', f931TopeOS: 'F.931 tope OS',
+  ffep: 'FFEP ($ por trabajador)', topeAportesMax: 'Tope base SIPA (máx)', topeAportesMin: 'Base imponible mínima', mesesPeriodoPrueba: 'Período de prueba (meses)',
+  fondoCesePct: 'Fondo de cese %', modoIndemnizacion: 'Modo indemnización (art245 | fondo_cese)',
 };
 
 const GROUPS: { titulo: string; keys: string[] }[] = [
   { titulo: 'Aportes del trabajador', keys: ['pctJubilacion', 'pctObraSocial', 'pctAnssal', 'pctPamiEmp', 'pctSindicatoEmp', 'nombreSindicato'] },
-  { titulo: 'Contribuciones patronales', keys: ['pctJubPatronal', 'pctOsPatronal', 'pctPamiPatronal', 'pctDesempleo', 'pctArt', 'pctSindicatoPatronal', 'scvoPercapita'] },
+  { titulo: 'Contribuciones patronales', keys: ['pctJubPatronal', 'pctOsPatronal', 'pctPamiPatronal', 'pctDesempleo', 'pctArt', 'pctSindicatoPatronal', 'scvoPercapita', 'ffep', 'fondoCesePct'] },
+  { titulo: 'Indemnización / Ley Bases', keys: ['modoIndemnizacion', 'mesesPeriodoPrueba'] },
   { titulo: 'Conceptos remunerativos', keys: ['pctPresentismo', 'pctAntiguedadPorAnio'] },
-  { titulo: 'Ganancias / Topes', keys: ['gan_topeRetencionPct', 'smvmMensual', 'f931TopeJub', 'f931TopeOS'] },
+  { titulo: 'Ganancias / Topes', keys: ['gan_topeRetencionPct', 'smvmMensual', 'topeAportesMax', 'topeAportesMin', 'f931TopeJub', 'f931TopeOS'] },
 ];
 
 export default function Parametros() {

@@ -113,6 +113,7 @@ export const GROUPS: Group[] = [
       { key: 'user-levels', label: 'Niveles de usuario', ready: true },
       { key: 'auditoria', label: 'Auditoría', ready: true },
       { key: 'parametros', label: 'Parámetros de liquidación', ready: true },
+      { key: 'parametros-hist', label: 'Parámetros por vigencia', ready: true },
     ],
   },
 ];

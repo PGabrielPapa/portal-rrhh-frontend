@@ -11,7 +11,15 @@ export default function Alertas() {
   const [dias, setDias] = useState(30);
   const [data, setData] = useState<Resp | null>(null);
   const [err, setErr] = useState('');
+  const [mailTo, setMailTo] = useState('');
+  const [mailMsg, setMailMsg] = useState('');
   async function cargar() { setErr(''); try { setData(await api.get<Resp>(`/alertas?dias=${dias}`)); } catch (e: any) { setErr(e.message); } }
+  async function enviarMail() {
+    if (!mailTo.trim()) { setMailMsg('Indicá un correo'); return; }
+    setMailMsg('Enviando…');
+    try { const r = await api.post<{ enviadas?: number; sinAlertas?: boolean }>('/alertas/enviar-mail', { to: mailTo, dias }); setMailMsg(r.sinAlertas ? 'Sin alertas para enviar.' : `Enviado (${r.enviadas} alertas).`); }
+    catch (e: any) { setMailMsg('Error: ' + e.message); }
+  }
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [dias]);
 
   return (
@@ -23,7 +31,11 @@ export default function Alertas() {
           </select>
         </div>
         {data && <div className="muted" style={{ alignSelf: 'center' }}>{data.resumen.total} alertas · {data.resumen.vencidos} vencidas · {data.resumen.urgentes} urgentes</div>}
+        <div style={{ flex: 1 }} />
+        <input className="input" style={{ maxWidth: 200 }} placeholder="correo destino" value={mailTo} onChange={(e) => setMailTo(e.target.value)} />
+        <button className="btn ghost" onClick={enviarMail}>✉ Enviar por mail</button>
       </div>
+      {mailMsg && <p className="muted" style={{ marginTop: -6 }}>{mailMsg}</p>}
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
       {data && !data.alertas.length && <p className="muted">Sin vencimientos en la ventana elegida. 👍</p>}
       {data && data.alertas.map((a, i) => (

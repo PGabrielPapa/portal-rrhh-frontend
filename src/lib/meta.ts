@@ -84,5 +84,6 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'user-levels': { ico: '🔑', col: '168,85,247', desc: 'Niveles y permisos de usuario' },
   'auditoria': { ico: '🔍', col: '92,104,128', desc: 'Registro de auditoría del sistema' },
   'parametros': { ico: '⚙️', col: '92,104,128', desc: 'Parámetros generales de liquidación' },
+  'parametros-hist': { ico: '🗃', col: '92,104,128', desc: 'Versiones de parámetros por vigencia para reliquidar meses anteriores' },
 };
 export const fallback = { ico: '▸', col: '92,104,128', desc: '' };
