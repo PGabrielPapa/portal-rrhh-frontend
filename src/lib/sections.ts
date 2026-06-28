@@ -40,6 +40,7 @@ export const GROUPS: Group[] = [
   {
     panel: 'RR.HH.', roles: ['rrhh', 'admin'],
     items: [
+      { key: 'tablero', label: 'Tablero de RR.HH.', ready: true },
       { key: 'personas', label: 'Personas (base)', ready: true },
       { key: 'empleados', label: 'ABM Empleados', ready: true },
       { key: 'adelantos-rrhh', label: 'Adelantos (otorgamiento)', ready: true },
@@ -54,6 +55,10 @@ export const GROUPS: Group[] = [
       { key: 'siradig', label: 'SiRADIG (deducciones Ganancias)', ready: true },
       { key: 'ganancias-control', label: 'Ganancias — informe de control', ready: true },
       { key: 'ganancias-apertura', label: 'Ganancias — carga inicial', ready: true },
+      { key: 'ganancias-final', label: 'Ganancias — liquidación final anual', ready: true },
+      { key: 'embargos', label: 'Embargos y cuota alimentaria', ready: true },
+      { key: 'provision', label: 'Provisión SAC y vacaciones', ready: true },
+      { key: 'alertas', label: 'Alertas de vencimientos', ready: true },
       { key: 'acumuladores', label: 'Acumuladores', ready: true },
       { key: 'escalas', label: 'Escalas / convenios', ready: true },
       { key: 'conceptos', label: 'Conceptos', ready: true },

@@ -7,7 +7,7 @@ import { imprimirRecibo } from '../lib/reciboPrint';
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const money = (n: number) => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
 
-interface Item { id: number; anio: number; mes: number; tipo: string; neto: number; created_at: string; }
+interface Item { id: number; anio: number; mes: number; tipo: string; neto: number; created_at: string; acuse_at?: string | null; }
 
 export default function MisRecibos() {
   const [items, setItems] = useState<Item[]>([]);
@@ -23,6 +23,13 @@ export default function MisRecibos() {
     try { setSel(await api.get<Recibo>(`/recibos/${it.id}`)); } catch (e: any) { setErr(e.message); }
   }
 
+  async function darAcuse(it: Item) {
+    if (!confirm('Vas a dejar registrada la recepción de este recibo (acuse de recibo, Ley 27.555). ¿Confirmás?')) return;
+    setErr('');
+    try { const r = await api.post<{ acuseAt: string }>(`/recibos/${it.id}/acuse`); setItems((xs) => xs.map((x) => x.id === it.id ? { ...x, acuse_at: r.acuseAt } : x)); }
+    catch (e: any) { setErr(e.message); }
+  }
+
   return (
     <>
       <MiBanner subtitulo="Consultá y descargá tus recibos de haberes publicados" />
@@ -36,17 +43,18 @@ export default function MisRecibos() {
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'auto' }}>
           <table>
-            <thead><tr><th>Período</th><th>Tipo</th><th>Neto</th><th></th></tr></thead>
+            <thead><tr><th>Período</th><th>Tipo</th><th>Neto</th><th>Acuse</th><th></th></tr></thead>
             <tbody>
               {items.map((it) => (
                 <tr key={it.id}>
                   <td>{MESES[it.mes - 1]} {it.anio}</td>
                   <td>{it.tipo}</td>
                   <td style={{ fontFamily: 'monospace' }}>{money(it.neto)}</td>
+                  <td style={{ fontSize: 12 }}>{it.acuse_at ? <span style={{ color: '#15803d' }}>✔ Recibido</span> : <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => darAcuse(it)}>Dar acuse</button>}</td>
                   <td style={{ textAlign: 'right' }}><button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => ver(it)}>Ver</button></td>
                 </tr>
               ))}
-              {!items.length && <tr><td colSpan={4} className="muted" style={{ textAlign: 'center', padding: 20 }}>Todavía no tenés recibos publicados.</td></tr>}
+              {!items.length && <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 20 }}>Todavía no tenés recibos publicados.</td></tr>}
             </tbody>
           </table>
         </div>

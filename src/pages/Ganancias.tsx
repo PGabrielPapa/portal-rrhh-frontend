@@ -115,6 +115,20 @@ function Formulario({ f }: { f: F1357 }) {
   );
 }
 
+function AcumuladoresEmpleado({ empleadoId, anio, mes }: { empleadoId: number; anio: number; mes: number }) {
+  const [acs, setAcs] = useState<{ codigo: string; nombre: string; tipo: string; valor: number }[]>([]);
+  useEffect(() => { api.get<{ acumuladores: any[] }>(`/acumuladores/empleado/${empleadoId}?anio=${anio}&mes=${mes}`).then((r) => setAcs(r.acumuladores || [])).catch(() => setAcs([])); }, [empleadoId, anio, mes]);
+  if (!acs.length) return null;
+  return (
+    <div className="card" style={{ marginTop: 12 }}>
+      <h4 style={{ marginTop: 0 }}>Acumuladores del empleado <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>(período {String(mes).padStart(2, '0')}/{anio})</span></h4>
+      <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
+        <tbody>{acs.map((a) => <tr key={a.codigo}><td style={{ padding: '2px 8px' }}>{a.nombre} <span className="muted">({a.tipo === 'ANUAL_FISCAL' ? 'acum.' : 'mes'})</span></td><td style={{ padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace' }}>$ {$(a.valor)}</td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Ganancias() {
   const { key } = useParams();
   const esRRHH = key === 'ganancias-rrhh';
@@ -150,6 +164,7 @@ export default function Ganancias() {
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
       {esRRHH && !emp && <div className="muted">Elegí un empleado para ver su F.1357.</div>}
       {data && <Formulario f={data} />}
+      {esRRHH && emp && data && <AcumuladoresEmpleado empleadoId={emp.id} anio={anio} mes={mes} />}
     </>
   );
 }

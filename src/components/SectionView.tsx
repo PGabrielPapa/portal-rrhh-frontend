@@ -23,6 +23,11 @@ import Siradig from '../pages/Siradig';
 import GananciasControl from '../pages/GananciasControl';
 import GananciasApertura from '../pages/GananciasApertura';
 import Acumuladores from '../pages/Acumuladores';
+import Tablero from '../pages/Tablero';
+import GananciasFinal from '../pages/GananciasFinal';
+import Embargos from '../pages/Embargos';
+import Provision from '../pages/Provision';
+import Alertas from '../pages/Alertas';
 import DdjjSindical from '../pages/DdjjSindical';
 import Sindicatos from '../pages/Sindicatos';
 import DocumentosFirmados from '../pages/DocumentosFirmados';
@@ -95,6 +100,11 @@ const COMPONENTS: Record<string, ComponentType> = {
   'ganancias-control': GananciasControl,
   'ganancias-apertura': GananciasApertura,
   'acumuladores': Acumuladores,
+  'tablero': Tablero,
+  'ganancias-final': GananciasFinal,
+  'embargos': Embargos,
+  'provision': Provision,
+  'alertas': Alertas,
   'ddjj-sindical': DdjjSindical,
   'sindicatos': Sindicatos,
   'documentos': DocumentosFirmados,
