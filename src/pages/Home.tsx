@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { groupsForRole } from '../lib/sections';
 import { META, fallback } from '../lib/meta';
+import MisFichadas from '../components/MisFichadas';
 
 
 function Reloj() {
@@ -92,6 +93,8 @@ export default function Home() {
       </div>
 
       <Cumpleanios />
+
+      <MisFichadas nom={user?.nom} />
 
       {groups.map((g) => (
         <div key={g.panel} style={{ marginBottom: 26 }}>

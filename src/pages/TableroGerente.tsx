@@ -130,7 +130,7 @@ export default function TableroGerente() {
         {/* Horas extra + Evolución */}
         <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: 18 }}>
           <div className="card" style={{ flex: '1 1 300px' }}>
-            <h4 style={{ marginTop: 0 }}>Horas extra del mes <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({hm(data.extra.totalMin)})</span></h4>
+            <h4 style={{ marginTop: 0 }}>Horas extras del mes <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({hm(data.extra.totalMin)})</span></h4>
             {data.extra.ranking.map((r, i) => (
               <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 13, padding: '2px 0' }}>
                 <span>{r.nom}</span><span className="muted" style={{ fontFamily: 'var(--font-mono)' }}>{hm(r.min)}</span>
