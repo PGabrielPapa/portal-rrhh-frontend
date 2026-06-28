@@ -51,6 +51,7 @@ export const GROUPS: Group[] = [
       { key: 'ganancias-params', label: 'Parámetros de Ganancias', ready: true },
       { key: 'liquidacion-anual', label: 'Liquidación anual ganancias', ready: true },
       { key: 'simulador-ganancias', label: 'Simulador de Ganancias', ready: true },
+      { key: 'siradig', label: 'SiRADIG (deducciones Ganancias)', ready: true },
       { key: 'escalas', label: 'Escalas / convenios', ready: true },
       { key: 'conceptos', label: 'Conceptos', ready: true },
       { key: 'sanciones', label: 'Sanciones', ready: true },

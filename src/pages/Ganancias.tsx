@@ -9,10 +9,13 @@ interface F1357 {
   periodo: { anio: number; mes: number; periodoLabel: string; tablas: string; anualizada?: boolean; mesesTranscurridos?: number };
   gravadas: { remBrutaNoHab: number; sac: number; totalGravada: number };
   dedGenerales: { jubilacion: number; obraSocial: number; cuotaSindical: number; total: number };
-  dedPersonales: { mni: number; cargasFamilia: { total: number; nHijos: number; nHijosInc: number; tieneConyuge: boolean }; dedEspecial: number; dedEspecial2: number; dedVoluntarias: number; total: number };
+  dedPersonales: { mni: number; cargasFamilia: { total: number; nHijos: number; nHijosInc: number; tieneConyuge: boolean }; dedEspecial: number; dedEspecial2: number; dedVoluntarias: number; dedSiradig: number; siradig?: SiradigCalc | null; total: number };
   determinacion: { remSujeta: number; impuestoDeterminado: number; retenidoAnterior: number; impuestoARetener: number; devolucion: number };
   nota: string;
 }
+
+interface SiradigDet { tipo: string; conceptoLabel: string | null; declarado: number; computable: number; tope: number | null; clasificado: boolean }
+interface SiradigCalc { declarado: number; computable: number; sinClasificar: number; gananciaNeta5: number; cap5: number; detalle: SiradigDet[] }
 
 const $ = (n: number) => (n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -28,6 +31,36 @@ function Fila({ l, v, bold, bg }: { l: string; v: number; bold?: boolean; bg?: s
 const Banda = ({ t }: { t: string }) => (
   <tr><td colSpan={2} style={{ padding: '5px 10px', fontWeight: 700, fontSize: 12, background: 'var(--bg2)', borderTop: '2px solid var(--border)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{t}</td></tr>
 );
+
+function SiradigDetalle({ s }: { s: SiradigCalc }) {
+  return (
+    <div style={{ marginTop: 10, border: '1px solid var(--border)', borderRadius: 6, padding: 10 }}>
+      <div style={{ fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>SiRADIG — declarado vs. computable (con topes)</div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <thead><tr>
+          <th style={{ textAlign: 'left', padding: '2px 8px' }}>Concepto (tipo)</th>
+          <th style={{ textAlign: 'right', padding: '2px 8px' }}>Declarado</th>
+          <th style={{ textAlign: 'right', padding: '2px 8px' }}>Tope</th>
+          <th style={{ textAlign: 'right', padding: '2px 8px' }}>Computable</th>
+        </tr></thead>
+        <tbody>
+          {s.detalle.map((d, i) => (
+            <tr key={i} style={{ color: d.clasificado ? undefined : '#92400e' }}>
+              <td style={{ padding: '2px 8px' }}>{d.clasificado ? d.conceptoLabel : `Sin clasificar`} <span className="muted">(tipo {d.tipo})</span></td>
+              <td style={{ padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace' }}>$ {$(d.declarado)}</td>
+              <td style={{ padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{d.tope != null ? '$ ' + $(d.tope) : '—'}</td>
+              <td style={{ padding: '2px 8px', textAlign: 'right', fontFamily: 'monospace' }}>$ {$(d.computable)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+        Tope 5% s/ganancia neta: base $ {$(s.gananciaNeta5)} · límite $ {$(s.cap5)}. Total declarado $ {$(s.declarado)} · computable $ {$(s.computable)}.
+        {s.sinClasificar > 0 && <b style={{ color: '#92400e' }}> · {s.sinClasificar} concepto(s) sin clasificar: no se deducen hasta mapear su código de tipo.</b>}
+      </div>
+    </div>
+  );
+}
 
 function Formulario({ f }: { f: F1357 }) {
   const cf = f.dedPersonales.cargasFamilia;
@@ -63,7 +96,8 @@ function Formulario({ f }: { f: F1357 }) {
             <Fila l={`Cargas de familia (cónyuge: ${cf.tieneConyuge ? 'sí' : 'no'} · hijos: ${cf.nHijos}${cf.nHijosInc ? ` · incap.: ${cf.nHijosInc}` : ''})`} v={cf.total} />
             <Fila l="Deducción especial" v={f.dedPersonales.dedEspecial} />
             <Fila l="Deducción especial (2° párr. art. 30)" v={f.dedPersonales.dedEspecial2} />
-            {f.dedPersonales.dedVoluntarias > 0 && <Fila l="Deducciones generales (SIRADIG)" v={f.dedPersonales.dedVoluntarias} />}
+            {f.dedPersonales.dedVoluntarias > 0 && <Fila l="Otras deducciones voluntarias" v={f.dedPersonales.dedVoluntarias} />}
+            {!!f.dedPersonales.siradig && <Fila l="Deducciones SiRADIG (computable, topes RG 4003)" v={f.dedPersonales.dedSiradig} />}
             <Fila l="Total deducciones personales" v={f.dedPersonales.total} bold />
             <Banda t="Determinación del impuesto" />
             <Fila l="Remuneración sujeta a impuesto" v={f.determinacion.remSujeta} bold />
@@ -74,6 +108,7 @@ function Formulario({ f }: { f: F1357 }) {
               : <Fila l="Impuesto a retener del período" v={f.determinacion.impuestoARetener} bold bg="var(--bg2)" />}
           </tbody>
         </table>
+        {!!f.dedPersonales.siradig && <SiradigDetalle s={f.dedPersonales.siradig!} />}
         <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>{f.nota}</p>
       </div>
     </div>

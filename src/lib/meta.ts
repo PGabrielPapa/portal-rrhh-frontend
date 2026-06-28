@@ -47,6 +47,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'evaluaciones': { ico: '📈', col: '94,194,255', desc: 'Evaluaciones de desempeño del personal' },
   'simulaciones': { ico: '🔮', col: '168,85,247', desc: 'Simulá liquidaciones, finales y gratificaciones' },
   'simulador-ganancias': { ico: '🧮', col: '234,179,8', desc: 'Proyección anual de retención de Ganancias (RG 4003)' },
+  'siradig': { ico: '📥', col: '234,179,8', desc: 'Importá el SiRADIG (F.572) y mirá las deducciones declaradas por cada empleado' },
   'licencias-rrhh': { ico: '🏖', col: '34,197,94', desc: 'Gestión y justificación de licencias' },
   'hys': { ico: '🦺', col: '245,158,11', desc: 'Higiene y Seguridad en el trabajo' },
   'mis-hys': { ico: '🦺', col: '234,179,8', desc: 'Mis capacitaciones, EPP, talles y manuales de seguridad' },

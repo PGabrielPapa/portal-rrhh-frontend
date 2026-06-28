@@ -19,6 +19,7 @@ import ArchivosBanco from '../pages/ArchivosBanco';
 import GeneradorReportes from '../pages/GeneradorReportes';
 import Simulaciones from '../pages/Simulaciones';
 import SimuladorGanancias from '../pages/SimuladorGanancias';
+import Siradig from '../pages/Siradig';
 import DdjjSindical from '../pages/DdjjSindical';
 import Sindicatos from '../pages/Sindicatos';
 import DocumentosFirmados from '../pages/DocumentosFirmados';
@@ -87,6 +88,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'reportes': GeneradorReportes,
   'simulaciones': Simulaciones,
   'simulador-ganancias': SimuladorGanancias,
+  'siradig': Siradig,
   'ddjj-sindical': DdjjSindical,
   'sindicatos': Sindicatos,
   'documentos': DocumentosFirmados,
