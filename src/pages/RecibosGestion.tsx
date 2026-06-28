@@ -90,6 +90,19 @@ export default function RecibosGestion() {
     setErr(''); setOk('');
     try { await api.patch(`/recibos/${it.id}/pagar`, { pagado: !it.pagado }); setOk(!it.pagado ? `Recibo de ${it.nom} marcado como pagado.` : 'Pago quitado.'); load(); } catch (e: any) { setErr(e.message); }
   }
+  async function enviarMailLote() {
+    if (!mes || !anio) { setErr('Elegí año y mes para el envío masivo'); return; }
+    const dest = empresa ? ` de ${empresa}` : '';
+    if (!confirm(`¿Enviar por mail TODOS los recibos publicados de ${MESES[mes - 1]} ${anio}${dest}${tipo ? ' · ' + tipoLbl(tipo) : ''}? Cada uno irá al mail laboral o, si no tiene, al personal.`)) return;
+    setErr(''); setOk('Enviando…');
+    try {
+      const r = await api.post<{ total: number; enviados: number; sinMail: string[]; errores: string[] }>('/recibos/enviar-mail-lote', { anio: Number(anio), mes, empresa: empresa || undefined, tipo: tipo || undefined });
+      let t = `Enviados ${r.enviados} de ${r.total}.`;
+      if (r.sinMail.length) t += ` Sin mail: ${r.sinMail.length} (${r.sinMail.slice(0, 5).join(', ')}${r.sinMail.length > 5 ? '…' : ''}).`;
+      if (r.errores.length) t += ` Con error: ${r.errores.length}.`;
+      setOk(t);
+    } catch (e: any) { setErr(e.message); setOk(''); }
+  }
   async function enviarMail(it: Item) {
     if (!confirm(`¿Enviar el recibo de ${it.nom} por correo al empleado?`)) return;
     setErr(''); setOk('');
@@ -161,6 +174,7 @@ export default function RecibosGestion() {
       {ok && <div className="ok" style={{ marginBottom: 10 }}>✓ {ok}</div>}
       {!!(mes && anio) && <button className="btn ghost" style={{ marginBottom: 10, color: 'var(--red)' }} onClick={() => borrarPeriodo()}>🗑 Borrar período {MESES[mes - 1]} {anio}{tipo ? ' · ' + tipoLbl(tipo) : ''}{empresa ? ' · ' + empresa : ' (todas las empresas)'}</button>}
       <button className="btn ghost" style={{ marginBottom: 10, marginLeft: 8 }} onClick={exportarCsv}>⬇ Exportar CSV</button>
+      {!!(mes && anio) && <button className="btn ghost" style={{ marginBottom: 10, marginLeft: 8 }} onClick={enviarMailLote}>✉ Enviar recibos por mail (período)</button>}
 
       {(() => {
         const vis = visibles;
