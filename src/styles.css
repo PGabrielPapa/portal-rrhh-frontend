@@ -50,7 +50,7 @@ h4 { font-size:13px; font-weight:600; }
 .sidebar { width:240px; flex:none; background:var(--bg1); border-right:1px solid var(--border); overflow-y:auto; height:100vh; position:sticky; top:0; }
 .sb-brand { padding:14px 18px; border-bottom:1px solid var(--border); }
 .sb-brand strong { font-family:var(--font-mono); font-size:13px; color:var(--accent2); letter-spacing:.05em; }
-.sb-group-label { font-size:10px; font-family:var(--font-mono); letter-spacing:.1em; color:var(--t3); text-transform:uppercase; padding:6px 10px; }
+.sb-group-label { font-size:13px; font-family:var(--font-mono); letter-spacing:.1em; color:var(--t3); text-transform:uppercase; padding:6px 10px; font-weight:800; text-decoration:underline; }
 .sb-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 12px; border-radius:var(--r); font-size:13px; text-decoration:none; color:var(--t2); transition:all .15s; margin:1px 0; }
 .sb-item:hover { background:var(--bg2); color:var(--t1); }
 .sb-item.active { background:var(--accent-glow); color:var(--accent2); border:1px solid rgba(61,127,255,.2); }

@@ -95,7 +95,7 @@ export default function Home() {
 
       {groups.map((g) => (
         <div key={g.panel} style={{ marginBottom: 26 }}>
-          <div className="sb-group-label" style={{ padding: '0 0 10px' }}>{g.panel}</div>
+          <div className="sb-group-label" style={{ padding: '0 0 10px', fontSize: 18, fontWeight: 800, textDecoration: 'underline' }}>{g.panel}</div>
           <div className="home-grid">
             {g.items.filter((it) => it.ready).slice().sort((a, b) => a.label.localeCompare(b.label, 'es')).map((it) => {
               const m = META[it.key] || fallback;
