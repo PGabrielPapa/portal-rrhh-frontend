@@ -38,6 +38,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'adelantos-rrhh': { ico: '💸', col: '61,127,255', desc: 'Otorgá/rechazá adelantos y definí las cuotas' },
   'liquidacion': { ico: '🧮', col: '61,200,160', desc: 'Liquidá haberes por tipo y corrida' },
   'controles-liq': { ico: '✅', col: '239,68,68', desc: 'Controles previos al cierre: netos negativos, aportes, tope SIPA, variaciones y faltantes' },
+  'novedades': { ico: '📝', col: '61,127,255', desc: 'Novedades variables del período (horas extra, ausencias, premios) que alimentan la liquidación' },
   'recibos-gestion': { ico: '📄', col: '61,200,160', desc: 'Generá, publicá y auditá recibos' },
   'ganancias-rrhh': { ico: '🧾', col: '234,179,8', desc: 'Impuesto a las Ganancias y F.1357' },
   'ganancias-params': { ico: '⚙️', col: '234,179,8', desc: 'Tablas y parámetros del Impuesto a las Ganancias' },

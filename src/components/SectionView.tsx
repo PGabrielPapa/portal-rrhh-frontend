@@ -30,6 +30,7 @@ import Provision from '../pages/Provision';
 import Alertas from '../pages/Alertas';
 import ValoresLegales from '../pages/ValoresLegales';
 import ControlesLiq from '../pages/ControlesLiq';
+import Novedades from '../pages/Novedades';
 import ParametrosHist from '../pages/ParametrosHist';
 import DdjjSindical from '../pages/DdjjSindical';
 import Sindicatos from '../pages/Sindicatos';
@@ -110,6 +111,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'alertas': Alertas,
   'valores-legales': ValoresLegales,
   'controles-liq': ControlesLiq,
+  'novedades': Novedades,
   'parametros-hist': ParametrosHist,
   'ddjj-sindical': DdjjSindical,
   'sindicatos': Sindicatos,
