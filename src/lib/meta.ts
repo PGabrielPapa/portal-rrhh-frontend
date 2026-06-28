@@ -50,6 +50,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'siradig': { ico: '📥', col: '234,179,8', desc: 'Importá el SiRADIG (F.572) y mirá las deducciones declaradas por cada empleado' },
   'ganancias-control': { ico: '📋', col: '234,179,8', desc: 'Control consolidado de Ganancias por empleado: gravado, deducciones, retención' },
   'ganancias-apertura': { ico: '🟰', col: '234,179,8', desc: 'Carga inicial de acumulados de Ganancias (arranque a mitad de año / otro empleador)' },
+  'acumuladores': { ico: '🧮', col: '99,102,241', desc: 'Acumuladores configurables (remunerativo, neto, aportes, retención) y su consulta por período' },
   'licencias-rrhh': { ico: '🏖', col: '34,197,94', desc: 'Gestión y justificación de licencias' },
   'hys': { ico: '🦺', col: '245,158,11', desc: 'Higiene y Seguridad en el trabajo' },
   'mis-hys': { ico: '🦺', col: '234,179,8', desc: 'Mis capacitaciones, EPP, talles y manuales de seguridad' },

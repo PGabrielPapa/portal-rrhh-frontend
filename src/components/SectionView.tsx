@@ -22,6 +22,7 @@ import SimuladorGanancias from '../pages/SimuladorGanancias';
 import Siradig from '../pages/Siradig';
 import GananciasControl from '../pages/GananciasControl';
 import GananciasApertura from '../pages/GananciasApertura';
+import Acumuladores from '../pages/Acumuladores';
 import DdjjSindical from '../pages/DdjjSindical';
 import Sindicatos from '../pages/Sindicatos';
 import DocumentosFirmados from '../pages/DocumentosFirmados';
@@ -93,6 +94,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'siradig': Siradig,
   'ganancias-control': GananciasControl,
   'ganancias-apertura': GananciasApertura,
+  'acumuladores': Acumuladores,
   'ddjj-sindical': DdjjSindical,
   'sindicatos': Sindicatos,
   'documentos': DocumentosFirmados,
