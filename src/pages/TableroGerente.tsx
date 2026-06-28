@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 
 interface Aus { nom: string; tipo: string; desde: string; hasta: string; }
 interface Rk { nom: string; min: number; }
+interface Tarde { nom: string; fecha: string | null; dia: string | null; entrada: string | null; min: number; }
 interface Cumple { nom: string; fecha: string; dias: number; edad: number | null; }
 interface Aniv { nom: string; fecha: string; dias: number; anios: number; }
 interface Prueba { nom: string; dias: number; hito: number; }
@@ -13,7 +14,7 @@ interface Dash {
   kpi: { dotacion: number; masaBruta: number; costoLaboral: number; contribPct: number; antiguedadProm: number; edadProm: number };
   pendientes: { adelantos: number; fichadas: number; licencias: number; evaluaciones: number; anualAbierto: boolean };
   asistencia: { ausentesHoy: Aus[]; ausentismoDias: number };
-  puntualidad: { tardanzasCasos: number; tardanzasMin: number; ranking: Rk[] };
+  puntualidad: { tardanzasCasos: number; tardanzasMin: number; ranking: Rk[]; detalle: Tarde[] };
   extra: { totalMin: number; ranking: Rk[] };
   avisos: { cumple: Cumple[]; aniversarios: Aniv[]; prueba: Prueba[] };
   evolucion: { anio: number; mes: number; neto: number }[];
@@ -114,11 +115,15 @@ export default function TableroGerente() {
               <div><div style={{ fontSize: 22, fontWeight: 700 }}>{data.puntualidad.tardanzasCasos}</div><div className="muted" style={{ fontSize: 11 }}>empleados con tardanzas</div></div>
               <div><div style={{ fontSize: 22, fontWeight: 700 }}>{hm(data.puntualidad.tardanzasMin)}</div><div className="muted" style={{ fontSize: 11 }}>acumulado del equipo</div></div>
             </div>
-            {data.puntualidad.ranking.map((r, i) => (
-              <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 13, padding: '2px 0' }}>
-                <span>{r.nom}</span><span className="muted" style={{ fontFamily: 'var(--font-mono)' }}>{hm(r.min)}</span>
-              </div>))}
-            {data.puntualidad.ranking.length === 0 && <div className="muted" style={{ fontSize: 13 }}>Sin tardanzas registradas.</div>}
+            {(!data.puntualidad.detalle || data.puntualidad.detalle.length === 0)
+              ? <div className="muted" style={{ fontSize: 13 }}>Sin tardanzas registradas.</div>
+              : <div style={{ maxHeight: 260, overflow: 'auto' }}>
+                  {data.puntualidad.detalle.map((t, i) => (
+                    <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 13, padding: '3px 0', borderTop: i ? '1px solid var(--border)' : undefined }}>
+                      <span>{t.nom} <span className="muted">· {[t.dia, t.fecha].filter(Boolean).join(' ')}{t.entrada ? ' · ingresó ' + t.entrada : ''}</span></span>
+                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--yellow)' }}>{hm(t.min)}</span>
+                    </div>))}
+                </div>}
           </div>
         </div>
 
