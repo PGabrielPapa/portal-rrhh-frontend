@@ -153,6 +153,14 @@ export const GROUPS: Group[] = [
   },
 ];
 
+// Paneles cuyo acceso está garantizado por rol y NO se pueden ocultar:
+// 'Mi espacio' (todo empleado activo) y 'Gerencia' (todo gerente).
+export const SIEMPRE_PANELS = ['Mi espacio', 'Gerencia'];
+export function esModuloSiempre(key: string): boolean {
+  const g = GROUPS.find((gr) => gr.items.some((i) => i.key === key));
+  return !!g && SIEMPRE_PANELS.includes(g.panel);
+}
+
 export function groupsForRole(role: string, flags?: { comiteHys?: boolean; comiteAcceso?: string; modulosOcultos?: string[] }): Group[] {
   if (role === 'comite') {
     const chs = GROUPS.find((g) => g.flag === 'comiteHys');
@@ -163,7 +171,7 @@ export function groupsForRole(role: string, flags?: { comiteHys?: boolean; comit
   const ocultos = new Set(flags?.modulosOcultos || []);
   return GROUPS
     .filter((g) => g.roles.includes(role as Role) || (g.flag && flags && flags[g.flag]))
-    .map((g) => ({ ...g, items: g.items.filter((it) => !ocultos.has(it.key)) }));
+    .map((g) => (SIEMPRE_PANELS.includes(g.panel) ? g : { ...g, items: g.items.filter((it) => !ocultos.has(it.key)) }));
 }
 
 export function findSection(key: string): Section | undefined {

@@ -1,6 +1,6 @@
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { ComponentType } from 'react';
-import { findSection } from '../lib/sections';
+import { findSection, esModuloSiempre } from '../lib/sections';
 import { useAuth } from '../lib/auth';
 import { META, fallback } from '../lib/meta';
 import Placeholder from './Placeholder';
@@ -185,7 +185,7 @@ export default function SectionView() {
   const { user } = useAuth();
   const section = key ? findSection(key) : undefined;
   if (!section) return <Navigate to="/" replace />;
-  if (user?.modulosOcultos && user.modulosOcultos.includes(section.key)) return <Navigate to="/" replace />;
+  if (user?.modulosOcultos && user.modulosOcultos.includes(section.key) && !esModuloSiempre(section.key)) return <Navigate to="/" replace />;
   if (section.key.startsWith('chs-')) {
     const r = user?.role; const full = user?.comiteHys || r === 'rrhh' || r === 'admin' || (r === 'comite' && user?.acceso === 'full');
     const dash = r === 'comite' && user?.acceso === 'dashboard';

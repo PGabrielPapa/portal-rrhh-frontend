@@ -99,8 +99,8 @@ export default function AdminUsuarios() {
         <div className="modal-bg" onClick={() => setPerms(null)}>
           <div className="modal" style={{ maxWidth: 680, maxHeight: '80vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0 }}>Módulos ocultos — {perms.nom}</h3>
-            <p className="muted">Tildá los módulos que querés OCULTAR para este usuario (además de lo que ya restringe su rol). Usá el tilde del encabezado para marcar o desmarcar un grupo completo.</p>
-            {GROUPS.map((g) => (
+            <p className="muted">Tildá los módulos que querés OCULTAR para este usuario (además de lo que ya restringe su rol). Usá el tilde del encabezado para marcar o desmarcar un grupo completo. «Mi espacio» y «Gerencia» no se listan: su acceso está garantizado para todos los empleados y gerentes.</p>
+            {GROUPS.filter((g) => g.panel !== 'Mi espacio' && g.panel !== 'Gerencia').map((g) => (
               <div key={g.panel} style={{ marginBottom: 10 }}>
                 <label className="row" style={{ gap: 6, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 4, cursor: 'pointer' }}>
                   <input type="checkbox"
