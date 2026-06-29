@@ -147,7 +147,7 @@ export default function Siradig() {
         if (/\.zip$/i.test(f.name)) xmls.push(...await unzip(buf));
         else if (/\.xml$/i.test(f.name)) xmls.push({ name: f.name, text: new TextDecoder('utf-8').decode(buf) });
       }
-      if (!xmls.length) { setMsg({ t: 'No se encontraron archivos .xml (ni dentro del .zip).', ok: false }); setBusy(false); return; }
+      if (!xmls.length) { setMsg({ t: 'No se encontraron presentaciones .xml. Subí los .xml (o el .zip que los agrupa) que se descargan de ARCA → SiRADIG–Empleador. Ojo: el paquete «SiRADIG_Empleador_v1» (esquema .xsd + manual PDF) no contiene presentaciones.', ok: false }); setBusy(false); return; }
       const pres: Presentacion[] = [];
       for (const x of xmls) { const p = parseXml(x.name, x.text); if (p && p.cuil) pres.push(p); }
       if (!pres.length) { setMsg({ t: 'Los XML no tienen el formato de presentación SiRADIG esperado.', ok: false }); setBusy(false); return; }
