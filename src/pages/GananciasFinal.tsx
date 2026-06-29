@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { api } from '../lib/api';
 
-interface Fila { empleadoId: number; legNum: string; nom: string; empresa: string; cuil: string; gravado: number; dedGenerales: number; dedPersonales: number; dedSiradig: number; impuesto: number; retenido: number; aRetener: number; aDevolver: number; siradigSinClasificar: number }
+interface Fila { empleadoId: number; legNum: string; nom: string; empresa: string; cuil: string; gravado: number; dedGenerales: number; dedPersonales: number; dedSiradig: number; impuesto: number; retenido: number; aRetener: number; aDevolver: number; siradigSinClasificar: number; siradigDetalle?: { label: string; computable: number }[] }
 interface Resp { anio: number; filas: Fila[]; totales: Record<string, number> }
 const $ = (n: number) => (n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -11,6 +11,7 @@ export default function GananciasFinal() {
   const [data, setData] = useState<Resp | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [exp, setExp] = useState<Set<number>>(new Set());
 
   async function cargar() {
     setErr(''); setBusy(true); setData(null);
@@ -44,17 +45,29 @@ export default function GananciasFinal() {
               {['Leg.', 'Empleado', 'Rem. gravada', 'Impuesto anual', 'Retenido', 'A retener', 'A devolver'].map((h, i) => <th key={i} style={{ padding: '6px 8px', textAlign: i < 2 ? 'left' : 'right', borderBottom: '2px solid var(--border)' }}>{h}</th>)}
             </tr></thead>
             <tbody>
-              {data.filas.map((f) => (
-                <tr key={f.empleadoId}>
+              {data.filas.map((f) => {
+                const det = f.siradigDetalle || [];
+                const abierto = exp.has(f.empleadoId);
+                return (
+                <Fragment key={f.empleadoId}>
+                <tr style={{ cursor: det.length ? 'pointer' : undefined }} onClick={() => det.length && setExp((p) => { const z = new Set(p); if (z.has(f.empleadoId)) z.delete(f.empleadoId); else z.add(f.empleadoId); return z; })}>
                   <td style={{ padding: '4px 8px' }}>{f.legNum}</td>
-                  <td style={{ padding: '4px 8px' }}>{f.nom}{f.siradigSinClasificar > 0 && <span title="SiRADIG sin clasificar" style={{ color: '#92400e' }}> ⚠</span>}</td>
+                  <td style={{ padding: '4px 8px' }}>{det.length ? (abierto ? '▾ ' : '▸ ') : ''}{f.nom}{f.siradigSinClasificar > 0 && <span title="SiRADIG sin clasificar" style={{ color: '#92400e' }}> ⚠</span>}</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(f.gravado)}</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(f.impuesto)}</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(f.retenido)}</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace', color: f.aRetener > 0 ? '#b91c1c' : undefined }}>{$(f.aRetener)}</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace', color: f.aDevolver > 0 ? '#15803d' : undefined }}>{$(f.aDevolver)}</td>
                 </tr>
-              ))}
+                {abierto && det.length > 0 && (
+                  <tr><td colSpan={7} style={{ padding: '4px 28px 8px', background: 'var(--bg2)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Deducciones SiRADIG por concepto (computable)</div>
+                    {det.map((d, i) => <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 12, maxWidth: 460 }}><span>{d.label}</span><span style={{ fontFamily: 'monospace' }}>$ {$(d.computable)}</span></div>)}
+                  </td></tr>
+                )}
+                </Fragment>
+                );
+              })}
               {!data.filas.length && <tr><td colSpan={7} className="muted" style={{ padding: 10 }}>Sin empleados alcanzados por Ganancias en {anio}.</td></tr>}
             </tbody>
             {t && data.filas.length > 0 && (

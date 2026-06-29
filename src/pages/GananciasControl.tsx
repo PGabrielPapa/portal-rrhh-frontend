@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { api } from '../lib/api';
 
 interface FilaCtrl {
   empleadoId: number; legNum: string; nom: string; empresa: string; cuil: string;
-  gravado: number; dedGenerales: number; dedPersonales: number; dedSiradig: number; siradigSinClasificar: number;
+  gravado: number; dedGenerales: number; dedPersonales: number; dedSiradig: number; siradigSinClasificar: number; siradigDetalle?: { label: string; computable: number }[];
   remSujeta: number; impuesto: number; retenidoAnterior: number; aRetener: number; devolucion: number;
 }
 interface Resp { periodo: { anio: number; mes: number; anual: boolean }; filas: FilaCtrl[]; totales: Record<string, number>; }
@@ -20,6 +20,7 @@ export default function GananciasControl() {
   const [data, setData] = useState<Resp | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [exp, setExp] = useState<Set<number>>(new Set());
 
   async function cargar() {
     setErr(''); setBusy(true); setData(null);
@@ -67,15 +68,27 @@ export default function GananciasControl() {
               </tr>
             </thead>
             <tbody>
-              {data.filas.map((f) => (
-                <tr key={f.empleadoId}>
+              {data.filas.map((f) => {
+                const det = f.siradigDetalle || [];
+                const abierto = exp.has(f.empleadoId);
+                return (
+                <Fragment key={f.empleadoId}>
+                <tr style={{ cursor: det.length ? 'pointer' : undefined }} onClick={() => det.length && setExp((p) => { const z = new Set(p); if (z.has(f.empleadoId)) z.delete(f.empleadoId); else z.add(f.empleadoId); return z; })}>
                   <td style={{ padding: '4px 8px' }}>{f.legNum}</td>
-                  <td style={{ padding: '4px 8px' }}>{f.nom}{f.siradigSinClasificar > 0 && <span title="Tiene deducciones SiRADIG sin clasificar" style={{ color: '#92400e' }}> ⚠</span>}</td>
+                  <td style={{ padding: '4px 8px' }}>{det.length ? (abierto ? '▾ ' : '▸ ') : ''}{f.nom}{f.siradigSinClasificar > 0 && <span title="Tiene deducciones SiRADIG sin clasificar" style={{ color: '#92400e' }}> ⚠</span>}</td>
                   {[f.gravado, f.dedGenerales, f.dedPersonales, f.dedSiradig, f.remSujeta, f.impuesto, f.retenidoAnterior, f.aRetener, f.devolucion].map((v, i) => (
                     <td key={i} style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(v)}</td>
                   ))}
                 </tr>
-              ))}
+                {abierto && det.length > 0 && (
+                  <tr><td colSpan={11} style={{ padding: '4px 28px 8px', background: 'var(--bg2)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Deducciones SiRADIG por concepto (computable)</div>
+                    {det.map((d, i) => <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 12, maxWidth: 460 }}><span>{d.label}</span><span style={{ fontFamily: 'monospace' }}>$ {$(d.computable)}</span></div>)}
+                  </td></tr>
+                )}
+                </Fragment>
+                );
+              })}
               {!data.filas.length && <tr><td colSpan={11} className="muted" style={{ padding: 10 }}>Sin empleados activos para el período.</td></tr>}
             </tbody>
             {t && data.filas.length > 0 && (
