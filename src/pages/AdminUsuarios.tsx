@@ -99,10 +99,16 @@ export default function AdminUsuarios() {
         <div className="modal-bg" onClick={() => setPerms(null)}>
           <div className="modal" style={{ maxWidth: 680, maxHeight: '80vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0 }}>Módulos ocultos — {perms.nom}</h3>
-            <p className="muted">Tildá los módulos que querés OCULTAR para este usuario (además de lo que ya restringe su rol).</p>
+            <p className="muted">Tildá los módulos que querés OCULTAR para este usuario (además de lo que ya restringe su rol). Usá el tilde del encabezado para marcar o desmarcar un grupo completo.</p>
             {GROUPS.map((g) => (
               <div key={g.panel} style={{ marginBottom: 10 }}>
-                <div style={{ fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 4 }}>{g.panel}</div>
+                <label className="row" style={{ gap: 6, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 4, cursor: 'pointer' }}>
+                  <input type="checkbox"
+                    checked={g.items.length > 0 && g.items.every((it) => sel.has(it.key))}
+                    ref={(el) => { if (el) el.indeterminate = g.items.some((it) => sel.has(it.key)) && !g.items.every((it) => sel.has(it.key)); }}
+                    onChange={(e) => { const n = new Set(sel); if (e.target.checked) g.items.forEach((it) => n.add(it.key)); else g.items.forEach((it) => n.delete(it.key)); setSel(n); }} />
+                  {g.panel}
+                </label>
                 <div className="grid2">
                   {g.items.map((it) => (
                     <label key={it.key} className="row muted" style={{ gap: 6, fontSize: 13 }}>
