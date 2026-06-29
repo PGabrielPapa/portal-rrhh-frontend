@@ -298,8 +298,9 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [esAdmin, setEsAdmin] = useState<boolean>((e as any).role === 'admin');
   const [lugHist, setLugHist] = useState<any[]>([]);
   const [cambHist, setCambHist] = useState<any[]>([]);
-  const [centrosLista, setCentrosLista] = useState<[string, string][]>([]);
-  useEffect(() => { api.get<any[]>('/empleados/centros').then((rows) => setCentrosLista(rows.map((c) => [c.denominacion as string, `${c.codigo} — ${c.denominacion}`]))).catch(() => {}); }, []);
+  const [centrosCO, setCentrosCO] = useState<{ id: number; codigo: string; denominacion: string }[]>([]);
+  useEffect(() => { api.get<{ id: number; codigo: string; denominacion: string }[]>('/empleados/centros').then(setCentrosCO).catch(() => {}); }, []);
+  useEffect(() => { if (centrosCO.length && !f.centroCodigo && f.lugar) { const c = centrosCO.find((x) => x.denominacion === f.lugar); if (c) setF((p) => ({ ...p, centroCodigo: c.codigo, centroId: String(c.id) })); } /* eslint-disable-next-line */ }, [centrosCO]);
   useEffect(() => { const id = (emp as any)?.id; if (id) { api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); api.get<any[]>(`/empleados/${id}/cambios`).then(setCambHist).catch(() => {}); } }, [emp]);
   const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
   const [busy, setBusy] = useState(false);
@@ -444,7 +445,14 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Datos laborales</div>
         <div className="grid2">
-          <Sel k="lugar" label="Ubicación / Lugar de trabajo" opts={centrosLista} f={f} set={set} ph="Elegí un centro de operaciones…" />
+          <div className="field">
+            <label>Ubicación / Lugar de trabajo</label>
+            <select className="input" value={f.centroCodigo || ''} onChange={(ev) => { const c = centrosCO.find((x) => x.codigo === ev.target.value); setF({ ...f, centroCodigo: c ? c.codigo : '', centroId: c ? String(c.id) : '', lugar: c ? c.denominacion : '' }); }}>
+              <option value="">Elegí un centro de operaciones…</option>
+              {centrosCO.map((c) => <option key={c.id} value={c.codigo}>{c.codigo} — {c.denominacion}</option>)}
+            </select>
+            {f.lugar && !f.centroCodigo && <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Valor actual sin centro asociado: {f.lugar}</div>}
+          </div>
           <F k="tarea" label="Tarea / Puesto" f={f} set={set} />
           <Sel k="cat" label="Categoría (escala unificada)" opts={catOpts} f={f} set={set} />
           <Sel k="tramo" label="Tramo (escala unificada)" opts={tramoOpts} f={f} set={set} />

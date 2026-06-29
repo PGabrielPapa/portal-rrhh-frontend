@@ -6,6 +6,7 @@ interface Centro {
   calle?: string; numero?: string; localidad?: string; provincia?: string; cp?: string;
   empresas?: number;
 }
+interface Empresa { id: number; nombre: string; centros?: { id: number }[]; }
 const CAMPOS: [keyof Centro, string][] = [
   ['calle', 'Calle'], ['numero', 'Número'], ['localidad', 'Localidad'], ['provincia', 'Provincia'], ['cp', 'Código postal'],
 ];
@@ -54,7 +55,7 @@ export default function CentrosOperaciones() {
           </tbody>
         </table>
       </div>
-      <p className="muted" style={{ marginTop: 10 }}>Los centros de operaciones son las locaciones donde funcionan las empresas. Se vinculan a una o varias empresas desde «Empresas»; un mismo centro puede ser compartido.</p>
+      <p className="muted" style={{ marginTop: 10 }}>Los centros de operaciones son las locaciones donde funcionan las empresas. Vinculá cada centro a una o varias empresas del grupo desde este mismo formulario; un mismo centro puede compartirse. Al crearlo, aparece automáticamente en el desplegable de «Lugar de trabajo» del legajo.</p>
       {(edit || creando) && <CentroModal centro={edit} onClose={() => { setEdit(null); setCreando(false); }} onSaved={(m) => { setEdit(null); setCreando(false); setMsg({ t: m, ok: true }); load(); }} onError={(t) => setMsg({ t, ok: false })} />}
     </>
   );
@@ -62,9 +63,19 @@ export default function CentrosOperaciones() {
 
 function CentroModal({ centro, onClose, onSaved, onError }: { centro: Centro | null; onClose: () => void; onSaved: (m: string) => void; onError: (t: string) => void; }) {
   const [f, setF] = useState<Centro>({ id: 0, codigo: '', denominacion: '', ...(centro || {}) } as Centro);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [sel, setSel] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const esNuevo = !centro;
   const set = (k: keyof Centro, v: string) => setF((p) => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    api.get<Empresa[]>('/admin/empresas').then((rows) => {
+      setEmpresas(rows);
+      if (centro) setSel(new Set(rows.filter((e) => (e.centros || []).some((c) => c.id === centro.id)).map((e) => e.id)));
+    }).catch(() => {});
+    /* eslint-disable-next-line */
+  }, []);
 
   async function save() {
     if (!String(f.codigo).trim()) { onError('El código es obligatorio'); return; }
@@ -72,8 +83,10 @@ function CentroModal({ centro, onClose, onSaved, onError }: { centro: Centro | n
     setBusy(true);
     try {
       const body = { codigo: f.codigo, denominacion: f.denominacion, calle: f.calle, numero: f.numero, localidad: f.localidad, provincia: f.provincia, cp: f.cp };
-      if (esNuevo) await api.post('/admin/centros', body);
+      let id = centro?.id;
+      if (esNuevo) { const r = await api.post<{ id: number }>('/admin/centros', body); id = r.id; }
       else await api.patch(`/admin/centros/${centro!.id}`, body);
+      if (id) await api.put(`/admin/centros/${id}/empresas`, { empresaIds: [...sel] });
       onSaved(esNuevo ? 'Centro creado' : 'Centro actualizado');
     } catch (e: any) { onError(e.message); } finally { setBusy(false); }
   }
@@ -88,6 +101,17 @@ function CentroModal({ centro, onClose, onSaved, onError }: { centro: Centro | n
         </div>
         <div className="grid2" style={{ marginTop: 8 }}>
           {CAMPOS.map(([k, l]) => <div className="field" key={k}><label>{l}</label><input className="input" value={(f[k] as string) || ''} onChange={(e) => set(k, e.target.value)} /></div>)}
+        </div>
+        <div className="field" style={{ marginTop: 12 }}>
+          <label>Empresas vinculadas</label>
+          {empresas.length === 0
+            ? <div className="muted" style={{ fontSize: 13 }}>No hay empresas cargadas.</div>
+            : <div className="grid2">
+                {empresas.map((e) => (
+                  <label key={e.id} className="row muted" style={{ gap: 6, fontSize: 13 }}>
+                    <input type="checkbox" checked={sel.has(e.id)} onChange={(ev) => { const n = new Set(sel); if (ev.target.checked) n.add(e.id); else n.delete(e.id); setSel(n); }} /> {e.nombre}
+                  </label>))}
+              </div>}
         </div>
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 14 }}>
           <button className="btn ghost" onClick={onClose}>Cancelar</button>
