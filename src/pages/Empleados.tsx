@@ -296,6 +296,8 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [foto, setFoto] = useState<string>((e as any).foto || '');
   const { user: _u } = useAuth();
   const [esAdmin, setEsAdmin] = useState<boolean>((e as any).role === 'admin');
+  const [lugHist, setLugHist] = useState<any[]>([]);
+  useEffect(() => { const id = (emp as any)?.id; if (id) api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); }, [emp]);
   const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: ev.target.value });
@@ -449,6 +451,21 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <Sel k="categoria_convenio" label="Categoría de convenio (define básico)" opts={catConvOpts} f={f} set={set} />
           <Sel k="cod_sindicato" label="Sindicato" opts={sindOpts} f={f} set={set} />
         </div>
+
+        {(emp as any)?.id && (
+          <div className="field" style={{ marginTop: 8 }}>
+            <label>Historial de lugar de trabajo</label>
+            {lugHist.length === 0
+              ? <div className="muted" style={{ fontSize: 13 }}>Sin cambios registrados. Se registra automáticamente al cambiar el lugar de trabajo.</div>
+              : <div style={{ maxHeight: 150, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  {lugHist.map((h: any) => (
+                    <div key={h.id} className="row" style={{ justifyContent: 'space-between', fontSize: 13, padding: '4px 8px', borderTop: '1px solid var(--border)' }}>
+                      <span>{h.lugar}{h.centro_codigo ? ` · ${h.centro_codigo}` : ''}</span>
+                      <span className="muted">{String(h.desde || '').slice(0, 10) || '—'} → {h.hasta ? String(h.hasta).slice(0, 10) : 'actual'}</span>
+                    </div>))}
+                </div>}
+          </div>
+        )}
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Obra social</div>
         <div className="field">
