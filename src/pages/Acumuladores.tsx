@@ -6,9 +6,11 @@ interface Regla { seccion: string; tipoLinea: string; patron: string; signo: num
 interface Acum { id: number; codigo: string; nombre: string; tipo: string; afectaGanancias: boolean; activo: boolean; orden: number; reglas: Regla[] }
 interface Catalogos { tiposVentana: [string, string][]; tiposLinea: [string, string][]; secciones: [string, string][] }
 interface ConsultaResp {
-  periodo: { anio: number; mes: number };
+  anio: number;
+  meses: number[];
   acumuladores: { codigo: string; nombre: string; tipo: string; afectaGanancias: boolean }[];
-  filas: { empleadoId: number; legNum: string; nom: string; empresa: string; valores: Record<string, number> }[];
+  porEmpleado: { empleadoId: number; legNum: string; nom: string; empresa: string; mes: number; valores: Record<string, number> }[];
+  porLiquidacion: { mes: number; empleados: number; valores: Record<string, number> }[];
   totales: Record<string, number>;
 }
 
@@ -35,70 +37,112 @@ export default function Acumuladores() {
 function Consulta() {
   const ahora = new Date();
   const [anio, setAnio] = useState(ahora.getFullYear());
-  const [mes, setMes] = useState(ahora.getMonth() + 1);
+  const [meses, setMeses] = useState<Set<number>>(new Set([ahora.getMonth() + 1]));
+  const [vista, setVista] = useState<'empleado' | 'liquidacion'>('liquidacion');
   const [data, setData] = useState<ConsultaResp | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
+  const toggleMes = (m: number) => setMeses((s) => { const n = new Set(s); if (n.has(m)) n.delete(m); else n.add(m); return n; });
+  const setRango = (a: number, b: number) => setMeses(new Set(Array.from({ length: b - a + 1 }, (_, i) => a + i)));
+
   async function cargar() {
+    if (!meses.size) { setErr('Elegí al menos un mes.'); return; }
     setErr(''); setBusy(true); setData(null);
-    try { setData(await api.get<ConsultaResp>(`/acumuladores/consulta?anio=${anio}&mes=${mes}`)); }
+    const lista = [...meses].sort((a, b) => a - b).join(',');
+    try { setData(await api.get<ConsultaResp>(`/acumuladores/consulta?anio=${anio}&meses=${lista}`)); }
     catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, []);
 
   function exportar() {
     if (!data) return;
-    const rows = data.filas.map((f) => {
-      const o: Record<string, any> = { Legajo: f.legNum, Empleado: f.nom, Empresa: f.empresa };
-      for (const a of data.acumuladores) o[a.nombre] = f.valores[a.codigo] || 0;
-      return o;
-    });
+    let rows: Record<string, any>[];
+    if (vista === 'empleado') {
+      rows = data.porEmpleado.map((f) => { const o: Record<string, any> = { Legajo: f.legNum, Empleado: f.nom, Empresa: f.empresa, Periodo: `${MESES[f.mes - 1]} ${data.anio}` }; for (const a of data.acumuladores) o[a.nombre] = f.valores[a.codigo] || 0; return o; });
+    } else {
+      rows = data.porLiquidacion.map((f) => { const o: Record<string, any> = { Periodo: `${MESES[f.mes - 1]} ${data.anio}`, Empleados: f.empleados }; for (const a of data.acumuladores) o[a.nombre] = f.valores[a.codigo] || 0; return o; });
+    }
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Acumuladores');
-    XLSX.writeFile(wb, `acumuladores_${anio}_${String(mes).padStart(2, '0')}.xlsx`);
+    XLSX.writeFile(wb, `acumuladores_${data.anio}_${vista}.xlsx`);
   }
 
+  const cols = data?.acumuladores || [];
   return (
     <>
-      <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="field"><label>Mes</label><select className="input" value={mes} onChange={(e) => setMes(Number(e.target.value))}>{MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}</select></div>
+      <div className="row" style={{ gap: 10, marginBottom: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div className="field"><label>Año</label><input className="input" style={{ width: 100 }} type="number" value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></div>
+        <div className="field" style={{ flex: 1, minWidth: 280 }}>
+          <label>Meses</label>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+            {MESES.map((m, i) => (
+              <label key={i} className="row" style={{ gap: 4, fontSize: 12, cursor: 'pointer', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 7px' }}>
+                <input type="checkbox" checked={meses.has(i + 1)} onChange={() => toggleMes(i + 1)} /> {m.slice(0, 3)}
+              </label>))}
+          </div>
+        </div>
+      </div>
+      <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="btn ghost" onClick={() => setRango(1, 6)}>1er semestre</button>
+        <button className="btn ghost" onClick={() => setRango(7, 12)}>2º semestre</button>
+        <button className="btn ghost" onClick={() => setRango(1, 12)}>Anual</button>
+        <button className="btn ghost" onClick={() => setMeses(new Set())}>Limpiar</button>
         <button className="btn" onClick={cargar} disabled={busy}>{busy ? 'Calculando…' : 'Actualizar'}</button>
         <div style={{ flex: 1 }} />
+        <div className="row" style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <button className={vista === 'liquidacion' ? 'btn' : 'btn ghost'} style={{ borderRadius: 0 }} onClick={() => setVista('liquidacion')}>Por liquidaciones</button>
+          <button className={vista === 'empleado' ? 'btn' : 'btn ghost'} style={{ borderRadius: 0 }} onClick={() => setVista('empleado')}>Por empleado</button>
+        </div>
         {data && <button className="btn ghost" onClick={exportar}>⬇ Exportar Excel</button>}
       </div>
-      <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>Los acumuladores «mensuales» muestran el mes elegido; los «anuales fiscales», el acumulado de enero a ese mes.</p>
+      <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>Los acumuladores «mensuales» muestran cada mes; los «anuales fiscales», el acumulado de enero a ese mes. «Por liquidaciones» suma todos los empleados en cada período; «por empleado» muestra el detalle por persona y período.</p>
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
       {busy && <div className="muted">Calculando acumuladores…</div>}
-      {data && (
+      {data && vista === 'liquidacion' && (
         <div className="card" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, whiteSpace: 'nowrap' }}>
-            <thead>
-              <tr style={{ background: 'var(--bg2)' }}>
-                <th style={{ padding: '6px 8px', textAlign: 'left', borderBottom: '2px solid var(--border)' }}>Leg.</th>
-                <th style={{ padding: '6px 8px', textAlign: 'left', borderBottom: '2px solid var(--border)' }}>Empleado</th>
-                {data.acumuladores.map((a) => <th key={a.codigo} title={`${a.tipo}${a.afectaGanancias ? ' · afecta Ganancias' : ''}`} style={{ padding: '6px 8px', textAlign: 'right', borderBottom: '2px solid var(--border)' }}>{a.nombre}</th>)}
-              </tr>
-            </thead>
+            <thead><tr style={{ background: 'var(--bg2)' }}>
+              <th style={{ padding: '6px 8px', textAlign: 'left', borderBottom: '2px solid var(--border)' }}>Período</th>
+              <th style={{ padding: '6px 8px', textAlign: 'right', borderBottom: '2px solid var(--border)' }}>Empl.</th>
+              {cols.map((a) => <th key={a.codigo} title={a.tipo} style={{ padding: '6px 8px', textAlign: 'right', borderBottom: '2px solid var(--border)' }}>{a.nombre}</th>)}
+            </tr></thead>
             <tbody>
-              {data.filas.map((f) => (
-                <tr key={f.empleadoId}>
+              {data.porLiquidacion.map((f) => (
+                <tr key={f.mes}>
+                  <td style={{ padding: '4px 8px' }}>{MESES[f.mes - 1]} {data.anio}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>{f.empleados}</td>
+                  {cols.map((a) => <td key={a.codigo} style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(f.valores[a.codigo] || 0)}</td>)}
+                </tr>))}
+              {!data.porLiquidacion.length && <tr><td colSpan={2 + cols.length} className="muted" style={{ padding: 10 }}>Sin datos para los períodos elegidos.</td></tr>}
+            </tbody>
+            {data.porLiquidacion.length > 0 && (
+              <tfoot><tr style={{ fontWeight: 700, background: 'var(--bg2)', borderTop: '2px solid var(--border)' }}>
+                <td style={{ padding: '6px 8px' }} colSpan={2}>Total</td>
+                {cols.map((a) => <td key={a.codigo} style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(data.totales[a.codigo] || 0)}</td>)}
+              </tr></tfoot>)}
+          </table>
+        </div>
+      )}
+      {data && vista === 'empleado' && (
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, whiteSpace: 'nowrap' }}>
+            <thead><tr style={{ background: 'var(--bg2)' }}>
+              <th style={{ padding: '6px 8px', textAlign: 'left', borderBottom: '2px solid var(--border)' }}>Leg.</th>
+              <th style={{ padding: '6px 8px', textAlign: 'left', borderBottom: '2px solid var(--border)' }}>Empleado</th>
+              <th style={{ padding: '6px 8px', textAlign: 'left', borderBottom: '2px solid var(--border)' }}>Período</th>
+              {cols.map((a) => <th key={a.codigo} title={a.tipo} style={{ padding: '6px 8px', textAlign: 'right', borderBottom: '2px solid var(--border)' }}>{a.nombre}</th>)}
+            </tr></thead>
+            <tbody>
+              {data.porEmpleado.map((f) => (
+                <tr key={`${f.empleadoId}-${f.mes}`}>
                   <td style={{ padding: '4px 8px' }}>{f.legNum}</td>
                   <td style={{ padding: '4px 8px' }}>{f.nom}</td>
-                  {data.acumuladores.map((a) => <td key={a.codigo} style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(f.valores[a.codigo] || 0)}</td>)}
-                </tr>
-              ))}
-              {!data.filas.length && <tr><td colSpan={2 + data.acumuladores.length} className="muted" style={{ padding: 10 }}>Sin empleados / recibos para el período.</td></tr>}
+                  <td style={{ padding: '4px 8px' }}>{MESES[f.mes - 1]}</td>
+                  {cols.map((a) => <td key={a.codigo} style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(f.valores[a.codigo] || 0)}</td>)}
+                </tr>))}
+              {!data.porEmpleado.length && <tr><td colSpan={3 + cols.length} className="muted" style={{ padding: 10 }}>Sin empleados / recibos para los períodos elegidos.</td></tr>}
             </tbody>
-            {data.filas.length > 0 && (
-              <tfoot>
-                <tr style={{ fontWeight: 700, background: 'var(--bg2)', borderTop: '2px solid var(--border)' }}>
-                  <td style={{ padding: '6px 8px' }} colSpan={2}>Totales ({data.filas.length})</td>
-                  {data.acumuladores.map((a) => <td key={a.codigo} style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{$(data.totales[a.codigo] || 0)}</td>)}
-                </tr>
-              </tfoot>
-            )}
           </table>
         </div>
       )}
