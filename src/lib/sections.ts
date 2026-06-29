@@ -65,7 +65,6 @@ export const GROUPS: Group[] = [
       { key: 'mensajes-rrhh', label: 'Mensajes de empleados', ready: true },
       { key: 'cambios-domicilio', label: 'Cambios de domicilio', ready: true },
       { key: 'hys', label: 'Higiene y Seguridad', ready: true },
-      { key: 'parametros', label: 'Parámetros de liquidación', ready: true },
     ],
   },
   {
@@ -89,6 +88,7 @@ export const GROUPS: Group[] = [
       { key: 'cbu-novedades', label: 'CBU — novedades', ready: true },
       { key: 'bancos', label: 'Archivos de banco', ready: true },
       { key: 'cierre-periodos', label: 'Cierre de períodos', ready: true },
+      { key: 'parametros', label: 'Parámetros de liquidación', ready: true },
     ],
   },
   {
