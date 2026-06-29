@@ -22,7 +22,14 @@ export default function GananciasFinal() {
 
   function exportar() {
     if (!data) return;
-    const rows = data.filas.map((f) => ({ Legajo: f.legNum, Empleado: f.nom, CUIL: f.cuil, 'Rem. gravada': f.gravado, 'Impuesto anual': f.impuesto, 'Retenido en el año': f.retenido, 'A retener (saldo)': f.aRetener, 'A devolver': f.aDevolver }));
+    const conceptos = Array.from(new Set(data.filas.flatMap((f) => (f.siradigDetalle || []).map((d) => d.label)))).sort();
+    const rows = data.filas.map((f) => {
+      const m: Record<string, number> = {}; for (const d of (f.siradigDetalle || [])) m[d.label] = d.computable;
+      const o: Record<string, any> = { Legajo: f.legNum, Empleado: f.nom, CUIL: f.cuil, 'Rem. gravada': f.gravado, 'SiRADIG (computable)': f.dedSiradig };
+      for (const c of conceptos) o[`SiRADIG: ${c}`] = m[c] || 0;
+      o['Impuesto anual'] = f.impuesto; o['Retenido en el año'] = f.retenido; o['A retener (saldo)'] = f.aRetener; o['A devolver'] = f.aDevolver;
+      return o;
+    });
     const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Liq. final Ganancias');
     XLSX.writeFile(wb, `liquidacion_final_ganancias_${anio}.xlsx`);
   }

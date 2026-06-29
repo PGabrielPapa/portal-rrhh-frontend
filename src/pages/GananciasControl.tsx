@@ -31,12 +31,19 @@ export default function GananciasControl() {
 
   function exportar() {
     if (!data) return;
-    const rows = data.filas.map((f) => ({
-      Legajo: f.legNum, Empleado: f.nom, CUIL: f.cuil, Empresa: f.empresa,
-      'Rem. gravada': f.gravado, 'Ded. generales': f.dedGenerales, 'Ded. personales': f.dedPersonales,
-      'SiRADIG (computable)': f.dedSiradig, 'Rem. sujeta': f.remSujeta, 'Impuesto determinado': f.impuesto,
-      'Retenido anterior': f.retenidoAnterior, 'A retener': f.aRetener, 'Devolución': f.devolucion,
-    }));
+    const conceptos = Array.from(new Set(data.filas.flatMap((f) => (f.siradigDetalle || []).map((d) => d.label)))).sort();
+    const rows = data.filas.map((f) => {
+      const m: Record<string, number> = {}; for (const d of (f.siradigDetalle || [])) m[d.label] = d.computable;
+      const o: Record<string, any> = {
+        Legajo: f.legNum, Empleado: f.nom, CUIL: f.cuil, Empresa: f.empresa,
+        'Rem. gravada': f.gravado, 'Ded. generales': f.dedGenerales, 'Ded. personales': f.dedPersonales,
+        'SiRADIG (computable)': f.dedSiradig,
+      };
+      for (const c of conceptos) o[`SiRADIG: ${c}`] = m[c] || 0;
+      o['Rem. sujeta'] = f.remSujeta; o['Impuesto determinado'] = f.impuesto;
+      o['Retenido anterior'] = f.retenidoAnterior; o['A retener'] = f.aRetener; o['Devolución'] = f.devolucion;
+      return o;
+    });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Control Ganancias');
     XLSX.writeFile(wb, `control_ganancias_${anio}_${anual ? 'anual' : String(mes).padStart(2, '0')}.xlsx`);
