@@ -9,6 +9,7 @@ interface Dash {
   porEmpresa: { empresa: string; headcount: number; masaBruta: number }[];
   genero: Record<string, number>;
   evolucion: { mes: number; neto: number }[];
+  cambiosDatos?: { nom: string; legNum: string; etiqueta: string; anterior?: string; nuevo?: string; fecha: string }[];
 }
 const MESES = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const $ = (n: number) => '$ ' + (n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
@@ -81,6 +82,18 @@ export default function Tablero() {
             ))}
             {!data.evolucion.length && <span className="muted">Sin recibos liquidados este año.</span>}
           </div>
+        </div>
+        <div className="card" style={{ marginTop: 12 }}>
+          <h4 style={{ marginTop: 0 }}>Cambios de datos del personal <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>(últimos 30 días)</span></h4>
+          {!data.cambiosDatos || data.cambiosDatos.length === 0
+            ? <div className="muted" style={{ fontSize: 13 }}>Sin cambios recientes de datos personales.</div>
+            : <div style={{ maxHeight: 240, overflow: 'auto' }}>
+                {data.cambiosDatos.map((c, i) => (
+                  <div key={i} className="row" style={{ justifyContent: 'space-between', gap: 8, fontSize: 13, padding: '4px 0', borderTop: i ? '1px solid var(--border)' : undefined }}>
+                    <span><b>{c.nom}</b> <span className="muted">(leg. {c.legNum})</span> · {c.etiqueta}: {c.anterior || '—'} → {c.nuevo || '—'}</span>
+                    <span className="muted" style={{ whiteSpace: 'nowrap' }}>{String(c.fecha || '').slice(0, 10)}</span>
+                  </div>))}
+              </div>}
         </div>
       </>}
     </>
