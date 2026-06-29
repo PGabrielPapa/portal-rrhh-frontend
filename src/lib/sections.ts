@@ -65,6 +65,7 @@ export const GROUPS: Group[] = [
       { key: 'mensajes-rrhh', label: 'Mensajes de empleados', ready: true },
       { key: 'cambios-domicilio', label: 'Cambios de domicilio', ready: true },
       { key: 'hys', label: 'Higiene y Seguridad', ready: true },
+      { key: 'parametros', label: 'Parámetros de liquidación', ready: true },
     ],
   },
   {
@@ -144,10 +145,10 @@ export const GROUPS: Group[] = [
     panel: 'Administración', roles: ['admin'],
     items: [
       { key: 'admin-empresas', label: 'Empresas', ready: true },
+      { key: 'centros-operaciones', label: 'Centros de operaciones', ready: true },
       { key: 'admin-usuarios', label: 'Usuarios', ready: true },
       { key: 'user-levels', label: 'Niveles de usuario', ready: true },
       { key: 'auditoria', label: 'Auditoría', ready: true },
-      { key: 'parametros', label: 'Parámetros de liquidación', ready: true },
       { key: 'parametros-hist', label: 'Parámetros por vigencia', ready: true },
     ],
   },

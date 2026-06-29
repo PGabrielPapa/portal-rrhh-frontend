@@ -63,6 +63,7 @@ import CertTrabajoRRHH from '../pages/CertTrabajoRRHH';
 import AdminUsuarios from '../pages/AdminUsuarios';
 import AdminAuditoria from '../pages/AdminAuditoria';
 import AdminEmpresas from '../pages/AdminEmpresas';
+import CentrosOperaciones from '../pages/CentrosOperaciones';
 import Elementos from '../pages/Elementos';
 import Beneficios from '../pages/Beneficios';
 import CambiosDomicilio from '../pages/CambiosDomicilio';
@@ -170,6 +171,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'admin-usuarios': AdminUsuarios,
   'auditoria': AdminAuditoria,
   'admin-empresas': AdminEmpresas,
+  'centros-operaciones': CentrosOperaciones,
   'elementos-trabajo': Elementos,
   'beneficios': Beneficios,
   'cambios-domicilio': CambiosDomicilio,

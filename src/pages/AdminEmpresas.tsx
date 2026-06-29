@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 
-interface Emp { id: number; nombre: string; slug?: string; cuit?: string; logo?: string; firma?: string; data: Record<string, string>; }
+interface Emp { id: number; nombre: string; slug?: string; cuit?: string; logo?: string; firma?: string; data: Record<string, string>; centros?: Centro[]; }
+interface Centro { id: number; codigo: string; denominacion: string; }
 const DOM = [['dir', 'Calle'], ['nro', 'Número'], ['piso', 'Piso'], ['depto', 'Depto'], ['loc', 'Localidad'], ['prov', 'Provincia'], ['cp', 'C.P.']];
 
 export default function AdminEmpresas() {
@@ -28,13 +29,14 @@ export default function AdminEmpresas() {
       {msg && <div className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 12 }}>{msg.ok ? '✓ ' : '⚠ '}{msg.t}</div>}
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
-          <thead><tr><th>Logo</th><th>Empresa</th><th>CUIT</th><th>Domicilio</th><th>Firma</th><th></th></tr></thead>
+          <thead><tr><th>Logo</th><th>Empresa</th><th>CUIT</th><th>Domicilio</th><th>Centros</th><th>Firma</th><th></th></tr></thead>
           <tbody>
             {items.map((e) => (
               <tr key={e.id}>
                 <td>{e.logo ? <img src={e.logo} style={{ maxHeight: 34, maxWidth: 90 }} /> : <span className="muted">—</span>}</td>
                 <td>{e.nombre}</td><td>{e.cuit || '—'}</td>
                 <td className="muted">{[e.data?.dir, e.data?.nro, e.data?.loc].filter(Boolean).join(' ') || '—'}</td>
+                <td className="muted">{e.centros?.length ? e.centros.map((c) => c.codigo).join(', ') : '—'}</td>
                 <td>{e.firma ? '✓' : '—'}</td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => setEdit(e)}>Editar</button>
@@ -42,7 +44,7 @@ export default function AdminEmpresas() {
                 </td>
               </tr>
             ))}
-            {!items.length && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin empresas.</td></tr>}
+            {!items.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin empresas.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -57,6 +59,9 @@ function EmpModal({ emp, onClose, onSaved, onError }: { emp: Emp | null; onClose
   const [data, setData] = useState<Record<string, string>>({ ...(emp?.data || {}) });
   const [logo, setLogo] = useState<string | undefined>(emp?.logo);
   const [firma, setFirma] = useState<string | undefined>(emp?.firma);
+  const [centros, setCentros] = useState<Centro[]>([]);
+  const [sel, setSel] = useState<Set<number>>(new Set((emp?.centros || []).map((c) => c.id)));
+  useEffect(() => { api.get<Centro[]>('/admin/centros').then(setCentros).catch(() => {}); }, []);
   const [busy, setBusy] = useState(false);
   const esNueva = !emp;
 
@@ -70,8 +75,10 @@ function EmpModal({ emp, onClose, onSaved, onError }: { emp: Emp | null; onClose
     setBusy(true);
     try {
       const body = { nombre, cuit, data, logo, firma };
-      if (esNueva) await api.post('/admin/empresas', body);
+      let id = emp?.id;
+      if (esNueva) { const r = await api.post<{ id: number }>('/admin/empresas', body); id = r.id; }
       else await api.patch(`/admin/empresas/${emp!.id}`, { cuit, data, logo, firma });
+      if (id) await api.put(`/admin/empresas/${id}/centros`, { centroIds: [...sel] });
       onSaved(esNueva ? 'Empresa creada' : 'Empresa actualizada');
     } catch (e: any) { onError(e.message); } finally { setBusy(false); }
   }
@@ -100,6 +107,17 @@ function EmpModal({ emp, onClose, onSaved, onError }: { emp: Emp | null; onClose
             <input type="file" accept="image/*" onChange={(e) => leerImg(e, setFirma)} />
             {firma && <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setFirma(undefined)}>Quitar</button>}
           </div>
+        </div>
+        <div className="field" style={{ marginTop: 12 }}>
+          <label>Centros de operaciones</label>
+          {centros.length === 0
+            ? <div className="muted" style={{ fontSize: 13 }}>No hay centros cargados. Creálos desde «Centros de operaciones».</div>
+            : <div className="grid2">
+                {centros.map((c) => (
+                  <label key={c.id} className="row muted" style={{ gap: 6, fontSize: 13 }}>
+                    <input type="checkbox" checked={sel.has(c.id)} onChange={(e) => { const n = new Set(sel); if (e.target.checked) n.add(c.id); else n.delete(c.id); setSel(n); }} /> {c.codigo} — {c.denominacion}
+                  </label>))}
+              </div>}
         </div>
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 14 }}>
           <button className="btn ghost" onClick={onClose}>Cancelar</button>

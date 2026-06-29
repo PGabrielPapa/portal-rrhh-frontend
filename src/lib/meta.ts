@@ -85,6 +85,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'valores-legales': { ico: '🏛', col: '239,68,68', desc: 'Tope SIPA, SMVM, Seguro de Vida Obligatorio y FFEP versionados por vigencia (se verifican antes de cada corrida)' },
   // Administración
   'admin-empresas': { ico: '🏢', col: '61,127,255', desc: 'Gestión de empresas del grupo' },
+  'centros-operaciones': { ico: '📍', col: '61,127,255', desc: 'Locaciones donde operan las empresas; se vinculan a una o varias empresas' },
   'admin-usuarios': { ico: '👤', col: '61,127,255', desc: 'Usuarios y accesos al sistema' },
   'user-levels': { ico: '🔑', col: '168,85,247', desc: 'Niveles y permisos de usuario' },
   'auditoria': { ico: '🔍', col: '92,104,128', desc: 'Registro de auditoría del sistema' },
