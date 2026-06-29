@@ -297,7 +297,10 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const { user: _u } = useAuth();
   const [esAdmin, setEsAdmin] = useState<boolean>((e as any).role === 'admin');
   const [lugHist, setLugHist] = useState<any[]>([]);
-  useEffect(() => { const id = (emp as any)?.id; if (id) api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); }, [emp]);
+  const [cambHist, setCambHist] = useState<any[]>([]);
+  const [centrosLista, setCentrosLista] = useState<[string, string][]>([]);
+  useEffect(() => { api.get<any[]>('/empleados/centros').then((rows) => setCentrosLista(rows.map((c) => [c.denominacion as string, `${c.codigo} — ${c.denominacion}`]))).catch(() => {}); }, []);
+  useEffect(() => { const id = (emp as any)?.id; if (id) { api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); api.get<any[]>(`/empleados/${id}/cambios`).then(setCambHist).catch(() => {}); } }, [emp]);
   const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: ev.target.value });
@@ -441,7 +444,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Datos laborales</div>
         <div className="grid2">
-          <F k="lugar" label="Ubicación / Lugar de trabajo" f={f} set={set} />
+          <Sel k="lugar" label="Ubicación / Lugar de trabajo" opts={centrosLista} f={f} set={set} ph="Elegí un centro de operaciones…" />
           <F k="tarea" label="Tarea / Puesto" f={f} set={set} />
           <Sel k="cat" label="Categoría (escala unificada)" opts={catOpts} f={f} set={set} />
           <Sel k="tramo" label="Tramo (escala unificada)" opts={tramoOpts} f={f} set={set} />
@@ -464,6 +467,19 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
                       <span className="muted">{String(h.desde || '').slice(0, 10) || '—'} → {h.hasta ? String(h.hasta).slice(0, 10) : 'actual'}</span>
                     </div>))}
                 </div>}
+          </div>
+        )}
+
+        {(emp as any)?.id && cambHist.length > 0 && (
+          <div className="field" style={{ marginTop: 8 }}>
+            <label>Historial de cambios del legajo</label>
+            <div style={{ maxHeight: 170, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
+              {cambHist.map((h: any) => (
+                <div key={h.id} className="row" style={{ justifyContent: 'space-between', gap: 8, fontSize: 13, padding: '4px 8px', borderTop: '1px solid var(--border)' }}>
+                  <span><b>{h.etiqueta}:</b> {h.valor_anterior || '—'} → {h.valor_nuevo || '—'}</span>
+                  <span className="muted" style={{ whiteSpace: 'nowrap' }}>{String(h.created_at || '').slice(0, 10)}</span>
+                </div>))}
+            </div>
           </div>
         )}
 
