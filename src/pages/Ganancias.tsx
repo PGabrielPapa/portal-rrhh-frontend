@@ -97,7 +97,14 @@ function Formulario({ f }: { f: F1357 }) {
             <Fila l="Deducción especial" v={f.dedPersonales.dedEspecial} />
             <Fila l="Deducción especial (2° párr. art. 30)" v={f.dedPersonales.dedEspecial2} />
             {f.dedPersonales.dedVoluntarias > 0 && <Fila l="Otras deducciones voluntarias" v={f.dedPersonales.dedVoluntarias} />}
-            {!!f.dedPersonales.siradig && <Fila l="Deducciones SiRADIG (computable, topes RG 4003)" v={f.dedPersonales.dedSiradig} />}
+            {!!f.dedPersonales.siradig && (() => {
+              const agg: Record<string, number> = {};
+              for (const d of f.dedPersonales.siradig!.detalle) { if (!d.clasificado || !d.computable) continue; const k = d.conceptoLabel || 'Otras deducciones'; agg[k] = (agg[k] || 0) + d.computable; }
+              const filas = Object.entries(agg).sort((a, b) => b[1] - a[1]);
+              return filas.length
+                ? filas.map(([l, v], i) => <Fila key={`sir-${i}`} l={`SiRADIG · ${l}`} v={v} />)
+                : <Fila l="Deducciones SiRADIG (computable, topes RG 4003)" v={f.dedPersonales.dedSiradig} />;
+            })()}
             <Fila l="Total deducciones personales" v={f.dedPersonales.total} bold />
             <Banda t="Determinación del impuesto" />
             <Fila l="Remuneración sujeta a impuesto" v={f.determinacion.remSujeta} bold />
