@@ -10,6 +10,8 @@ interface Lic {
 function fmt(d?: string) { if (!d) return '—'; const [y, m, dd] = String(d).slice(0, 10).split('-'); return `${dd}/${m}/${y}`; }
 const MAX = 5 * 1024 * 1024;
 const colorEstado = (e: string) => e === 'aprobada' ? 'var(--green)' : e === 'rechazada' ? 'var(--red)' : 'var(--yellow)';
+// Vacaciones no requiere comprobante; el resto (enfermedad, matrimonio, nacimiento, fallecimiento, examen, donación, etc.) sí.
+const requiereComprobante = (tipo?: string) => !/vacacion/i.test(tipo || '');
 
 const TIPOS = [
   'Enfermedad', 'Enfermedad de familiar',
@@ -133,10 +135,14 @@ export default function Justificaciones() {
                   {l.tiene_comprobante && (
                     <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => ver(l.id)}>📄 Ver</button>
                   )}
-                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} disabled={busyId === l.id}
-                    onClick={() => inputs.current[l.id]?.click()}>
-                    {busyId === l.id ? 'Subiendo…' : (l.tiene_comprobante ? 'Reemplazar' : 'Adjuntar comprobante')}
-                  </button>
+                  {l.estado !== 'rechazada' && requiereComprobante(l.tipo) ? (
+                    <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} disabled={busyId === l.id}
+                      onClick={() => inputs.current[l.id]?.click()}>
+                      {busyId === l.id ? 'Subiendo…' : (l.tiene_comprobante ? 'Reemplazar' : 'Adjuntar comprobante')}
+                    </button>
+                  ) : (!l.tiene_comprobante && (
+                    <span className="muted" style={{ fontSize: 12 }}>{!requiereComprobante(l.tipo) ? 'No requiere' : 'No corresponde'}</span>
+                  ))}
                 </td>
               </tr>
             ))}
