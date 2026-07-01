@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
 
 type Campo = [string, string, ('text' | 'num' | 'int' | 'date' | 'bool')?];
@@ -62,6 +62,11 @@ export default function GeneradorReportes() {
   const [cNombre, setCNombre] = useState('');
   const [cFormula, setCFormula] = useState('');
   const [cErr, setCErr] = useState('');
+  const [defs, setDefs] = useState<{ id: number; nombre: string; config: any }[]>([]);
+  const [defId, setDefId] = useState<number | ''>('');
+  const pendingCfg = useRef<any>(null);
+  async function loadDefs() { try { setDefs(await api.get<{ id: number; nombre: string; config: any }[]>('/reportes/definiciones')); } catch { /* */ } }
+  useEffect(() => { loadDefs(); }, []);
 
   useEffect(() => { api.get<DatasetMeta[]>('/reportes/datasets').then(setDatasets).catch(() => {}); }, []);
   useEffect(() => {
@@ -89,16 +94,22 @@ export default function GeneradorReportes() {
       setOrdenPor((prev) => prev || def[0] || (r.campos[0]?.[0] ?? ''));
     } catch (e: any) { setErr(e.message); setData(null); } finally { setBusy(false); }
   }
-  // Persistencia de campos calculados por dataset (localStorage).
+  // Al cambiar de dataset: resetea filtros y calculados (salvo que se esté cargando un reporte guardado).
   useEffect(() => {
-    setEmpresa(''); setQ(''); setFiltrarPer(false);
-    let saved: Calc[] = [];
-    try { saved = JSON.parse(localStorage.getItem(`rep_calc_${dsKey}`) || '[]'); } catch { saved = []; }
+    const pc = pendingCfg.current;
+    setEmpresa(pc?.empresa || ''); setQ(''); setFiltrarPer(!!pc?.filtrarPer);
+    let saved: Calc[] = Array.isArray(pc?.calcs) ? pc.calcs : [];
+    if (!Array.isArray(pc?.calcs)) { try { saved = JSON.parse(localStorage.getItem(`rep_calc_${dsKey}`) || '[]'); } catch { saved = []; } }
     setCalcs(Array.isArray(saved) ? saved : []);
-    const def: string[] = [];
-    setSel(def); setOrdenPor('');
+    setSel([]); setOrdenPor('');
     cargar(); /* eslint-disable-next-line */
   }, [dsKey]);
+  // Cuando llegan los datos, si hay un reporte guardado pendiente, aplica sus campos/orden.
+  useEffect(() => {
+    const pc = pendingCfg.current;
+    if (data && pc) { setSel(Array.isArray(pc.sel) ? pc.sel : []); setOrdenPor(pc.ordenPor || ''); pendingCfg.current = null; }
+    /* eslint-disable-next-line */
+  }, [data]);
   useEffect(() => { if (meta && meta.periodo !== 'no') cargar(); /* eslint-disable-next-line */ }, [anio, mes, filtrarPer]);
   useEffect(() => { try { localStorage.setItem(`rep_calc_${dsKey}`, JSON.stringify(calcs)); } catch { /* */ } }, [calcs, dsKey]);
 
@@ -138,6 +149,30 @@ export default function GeneradorReportes() {
   }
   function quitarCalc(key: string) { setCalcs((p) => p.filter((c) => c.key !== key)); setSel((p) => p.filter((k) => k !== key)); }
 
+  const buildConfig = () => ({ dsKey, sel, empresa, ordenPor, filtrarPer, calcs });
+  function aplicarDef(cfg: any) {
+    if (!cfg) return;
+    pendingCfg.current = cfg;
+    if (cfg.dsKey && cfg.dsKey !== dsKey) { setDsKey(cfg.dsKey); }
+    else { setEmpresa(cfg.empresa || ''); setFiltrarPer(!!cfg.filtrarPer); setCalcs(Array.isArray(cfg.calcs) ? cfg.calcs : []); cargar(); }
+  }
+  async function guardarDef(comoNuevo: boolean) {
+    const actual = defs.find((d) => d.id === defId);
+    const nombre = window.prompt('Nombre del reporte:', comoNuevo ? '' : (actual?.nombre || ''));
+    if (!nombre || !nombre.trim()) return;
+    try {
+      const body: any = { nombre: nombre.trim(), config: buildConfig() };
+      if (!comoNuevo && defId) body.id = defId;
+      const r = await api.post<{ id: number }>('/reportes/definiciones', body);
+      await loadDefs(); setDefId(r.id); setErr('');
+    } catch (e: any) { setErr(e.message); }
+  }
+  async function eliminarDef() {
+    if (!defId) return; const d = defs.find((x) => x.id === defId);
+    if (!window.confirm(`¿Eliminar el reporte guardado "${d?.nombre}"?`)) return;
+    try { await api.del(`/reportes/definiciones/${defId}`); setDefId(''); await loadDefs(); } catch (e: any) { setErr(e.message); }
+  }
+
   function fmt(r: any, k: string) {
     const v = r[k];
     if (esCalc(k)) return v == null ? '—' : '$ ' + $(v);
@@ -170,8 +205,21 @@ export default function GeneradorReportes() {
 
   return (
     <>
+      <div className="card" style={{ marginBottom: 12, padding: '10px 12px' }}>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <b style={{ fontSize: 13 }}>Reportes guardados:</b>
+          <select className="input" style={{ maxWidth: 280 }} value={defId} onChange={(e) => { const id = e.target.value ? Number(e.target.value) : ''; setDefId(id); const d = defs.find((x) => x.id === id); if (d) aplicarDef(d.config); }}>
+            <option value="">— Elegí un reporte guardado —</option>
+            {defs.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+          </select>
+          <button className="btn ghost" onClick={() => guardarDef(false)}>💾 Guardar</button>
+          <button className="btn ghost" onClick={() => guardarDef(true)}>Guardar como nuevo</button>
+          {defId !== '' && <button className="btn ghost" onClick={eliminarDef}>🗑 Eliminar</button>}
+        </div>
+        <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>Elegí el dataset, los campos, filtros y columnas calculadas, y guardalo con un nombre para reutilizarlo.</div>
+      </div>
       <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-        {datasets.map((d) => <button key={d.key} className={`btn ${dsKey === d.key ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setDsKey(d.key)}>{d.label}</button>)}
+        {datasets.map((d) => <button key={d.key} className={`btn ${dsKey === d.key ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => { setDefId(''); setDsKey(d.key); }}>{d.label}</button>)}
       </div>
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
 

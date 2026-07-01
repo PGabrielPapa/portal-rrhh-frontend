@@ -28,7 +28,7 @@ export default function Mensajes() {
     try { await api.post('/mensajes', { cuerpo: texto.trim(), borrarAlLeer: borrar }); setOk('Mensaje enviado, de corresponder el mismo será respondido a la brevedad por RR.HH.'); setTexto(''); setBorrar(false); load(); }
     catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }
-  async function borrarMsg(id: number) { try { await api.del(`/mensajes/${id}`); load(); } catch (e: any) { setErr(e.message); } }
+  async function borrarMsg(id: number) { if (!window.confirm('¿Eliminar este mensaje enviado?')) return; try { await api.del(`/mensajes/${id}`); load(); } catch (e: any) { setErr(e.message); } }
 
   const enviados = items.filter((m) => m.direccion === 'a_rrhh');
   const recibidos = items.filter((m) => m.direccion === 'a_empleado');
@@ -64,7 +64,7 @@ export default function Mensajes() {
                 {m.estado === 'leido' ? '✓ Leído' : 'Enviado'}
               </span>
             </span>
-            {m.estado === 'leido' && <button className="btn ghost" style={{ padding: '3px 9px', fontSize: 12 }} onClick={() => borrarMsg(m.id)}>🗑 Eliminar</button>}
+            <button className="btn ghost" style={{ padding: '3px 9px', fontSize: 12 }} onClick={() => borrarMsg(m.id)}>🗑 Eliminar</button>
           </div>
         </div>
       ))}
