@@ -10,6 +10,7 @@ export const GROUPS: Group[] = [
     panel: 'Mi espacio', roles: ['employee', 'manager', 'rrhh', 'admin'],
     items: [
       { key: 'mis-recibos', label: 'Mis recibos', ready: true },
+      { key: 'mis-fichadas', label: 'Mis fichadas del día', ready: true },
       { key: 'mis-ganancias', label: 'Ganancias (F.1357)', ready: true },
       { key: 'mis-datos', label: 'Mis datos', ready: true },
       { key: 'seguridad', label: 'Seguridad (2FA)', ready: true },
@@ -30,7 +31,6 @@ export const GROUPS: Group[] = [
     items: [
       { key: 'tablero-equipo', label: 'Tablero del equipo', ready: true },
       { key: 'aprobaciones', label: 'Adelantos del equipo', ready: true },
-      { key: 'fichadas-equipo', label: 'Fichadas del equipo (autorizar)', ready: true },
       { key: 'licencias-equipo', ready: true, label: 'Licencias del equipo' },
       { key: 'organigrama', label: 'Organigrama / equipo', ready: true },
       { key: 'datos-equipo', label: 'Datos del personal a cargo', ready: true },
@@ -71,7 +71,8 @@ export const GROUPS: Group[] = [
     panel: 'RRHH — Asistencia', roles: ['rrhh', 'admin'],
     items: [
       { key: 'fichadas-import', label: 'Importar fichadas (Pro-Soft)', ready: true },
-      { key: 'fichadas-consulta', label: 'Fichadas — consulta', ready: true },
+      { key: 'fichadas-dia', label: 'Fichadas del día', ready: true },
+      { key: 'fichadas-consulta', label: 'Fichadas — consulta (control mensual)', ready: true },
     ],
   },
   {

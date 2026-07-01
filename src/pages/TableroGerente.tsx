@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import FichadasEquipo from './FichadasEquipo';
 
 interface Aus { nom: string; tipo: string; desde: string; hasta: string; }
 interface Rk { nom: string; min: number; }
@@ -18,6 +19,14 @@ interface Dash {
   extra: { totalMin: number; ranking: Rk[] };
   avisos: { cumple: Cumple[]; aniversarios: Aniv[]; prueba: Prueba[] };
   evolucion: { anio: number; mes: number; neto: number }[];
+}
+interface Ausente { nom: string; empresa: string; justificacion: string | null; }
+interface DetT { nom: string; fecha: string; dia: string | null; entrada: string | null; min: number; }
+interface Reloj {
+  fecha: string;
+  fichadas: { total: number; ficharon: number; ausentes: number; injustificados: number };
+  ausentes: Ausente[];
+  tardanzas: { casos: number; totalMin: number; ranking: { nom: string; min: number }[]; detalle: DetT[] };
 }
 
 const MESES = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -56,6 +65,15 @@ export default function TableroGerente() {
   const [data, setData] = useState<Dash | null>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [reloj, setReloj] = useState<Reloj | null>(null);
+  const [relojErr, setRelojErr] = useState('');
+  const [verAutorizar, setVerAutorizar] = useState(false);
+
+  // Datos del reloj EN VIVO (equipo): fichadas de hoy, ausentes y tardanzas del mes.
+  useEffect(() => {
+    setRelojErr(''); setReloj(null);
+    api.get<Reloj>(`/prosoft/tablero?scope=equipo&anio=${anio}&mes=${mes}`).then(setReloj).catch((e) => setRelojErr(e.message));
+  }, [anio, mes]);
 
   async function cargar() {
     setErr(''); setBusy(true);
@@ -92,38 +110,71 @@ export default function TableroGerente() {
         <h4 style={{ margin: '4px 0 8px' }}>Qué requiere tu atención</h4>
         <div className="row" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
           <Pend t="Adelantos para recomendar" n={data.pendientes.adelantos} ico="💸" onClick={() => nav('/m/aprobaciones')} />
-          <Pend t="Horas extra para autorizar" n={data.pendientes.fichadas} ico="🕒" onClick={() => nav('/m/fichadas-equipo')} />
+          <Pend t="Fichadas para autorizar" n={data.pendientes.fichadas} ico="🕒" onClick={() => setVerAutorizar((v) => !v)} />
           <Pend t="Licencias para aprobar" n={data.pendientes.licencias} ico="🏖" onClick={() => nav('/m/licencias-equipo')} />
           <Pend t={data.pendientes.anualAbierto ? 'Evaluaciones (período abierto)' : 'Evaluaciones de prueba'} n={data.pendientes.evaluaciones} ico="📈" onClick={() => nav('/m/evaluaciones-equipo')} />
         </div>
 
-        {/* Asistencia + Puntualidad */}
+        {/* Fichadas para autorizar (enviadas por RR.HH.) — desplegable dentro del tablero */}
+        <div style={{ marginBottom: 12 }}>
+          <button className="btn" onClick={() => setVerAutorizar((v) => !v)}>
+            {verAutorizar ? '▲ Ocultar' : '▼ Ver'} fichadas para autorizar{data.pendientes.fichadas ? ` (${data.pendientes.fichadas})` : ''}
+          </button>
+        </div>
+        {verAutorizar && (
+          <div className="card" style={{ marginBottom: 18 }}>
+            <h4 style={{ marginTop: 0 }}>Fichadas para autorizar — enviadas por RR.HH.</h4>
+            <FichadasEquipo />
+          </div>
+        )}
+
+        {/* Reloj EN VIVO: fichadas de hoy, ausentes de hoy (con justificación) y tardanzas del mes */}
         <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: 18 }}>
-          <div className="card" style={{ flex: '1 1 300px' }}>
-            <h4 style={{ marginTop: 0 }}>Ausentes hoy <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({data.asistencia.ausentesHoy.length})</span></h4>
-            {data.asistencia.ausentesHoy.length === 0
-              ? <div className="muted" style={{ fontSize: 13 }}>Nadie con licencia activa hoy.</div>
-              : data.asistencia.ausentesHoy.map((a, i) => (
-                <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}>
-                  <span>{a.nom}</span><span className="muted">{a.tipo} · hasta {String(a.hasta).slice(0, 10)}</span>
-                </div>))}
-            <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>Ausentismo del mes: {data.asistencia.ausentismoDias} día(s) de licencia.</div>
+          <div className="card" style={{ flex: '1 1 260px' }}>
+            <h4 style={{ marginTop: 0 }}>Fichadas de hoy {reloj && <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({reloj.fichadas.ficharon}/{reloj.fichadas.total})</span>}</h4>
+            {relojErr ? <div className="muted" style={{ fontSize: 13 }}>No se pudo traer del reloj: {relojErr}</div>
+              : !reloj ? <div className="muted" style={{ fontSize: 13 }}>Cargando…</div>
+                : <div className="row" style={{ gap: 18 }}>
+                    <div><div style={{ fontSize: 24, fontWeight: 700, color: 'var(--green)' }}>{reloj.fichadas.ficharon}</div><div className="muted" style={{ fontSize: 11 }}>ficharon</div></div>
+                    <div><div style={{ fontSize: 24, fontWeight: 700, color: reloj.fichadas.injustificados ? 'var(--red)' : undefined }}>{reloj.fichadas.injustificados}</div><div className="muted" style={{ fontSize: 11 }}>sin fichar</div></div>
+                    <div><div style={{ fontSize: 24, fontWeight: 700 }}>{reloj.fichadas.total}</div><div className="muted" style={{ fontSize: 11 }}>del equipo</div></div>
+                  </div>}
           </div>
           <div className="card" style={{ flex: '1 1 300px' }}>
-            <h4 style={{ marginTop: 0 }}>Llegadas tarde del mes</h4>
-            <div className="row" style={{ gap: 16, marginBottom: 8 }}>
-              <div><div style={{ fontSize: 22, fontWeight: 700 }}>{data.puntualidad.tardanzasCasos}</div><div className="muted" style={{ fontSize: 11 }}>empleados con tardanzas</div></div>
-              <div><div style={{ fontSize: 22, fontWeight: 700 }}>{hm(data.puntualidad.tardanzasMin)}</div><div className="muted" style={{ fontSize: 11 }}>acumulado del equipo</div></div>
-            </div>
-            {(!data.puntualidad.detalle || data.puntualidad.detalle.length === 0)
-              ? <div className="muted" style={{ fontSize: 13 }}>Sin tardanzas registradas.</div>
-              : <div style={{ maxHeight: 260, overflow: 'auto' }}>
-                  {data.puntualidad.detalle.map((t, i) => (
-                    <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 13, padding: '3px 0', borderTop: i ? '1px solid var(--border)' : undefined }}>
-                      <span>{t.nom} <span className="muted">· {[t.dia, t.fecha].filter(Boolean).join(' ')}{t.entrada ? ' · ingresó ' + t.entrada : ''}</span></span>
-                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--yellow)' }}>{hm(t.min)}</span>
-                    </div>))}
-                </div>}
+            <h4 style={{ marginTop: 0 }}>Ausentes hoy {reloj && <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({reloj.ausentes.length})</span>}</h4>
+            {relojErr ? <div className="muted" style={{ fontSize: 13 }}>—</div>
+              : !reloj ? <div className="muted" style={{ fontSize: 13 }}>Cargando…</div>
+                : reloj.ausentes.length === 0 ? <div className="muted" style={{ fontSize: 13 }}>Nadie sin fichar hoy 👍</div>
+                  : <div style={{ maxHeight: 260, overflow: 'auto' }}>
+                      {reloj.ausentes.map((a, i) => (
+                        <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 13, padding: '3px 0', borderTop: i ? '1px solid var(--border)' : undefined }}>
+                          <span>{a.nom}</span>
+                          {a.justificacion
+                            ? <span style={{ color: '#2563eb' }}>{a.justificacion}</span>
+                            : <span style={{ color: 'var(--red)', fontWeight: 600 }}>injustificado</span>}
+                        </div>))}
+                    </div>}
+            <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>No fichó en día laborable. Con licencia o justificación cargada, muestra el motivo.</div>
+          </div>
+          <div className="card" style={{ flex: '1 1 320px' }}>
+            <h4 style={{ marginTop: 0 }}>Llegadas tarde del mes {reloj && <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>(acumulado)</span>}</h4>
+            {relojErr ? <div className="muted" style={{ fontSize: 13 }}>—</div>
+              : !reloj ? <div className="muted" style={{ fontSize: 13 }}>Cargando…</div>
+                : <>
+                    <div className="row" style={{ gap: 16, marginBottom: 8 }}>
+                      <div><div style={{ fontSize: 22, fontWeight: 700 }}>{reloj.tardanzas.casos}</div><div className="muted" style={{ fontSize: 11 }}>empleados con tardanzas</div></div>
+                      <div><div style={{ fontSize: 22, fontWeight: 700 }}>{hm(reloj.tardanzas.totalMin)}</div><div className="muted" style={{ fontSize: 11 }}>acumulado del equipo</div></div>
+                    </div>
+                    {reloj.tardanzas.detalle.length === 0
+                      ? <div className="muted" style={{ fontSize: 13 }}>Sin tardanzas en el mes.</div>
+                      : <div style={{ maxHeight: 260, overflow: 'auto' }}>
+                          {reloj.tardanzas.detalle.map((t, i) => (
+                            <div key={i} className="row" style={{ justifyContent: 'space-between', fontSize: 13, padding: '3px 0', borderTop: i ? '1px solid var(--border)' : undefined }}>
+                              <span>{t.nom} <span className="muted">· {[t.dia, t.fecha].filter(Boolean).join(' ')}{t.entrada ? ' · ingresó ' + t.entrada : ''}</span></span>
+                              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--yellow)' }}>{hm(t.min)}</span>
+                            </div>))}
+                        </div>}
+                  </>}
           </div>
         </div>
 

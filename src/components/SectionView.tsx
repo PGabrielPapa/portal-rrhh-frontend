@@ -73,6 +73,7 @@ import Justificaciones from '../pages/Justificaciones';
 import FichadasImport from '../pages/FichadasImport';
 import FichadasConsulta from '../pages/FichadasConsulta';
 import FichadasEquipo from '../pages/FichadasEquipo';
+import FichadasDia from '../pages/FichadasDia';
 import DatosEquipo from '../pages/DatosEquipo';
 import ChsMinutas from '../pages/ChsMinutas';
 import ChsPolitica from '../pages/ChsPolitica';
@@ -180,6 +181,8 @@ const COMPONENTS: Record<string, ComponentType> = {
   'fichadas-import': FichadasImport,
   'fichadas-consulta': FichadasConsulta,
   'fichadas-equipo': FichadasEquipo,
+  'mis-fichadas': FichadasDia,
+  'fichadas-dia': FichadasDia,
 };
 
 export default function SectionView() {
