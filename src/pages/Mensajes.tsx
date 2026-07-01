@@ -78,7 +78,10 @@ export default function Mensajes() {
               {m.broadcast && <span className="badge">Para todos</span>}
             </div>
             <p style={{ whiteSpace: 'pre-wrap', margin: '8px 0' }}>{m.cuerpo}</p>
-            <div className="muted" style={{ fontSize: 11 }}>{fmt(m.created_at)}{m.autor ? ` · de ${m.autor}` : ''}</div>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="muted" style={{ fontSize: 11 }}>{fmt(m.created_at)}{m.autor ? ` · de ${m.autor}` : ''}</span>
+              {!m.broadcast && <button className="btn ghost" style={{ padding: '3px 9px', fontSize: 12 }} onClick={() => borrarMsg(m.id)}>🗑 Eliminar</button>}
+            </div>
           </div>
         ))}
       </>}
