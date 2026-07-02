@@ -58,6 +58,8 @@ import RecibosGestion from '../pages/RecibosGestion';
 import Licencias from '../pages/Licencias';
 import Sanciones from '../pages/Sanciones';
 import Evaluaciones from '../pages/Evaluaciones';
+import Delegaciones from '../pages/Delegaciones';
+import MisDelegaciones from '../pages/MisDelegaciones';
 import CertTrabajo from '../pages/CertTrabajo';
 import CertTrabajoRRHH from '../pages/CertTrabajoRRHH';
 import AdminUsuarios from '../pages/AdminUsuarios';
@@ -181,6 +183,8 @@ const COMPONENTS: Record<string, ComponentType> = {
   'fichadas-import': FichadasImport,
   'fichadas-consulta': FichadasConsulta,
   'fichadas-equipo': FichadasEquipo,
+  'delegaciones': Delegaciones,
+  'mis-delegaciones': MisDelegaciones,
   'mis-fichadas': FichadasDia,
   'fichadas-dia': FichadasDia,
 };
