@@ -18,7 +18,7 @@ interface Presentacion {
   empleado?: any; cargasFamilia: Carga[]; deducciones: Deduccion[]; archivoNombre?: string;
 }
 interface Cfg { mapaTipos: Record<string, string>; topes: Record<string, number | string>; conceptos: Record<string, { label: string; regla: string }>; tabla4Default: Record<string, number | string>; }
-const TOPE_LABELS: [string, string][] = [['gni', 'Ganancia No Imponible (servicio doméstico)'], ['gni40', '40% GNI (tope alquiler)'], ['seguroMuerte', 'Seguros muerte/mixtos + FCI'], ['seguroRetiro', 'Seguros de retiro'], ['hipotecario', 'Intereses hipotecarios'], ['sepelio', 'Gastos de sepelio'], ['pctNeta', '% sobre ganancia neta (médicos/donac.)']];
+const TOPE_LABELS: [string, string][] = [['gni', 'Ganancia No Imponible (personal doméstico y alquiler inquilino 40%)'], ['gni40', '40% GNI (educación)'], ['seguroMuerte', 'Seguros muerte/mixtos + FCI'], ['seguroRetiro', 'Seguros de retiro'], ['hipotecario', 'Intereses hipotecarios'], ['sepelio', 'Gastos de sepelio'], ['pctNeta', '% sobre ganancia neta (médicos/donac.)']];
 interface Fila {
   id: number; cuil: string; empleadoId: number | null; empleadoNom: string | null; legNum: string | null;
   nom: string; anio: number; nroPresentacion: number; fechaPresentacion?: string; version?: string;
