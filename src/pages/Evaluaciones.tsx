@@ -5,7 +5,7 @@ import type { Empleado } from '../lib/types';
 import EmpleadoPicker from '../components/EmpleadoPicker';
 import { EVAL_ITEMS, EVAL_LABELS } from '../lib/evalItems';
 
-interface V { id: number; periodo: string; tipo?: string; calificacion?: string; comentarios?: string; promedio?: number; datos?: any; nom?: string; leg_num?: string; empresa?: string; created_by?: string; }
+interface V { id: number; periodo: string; tipo?: string; calificacion?: string; comentarios?: string; promedio?: number; datos?: any; nom?: string; leg_num?: string; empresa?: string; created_by?: string; validador?: string; area_org?: string; }
 const TIPOS = ['Anual', 'Período de prueba', 'Semestral'];
 
 export default function Evaluaciones() {
@@ -19,6 +19,7 @@ export default function Evaluaciones() {
   const [q, setQ] = useState('');
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [empresa, setEmpresa] = useState('');
+  const [fAnio, setFAnio] = useState(''); const [fTipo, setFTipo] = useState(''); const [fCalif, setFCalif] = useState(''); const [fGcia, setFGcia] = useState('');
   const [emp, setEmp] = useState<Empleado | null>(null);
   const [equipo, setEquipo] = useState<Empleado[]>([]);
   const [f, setF] = useState<Record<string, string>>({ tipo: 'Anual', calificacion: 'Bueno', periodo: `Anual ${new Date().getFullYear()}` });
@@ -153,20 +154,31 @@ export default function Evaluaciones() {
       )}
       {!puedeRegistrar && msg && !msg.ok && <div className="err" style={{ marginBottom: 12 }}>⚠ {msg.t}</div>}
 
-      {!modoMias && (
-        <div className="row" style={{ marginBottom: 14, flexWrap: 'wrap' }}>
-          <input className="input" style={{ maxWidth: 240 }} placeholder="Buscar empleado o legajo…" value={q} onChange={(e) => setQ(e.target.value)} />
-          {esRRHH && <select className="input" style={{ maxWidth: 200 }} value={empresa} onChange={(e) => setEmpresa(e.target.value)}>
+      {!modoMias && (() => {
+        const yearOf = (p?: string) => (String(p || '').match(/\d{4}/) || [''])[0];
+        const anios = [...new Set(items.map((v) => yearOf(v.periodo)).filter(Boolean))].sort().reverse();
+        const tipos = [...new Set(items.map((v) => v.tipo).filter(Boolean) as string[])].sort();
+        const califs = [...new Set(items.map((v) => v.calificacion).filter(Boolean) as string[])].sort();
+        const gcias = [...new Set(items.map((v) => v.validador).filter(Boolean) as string[])].sort();
+        return (
+        <div className="row" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <input className="input" style={{ maxWidth: 220 }} placeholder="Buscar empleado o legajo…" value={q} onChange={(e) => setQ(e.target.value)} />
+          {esRRHH && <select className="input" style={{ maxWidth: 180 }} value={empresa} onChange={(e) => setEmpresa(e.target.value)}>
             <option value="">Todas las empresas</option>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}
           </select>}
+          <select className="input" style={{ maxWidth: 120 }} value={fAnio} onChange={(e) => setFAnio(e.target.value)}><option value="">Año</option>{anios.map((a) => <option key={a} value={a}>{a}</option>)}</select>
+          <select className="input" style={{ maxWidth: 170 }} value={fTipo} onChange={(e) => setFTipo(e.target.value)}><option value="">Tipo</option>{tipos.map((t) => <option key={t} value={t}>{t}</option>)}</select>
+          <select className="input" style={{ maxWidth: 170 }} value={fCalif} onChange={(e) => setFCalif(e.target.value)}><option value="">Calificación</option>{califs.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+          <select className="input" style={{ maxWidth: 220 }} value={fGcia} onChange={(e) => setFGcia(e.target.value)}><option value="">Gerencia (organigrama)</option>{gcias.map((g) => <option key={g} value={g}>{g}</option>)}</select>
         </div>
-      )}
+        );
+      })()}
 
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
           <thead><tr>{!modoMias && <th>Empleado</th>}{esRRHH && <th>Empresa</th>}<th>Período</th><th>Tipo</th><th>Calificación</th><th>Promedio</th><th>Comentarios</th></tr></thead>
           <tbody>
-            {items.map((v) => (
+            {items.filter((v) => (!fAnio || (String(v.periodo || '').match(/\d{4}/) || [''])[0] === fAnio) && (!fTipo || v.tipo === fTipo) && (!fCalif || v.calificacion === fCalif) && (!fGcia || v.validador === fGcia)).map((v) => (
               <tr key={v.id}>{!modoMias && <td>{v.nom} <span className="muted">({v.leg_num})</span></td>}{esRRHH && <td>{v.empresa}</td>}<td>{v.periodo}</td><td>{v.tipo || '—'}</td><td>{v.calificacion || '—'}</td><td style={{ fontFamily: 'monospace' }}>{v.promedio != null ? Number(v.promedio).toFixed(2) : '—'}</td><td>{v.comentarios || '—'}</td></tr>
             ))}
             {!items.length && <tr><td colSpan={modoMias ? 4 : (esRRHH ? 6 : 5)} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin evaluaciones.</td></tr>}
