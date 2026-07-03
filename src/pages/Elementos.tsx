@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import EmpleadoPicker from '../components/EmpleadoPicker';
@@ -16,6 +16,9 @@ export default function Elementos() {
   const [emp, setEmp] = useState<Empleado | null>(null);
   const [f, setF] = useState<Record<string, string>>({ tipo: 'celular', fechaEntrega: hoy() });
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const [histId, setHistId] = useState<number | null>(null);
+  const [hist, setHist] = useState<any[]>([]);
+  async function verHist(it: E) { if (histId === it.id) { setHistId(null); return; } try { setHist(await api.get<any[]>(`/elementos/${it.id}/historial`)); setHistId(it.id); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
 
   async function load() { try { const p = new URLSearchParams(); if (q) p.set('q', q); if (empresa) p.set('empresa', empresa); setItems(await api.get<E[]>(`/elementos?${p}`)); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   useEffect(() => { api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
@@ -59,15 +62,31 @@ export default function Elementos() {
           <thead><tr><th>Empleado</th><th>Tipo</th><th>Identificador</th><th>Entrega</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             {items.map((it) => (
-              <tr key={it.id}>
+              <Fragment key={it.id}>
+              <tr>
                 <td>{it.nom} <span className="muted">({it.leg_num})</span></td><td>{tipoLabel(it.tipo)}</td><td>{it.tipo === 'chip' ? <span>📶 {it.data?.numeroChip || '—'}{it.data?.empresaChip ? ` · ${it.data.empresaChip}` : ''}</span> : (it.identificador || '—')}</td><td>{fmt(it.fecha_entrega)}</td>
                 <td><span className="badge" style={{ color: ESTADOS[it.estado]?.c }}>{ESTADOS[it.estado]?.l || it.estado}</span></td>
-                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{it.estado === 'entregado' && <>
+                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 11, marginRight: 4 }} onClick={() => verHist(it)}>Historial</button>
+                  {it.estado === 'entregado' && <>
                   <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 11, marginRight: 4 }} onClick={() => cambiarEstado(it, 'devuelto')}>Devuelto</button>
                   <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 11, marginRight: 4 }} onClick={() => cambiarEstado(it, 'perdido')}>Extraviado</button>
                   <button className="btn ghost" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => cambiarEstado(it, 'roto')}>Baja</button>
-                </>}</td>
+                  </>}
+                </td>
               </tr>
+              {histId === it.id && (
+                <tr><td colSpan={6} style={{ background: 'var(--bg2)', padding: '8px 14px' }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>Historial del elemento</div>
+                  {hist.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>Sin movimientos registrados.</div>
+                    : hist.map((h) => (
+                      <div key={h.id} className="row" style={{ justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}>
+                        <span><b>{h.evento}</b>{h.detalle ? ` · ${h.detalle}` : ''}</span>
+                        <span className="muted">{new Date(h.created_at).toLocaleString('es-AR')}{h.created_by ? ` · ${h.created_by}` : ''}</span>
+                      </div>))}
+                </td></tr>
+              )}
+              </Fragment>
             ))}
             {!items.length && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin elementos.</td></tr>}
           </tbody>
