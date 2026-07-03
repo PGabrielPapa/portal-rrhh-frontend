@@ -6,6 +6,8 @@ import Avatar from '../components/Avatar';
 const v = (x: unknown) => (x === null || x === undefined || x === '' ? '—' : String(x));
 const sexoLabel = (x: unknown) => (({ M: 'Masculino', F: 'Femenino', X: 'X / No binario' } as Record<string, string>)[String(x || '')] || (x ? String(x) : '—'));
 const fmtFecha = (s: unknown) => { const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : (s ? String(s) : '—'); };
+const money = (n: number) => '$ ' + (n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+const antigDe = (ing: unknown) => { const d = new Date(String(ing || '').slice(0, 10) + 'T00:00:00'); if (isNaN(d.getTime())) return null; return Math.floor((Date.now() - d.getTime()) / (365.25 * 864e5)); };
 const domicilio = (p: any) => {
   const l1 = [p.dom_calle, p.dom_nro, p.dom_piso ? `Piso ${p.dom_piso}` : '', p.dom_depto ? `Dto ${p.dom_depto}` : ''].filter(Boolean).join(' ');
   const l2 = [p.dom_loc, p.dom_prov, p.dom_cp ? `(${p.dom_cp})` : ''].filter(Boolean).join(' ');
@@ -27,8 +29,13 @@ export default function DatosEquipo() {
   const [err, setErr] = useState('');
   const [abierto, setAbierto] = useState<Set<number>>(new Set());
 
+  const [costos, setCostos] = useState<Record<number, { antiguedad: number; basico: number; remun: number }>>({});
   useEffect(() => {
     api.get<Empleado[]>('/empleados/equipo').then(setItems).catch((e: any) => setErr(e.message));
+    const d = new Date();
+    api.get<{ items: { id: number; antiguedad: number; basico: number; remun: number }[] }>(`/liquidacion/costo-equipo?anio=${d.getFullYear()}&mes=${d.getMonth() + 1}`)
+      .then((r) => { const m: Record<number, any> = {}; for (const it of (r.items || [])) m[it.id] = { antiguedad: it.antiguedad, basico: it.basico, remun: it.remun }; setCostos(m); })
+      .catch(() => {});
   }, []);
 
   const list = useMemo(() => {
@@ -63,6 +70,9 @@ export default function DatosEquipo() {
                   <div style={{ fontWeight: 600 }}>{e.nom}</div>
                   <div className="muted" style={{ fontSize: 12, fontFamily: 'var(--font-mono)' }}>
                     Leg. {e.legNum} · {e.empresa}{puesto ? ` · ${puesto}` : ''}{p.lugar ? ` · ${p.lugar}` : ''}
+                  </div>
+                  <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+                    Ingreso {fmtFecha(e.ingreso)}{antigDe(e.ingreso) != null ? ` · Antig. ${antigDe(e.ingreso)} año(s)` : ''}{costos[e.id] ? ` · Remun. ${money(costos[e.id].basico)}` : ''}
                   </div>
                 </div>
                 <span className="muted" style={{ fontSize: 18 }}>{ab ? '▾' : '▸'}</span>
@@ -100,6 +110,9 @@ export default function DatosEquipo() {
                     <Det label="Empresa" value={e.empresa} />
                     <Det label="Fecha de ingreso" value={fmtFecha(e.ingreso)} />
                     <Det label="Categoría / Tramo" value={[e.cat, e.tramo].filter(Boolean).join(' ')} />
+                    <Det label="Antigüedad" value={antigDe(e.ingreso) != null ? `${antigDe(e.ingreso)} año(s)` : '—'} />
+                    <Det label="Remuneración por escala (cat/tramo)" value={costos[e.id] ? money(costos[e.id].basico) : '—'} />
+                    <Det label="Remuneración con antigüedad" value={costos[e.id] ? money(costos[e.id].remun) : '—'} />
                     <Det label="Convenio / Sindicato" value={[p.cod_convenio, p.cod_sindicato].filter(Boolean).join(' · ')} />
                   </div>
                 </div>
