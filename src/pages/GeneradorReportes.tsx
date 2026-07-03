@@ -64,6 +64,7 @@ export default function GeneradorReportes() {
   const [cErr, setCErr] = useState('');
   const [defs, setDefs] = useState<{ id: number; nombre: string; config: any }[]>([]);
   const [defId, setDefId] = useState<number | ''>('');
+  const [nombreDef, setNombreDef] = useState('');
   const pendingCfg = useRef<any>(null);
   async function loadDefs() { try { setDefs(await api.get<{ id: number; nombre: string; config: any }[]>('/reportes/definiciones')); } catch { /* */ } }
   useEffect(() => { loadDefs(); }, []);
@@ -157,14 +158,13 @@ export default function GeneradorReportes() {
     else { setEmpresa(cfg.empresa || ''); setFiltrarPer(!!cfg.filtrarPer); setCalcs(Array.isArray(cfg.calcs) ? cfg.calcs : []); cargar(); }
   }
   async function guardarDef(comoNuevo: boolean) {
-    const actual = defs.find((d) => d.id === defId);
-    const nombre = window.prompt('Nombre del reporte:', comoNuevo ? '' : (actual?.nombre || ''));
-    if (!nombre || !nombre.trim()) return;
+    const nombre = (nombreDef.trim() || window.prompt('Nombre del reporte:', '') || '').trim();
+    if (!nombre) { setErr('Poné un nombre para el reporte.'); return; }
     try {
-      const body: any = { nombre: nombre.trim(), config: buildConfig() };
+      const body: any = { nombre, config: buildConfig() };
       if (!comoNuevo && defId) body.id = defId;
       const r = await api.post<{ id: number }>('/reportes/definiciones', body);
-      await loadDefs(); setDefId(r.id); setErr('');
+      await loadDefs(); setDefId(r.id); setNombreDef(nombre); setErr('');
     } catch (e: any) { setErr(e.message); }
   }
   async function eliminarDef() {
@@ -207,16 +207,18 @@ export default function GeneradorReportes() {
     <>
       <div className="card" style={{ marginBottom: 12, padding: '10px 12px' }}>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <b style={{ fontSize: 13 }}>Reportes guardados:</b>
-          <select className="input" style={{ maxWidth: 280 }} value={defId} onChange={(e) => { const id = e.target.value ? Number(e.target.value) : ''; setDefId(id); const d = defs.find((x) => x.id === id); if (d) aplicarDef(d.config); }}>
+          <b style={{ fontSize: 13 }}>Reportes:</b>
+          <select className="input" style={{ maxWidth: 240 }} value={defId} onChange={(e) => { const id = e.target.value ? Number(e.target.value) : ''; setDefId(id); const d = defs.find((x) => x.id === id); if (d) { setNombreDef(d.nombre); aplicarDef(d.config); } else { setNombreDef(''); } }}>
             <option value="">— Elegí un reporte guardado —</option>
             {defs.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
           </select>
-          <button className="btn ghost" onClick={() => guardarDef(false)}>💾 Guardar</button>
+          <button className="btn ghost" onClick={() => { setDefId(''); setNombreDef(''); }}>➕ Nuevo</button>
+          <input className="input" style={{ maxWidth: 220 }} placeholder="Nombre del reporte…" value={nombreDef} onChange={(e) => setNombreDef(e.target.value)} />
+          <button className="btn" onClick={() => guardarDef(false)}>💾 Guardar</button>
           <button className="btn ghost" onClick={() => guardarDef(true)}>Guardar como nuevo</button>
           {defId !== '' && <button className="btn ghost" onClick={eliminarDef}>🗑 Eliminar</button>}
         </div>
-        <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>Elegí el dataset, los campos, filtros y columnas calculadas, y guardalo con un nombre para reutilizarlo.</div>
+        <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>Nuevo → elegí el dataset y tildá los campos; abajo podés agregar columnas calculadas con nombre; poné un nombre arriba y «Guardar».</div>
       </div>
       <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {datasets.map((d) => <button key={d.key} className={`btn ${dsKey === d.key ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => { setDefId(''); setDsKey(d.key); }}>{d.label}</button>)}
