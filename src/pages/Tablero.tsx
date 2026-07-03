@@ -62,7 +62,7 @@ export default function Tablero() {
             <h4 style={{ marginTop: 0 }}>Por empresa</h4>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr><th style={{ textAlign: 'left', padding: '4px 8px' }}>Empresa</th><th style={{ textAlign: 'right' }}>Plantel</th><th style={{ textAlign: 'right', padding: '4px 8px' }}>Género</th><th style={{ textAlign: 'right', padding: '4px 8px' }}>Masa bruta</th></tr></thead>
-              <tbody>{data.porEmpresa.map((e) => <tr key={e.empresa}><td style={{ padding: '4px 8px' }}>{e.empresa}</td><td style={{ textAlign: 'right' }}>{e.headcount}</td><td style={{ textAlign: 'right', padding: '4px 8px' }} className="muted">{Object.entries(e.genero || {}).map(([g, n]) => `${g} ${n}`).join(' · ') || '—'}</td><td style={{ textAlign: 'right', padding: '4px 8px', fontFamily: 'monospace' }}>{$(e.masaBruta)}</td></tr>)}</tbody>
+              <tbody>{data.porEmpresa.map((e) => <tr key={e.empresa}><td style={{ padding: '4px 8px' }}>{e.empresa}</td><td style={{ textAlign: 'right' }}>{e.headcount}</td><td style={{ textAlign: 'right', padding: '4px 8px' }} className="muted">{(() => { const ord: Record<string, number> = { M: 0, F: 1 }; return Object.entries(e.genero || {}).sort((a, b) => (ord[a[0]] ?? 2) - (ord[b[0]] ?? 2) || a[0].localeCompare(b[0])).map(([g, x]) => `${g} ${x}`).join(' · ') || '—'; })()}</td><td style={{ textAlign: 'right', padding: '4px 8px', fontFamily: 'monospace' }}>{$(e.masaBruta)}</td></tr>)}</tbody>
             </table>
           </div>
           <div className="card" style={{ flex: '1 1 220px' }}>
