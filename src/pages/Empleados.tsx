@@ -151,7 +151,7 @@ export default function Empleados() {
         <div className="card" style={{ padding: 0, overflow: 'auto' }}>
           <table>
             <thead><tr>
-              <th>Legajo</th><th>Nombre</th><th>Empresa</th><th>DNI</th><th>Cat.</th><th>Estado</th>{canEdit && <th></th>}
+              <th>Legajo</th><th>Nombre</th><th>Empresa</th><th>DNI</th><th>Cat.</th><th>Tramo</th><th>Estado</th>{canEdit && <th></th>}
             </tr></thead>
             <tbody>
               {items.map((e) => (
@@ -161,6 +161,7 @@ export default function Empleados() {
                   <td>{e.empresa}</td>
                   <td>{e.dni}</td>
                   <td>{e.cat || '—'}</td>
+                  <td>{e.tramo || '—'}</td>
                   <td><span className="badge" style={{ color: e.activo ? 'var(--green)' : 'var(--t3)' }}>{e.activo ? 'Activo' : 'Baja'}</span></td>
                   {canEdit && <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => setEditEmp(e)}>Editar</button>
@@ -170,7 +171,7 @@ export default function Empleados() {
                   </td>}
                 </tr>
               ))}
-              {!items.length && <tr><td colSpan={canEdit ? 7 : 6} className="muted" style={{ textAlign: 'center', padding: 24 }}>{loading ? 'Cargando…' : 'Sin resultados'}</td></tr>}
+              {!items.length && <tr><td colSpan={canEdit ? 8 : 7} className="muted" style={{ textAlign: 'center', padding: 24 }}>{loading ? 'Cargando…' : 'Sin resultados'}</td></tr>}
             </tbody>
           </table>
         </div>
