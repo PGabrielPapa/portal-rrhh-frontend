@@ -6,7 +6,7 @@ interface Dash {
   headcount: number; totalEmpleados: number; masaBruta: number; costoLaboral: number; contribPct: number;
   sueldoProm: number; antiguedadProm: number; altas: number; bajas: number;
   ausentismo: { dias: number; casos: number };
-  porEmpresa: { empresa: string; headcount: number; masaBruta: number }[];
+  porEmpresa: { empresa: string; headcount: number; masaBruta: number; genero: Record<string, number> }[];
   genero: Record<string, number>;
   evolucion: { mes: number; neto: number }[];
   cambiosDatos?: { nom: string; legNum: string; etiqueta: string; anterior?: string; nuevo?: string; fecha: string }[];
@@ -61,8 +61,8 @@ export default function Tablero() {
           <div className="card" style={{ flex: '1 1 320px' }}>
             <h4 style={{ marginTop: 0 }}>Por empresa</h4>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead><tr><th style={{ textAlign: 'left', padding: '4px 8px' }}>Empresa</th><th style={{ textAlign: 'right' }}>Plantel</th><th style={{ textAlign: 'right', padding: '4px 8px' }}>Masa bruta</th></tr></thead>
-              <tbody>{data.porEmpresa.map((e) => <tr key={e.empresa}><td style={{ padding: '4px 8px' }}>{e.empresa}</td><td style={{ textAlign: 'right' }}>{e.headcount}</td><td style={{ textAlign: 'right', padding: '4px 8px', fontFamily: 'monospace' }}>{$(e.masaBruta)}</td></tr>)}</tbody>
+              <thead><tr><th style={{ textAlign: 'left', padding: '4px 8px' }}>Empresa</th><th style={{ textAlign: 'right' }}>Plantel</th><th style={{ textAlign: 'right', padding: '4px 8px' }}>Género</th><th style={{ textAlign: 'right', padding: '4px 8px' }}>Masa bruta</th></tr></thead>
+              <tbody>{data.porEmpresa.map((e) => <tr key={e.empresa}><td style={{ padding: '4px 8px' }}>{e.empresa}</td><td style={{ textAlign: 'right' }}>{e.headcount}</td><td style={{ textAlign: 'right', padding: '4px 8px' }} className="muted">{Object.entries(e.genero || {}).map(([g, n]) => `${g} ${n}`).join(' · ') || '—'}</td><td style={{ textAlign: 'right', padding: '4px 8px', fontFamily: 'monospace' }}>{$(e.masaBruta)}</td></tr>)}</tbody>
             </table>
           </div>
           <div className="card" style={{ flex: '1 1 220px' }}>
