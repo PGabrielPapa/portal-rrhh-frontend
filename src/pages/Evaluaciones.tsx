@@ -7,7 +7,6 @@ import { EVAL_ITEMS, EVAL_LABELS } from '../lib/evalItems';
 
 interface V { id: number; periodo: string; tipo?: string; calificacion?: string; comentarios?: string; promedio?: number; datos?: any; nom?: string; leg_num?: string; empresa?: string; created_by?: string; }
 const TIPOS = ['Anual', 'Período de prueba', 'Semestral'];
-const CALIF = ['Excelente', 'Muy bueno', 'Bueno', 'Regular', 'Insuficiente'];
 
 export default function Evaluaciones() {
   const { key } = useParams();
@@ -30,6 +29,7 @@ export default function Evaluaciones() {
   const [scores, setScores] = useState<Record<string, Record<number, number>>>({});
   const setScore = (cat: string, i: number, v: number) => setScores((p) => ({ ...p, [cat]: { ...(p[cat] || {}), [i]: v } }));
   const promedio = (() => { const a: number[] = []; Object.values(scores).forEach((c) => Object.values(c).forEach((v) => v > 0 && a.push(v))); return a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 100) / 100 : 0; })();
+  const calificacionAuto = promedio > 0 ? (EVAL_LABELS[Math.round(promedio)] || '') : '';
   const puedeRegistrar = esRRHH || key === 'evaluaciones-equipo';  // gerente y RR.HH. registran
 
   async function load() {
@@ -55,7 +55,7 @@ export default function Evaluaciones() {
 
   async function registrar(e: React.FormEvent) {
     e.preventDefault(); if (!emp) return;
-    try { await api.post('/evaluaciones', { empleadoId: emp.id, periodo: f.periodo, tipo: f.tipo, calificacion: f.calificacion, comentarios: f.comentarios, datos: { items: scores } }); setMsg({ t: 'Evaluación registrada', ok: true }); setEmp(null); setScores({}); load(); if (esGerente) cargarPend(); }
+    try { await api.post('/evaluaciones', { empleadoId: emp.id, periodo: f.periodo, tipo: f.tipo, calificacion: calificacionAuto, comentarios: f.comentarios, datos: { items: scores } }); setMsg({ t: 'Evaluación registrada', ok: true }); setEmp(null); setScores({}); load(); if (esGerente) cargarPend(); }
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
@@ -126,7 +126,7 @@ export default function Evaluaciones() {
           <div className="grid2" style={{ marginBottom: 10 }}>
             <div className="field"><label>Período *</label><input className="input" value={f.periodo || ''} onChange={set('periodo')} /></div>
             <div className="field"><label>Tipo</label><select className="input" value={f.tipo} onChange={set('tipo')}>{TIPOS.map((t) => <option key={t}>{t}</option>)}</select></div>
-            <div className="field"><label>Calificación</label><select className="input" value={f.calificacion} onChange={set('calificacion')}>{CALIF.map((t) => <option key={t}>{t}</option>)}</select></div>
+            <div className="field"><label>Calificación (automática)</label><input className="input" readOnly value={promedio > 0 ? `${calificacionAuto} · ${promedio.toFixed(2)}/5` : 'Se calcula al completar la matriz'} /></div>
           </div>
           <div style={{ marginBottom: 12 }}>
             <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Matriz de competencias (1 a 5) {promedio > 0 ? `· promedio ${promedio.toFixed(2)} (${EVAL_LABELS[Math.round(promedio)] || ''})` : ''}</div>
@@ -148,7 +148,7 @@ export default function Evaluaciones() {
           </div>
           <div className="field" style={{ marginBottom: 12 }}><label>Comentarios</label><textarea className="input" rows={2} value={f.comentarios || ''} onChange={set('comentarios')} /></div>
           {msg && <div className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 8 }}>{msg.ok ? '✓ ' : '⚠ '}{msg.t}</div>}
-          <button className="btn" disabled={!emp || !f.periodo}>Registrar</button>
+          <button className="btn" disabled={!emp || !f.periodo || promedio === 0}>Registrar</button>
         </form>
       )}
       {!puedeRegistrar && msg && !msg.ok && <div className="err" style={{ marginBottom: 12 }}>⚠ {msg.t}</div>}
