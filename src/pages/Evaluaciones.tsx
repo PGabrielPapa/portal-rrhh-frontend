@@ -5,7 +5,7 @@ import type { Empleado } from '../lib/types';
 import EmpleadoPicker from '../components/EmpleadoPicker';
 import { EVAL_ITEMS, EVAL_LABELS } from '../lib/evalItems';
 
-interface V { id: number; periodo: string; tipo?: string; calificacion?: string; comentarios?: string; promedio?: number; datos?: any; nom?: string; leg_num?: string; empresa?: string; created_by?: string; validador?: string; area_org?: string; }
+interface V { id: number; periodo: string; tipo?: string; calificacion?: string; comentarios?: string; promedio?: number; datos?: any; nom?: string; leg_num?: string; empresa?: string; created_by?: string; validador?: string; area_org?: string; gerencia?: string; }
 const TIPOS = ['Anual', 'Período de prueba', 'Semestral'];
 
 export default function Evaluaciones() {
@@ -159,7 +159,7 @@ export default function Evaluaciones() {
         const anios = [...new Set(items.map((v) => yearOf(v.periodo)).filter(Boolean))].sort().reverse();
         const tipos = [...new Set(items.map((v) => v.tipo).filter(Boolean) as string[])].sort();
         const califs = [...new Set(items.map((v) => v.calificacion).filter(Boolean) as string[])].sort();
-        const gcias = [...new Set(items.map((v) => v.validador).filter(Boolean) as string[])].sort();
+        const gcias = [...new Set(items.map((v) => v.gerencia).filter((x) => x && x !== '—') as string[])].sort();
         return (
         <div className="row" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <input className="input" style={{ maxWidth: 220 }} placeholder="Buscar empleado o legajo…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -178,7 +178,7 @@ export default function Evaluaciones() {
         <table>
           <thead><tr>{!modoMias && <th>Empleado</th>}{esRRHH && <th>Empresa</th>}<th>Período</th><th>Tipo</th><th>Calificación</th><th>Promedio</th><th>Comentarios</th></tr></thead>
           <tbody>
-            {items.filter((v) => (!fAnio || (String(v.periodo || '').match(/\d{4}/) || [''])[0] === fAnio) && (!fTipo || v.tipo === fTipo) && (!fCalif || v.calificacion === fCalif) && (!fGcia || v.validador === fGcia)).map((v) => (
+            {items.filter((v) => (!fAnio || (String(v.periodo || '').match(/\d{4}/) || [''])[0] === fAnio) && (!fTipo || v.tipo === fTipo) && (!fCalif || v.calificacion === fCalif) && (!fGcia || v.gerencia === fGcia)).map((v) => (
               <tr key={v.id}>{!modoMias && <td>{v.nom} <span className="muted">({v.leg_num})</span></td>}{esRRHH && <td>{v.empresa}</td>}<td>{v.periodo}</td><td>{v.tipo || '—'}</td><td>{v.calificacion || '—'}</td><td style={{ fontFamily: 'monospace' }}>{v.promedio != null ? Number(v.promedio).toFixed(2) : '—'}</td><td>{v.comentarios || '—'}</td></tr>
             ))}
             {!items.length && <tr><td colSpan={modoMias ? 4 : (esRRHH ? 6 : 5)} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin evaluaciones.</td></tr>}
