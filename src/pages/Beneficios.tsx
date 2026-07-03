@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import EmpleadoPicker from '../components/EmpleadoPicker';
@@ -18,6 +18,9 @@ export default function Beneficios() {
   const [f, setF] = useState<Record<string, string>>({ tipo: 'prepaga', modalidad: 'fijo' });
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [editB, setEditB] = useState<B | null>(null);
+  const [histId, setHistId] = useState<number | null>(null);
+  const [hist, setHist] = useState<any[]>([]);
+  async function verHist(b: B) { if (histId === b.id) { setHistId(null); return; } try { setHist(await api.get<any[]>(`/beneficios/${b.id}/historial`)); setHistId(b.id); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
 
   async function load() { try { const p = new URLSearchParams(); if (q) p.set('q', q); if (empresa) p.set('empresa', empresa); setItems(await api.get<B[]>(`/beneficios?${p}`)); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   useEffect(() => { api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
@@ -70,15 +73,29 @@ export default function Beneficios() {
           <thead><tr><th>Empleado</th><th>Beneficio</th><th>Modalidad</th><th>Monto</th><th>Proveedor</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             {items.map((b) => (
-              <tr key={b.id}>
+              <Fragment key={b.id}>
+              <tr>
                 <td>{b.nom} <span className="muted">({b.leg_num})</span></td><td>{tipoLabel(b.tipo)}</td><td>{modalLabel(b.modalidad)}</td><td>{money(b.monto)}</td><td>{b.proveedor || '—'}</td>
                 <td className="muted">{fmt(b.vigencia_desde)}{b.vigencia_hasta ? ` → ${fmt(b.vigencia_hasta)}` : ''}</td>
                 <td><span className="badge" style={{ color: b.activo ? 'var(--green)' : 'var(--t3)' }}>{b.activo ? 'Activo' : 'Baja'}</span></td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => verHist(b)}>Historial</button>
                   <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => editar(b)}>Editar</button>
                   <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => baja(b)}>{b.activo ? 'Dar de baja' : 'Reactivar'}</button>
                 </td>
               </tr>
+              {histId === b.id && (
+                <tr><td colSpan={8} style={{ background: 'var(--bg2)', padding: '8px 14px' }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>Historial del beneficio</div>
+                  {hist.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>Sin movimientos registrados.</div>
+                    : hist.map((h) => (
+                      <div key={h.id} className="row" style={{ justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}>
+                        <span><b>{h.evento}</b>{h.detalle ? ` · ${h.detalle}` : ''}</span>
+                        <span className="muted">{new Date(h.created_at).toLocaleString('es-AR')}{h.created_by ? ` · ${h.created_by}` : ''}</span>
+                      </div>))}
+                </td></tr>
+              )}
+              </Fragment>
             ))}
             {!items.length && <tr><td colSpan={8} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin beneficios.</td></tr>}
           </tbody>
