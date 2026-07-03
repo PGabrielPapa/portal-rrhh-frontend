@@ -12,6 +12,7 @@ export default function DocumentosFirmados() {
   const [items, setItems] = useState<Doc[]>([]);
   const [empresa, setEmpresa] = useState('');
   const [tipo, setTipo] = useState('');
+  const [estado, setEstado] = useState('');
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [err, setErr] = useState('');
 
@@ -20,6 +21,8 @@ export default function DocumentosFirmados() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [empresa, tipo]);
 
   const colorTipo = (t: string) => t === 'Sanción' ? 'var(--red)' : t === 'Certificado de trabajo' ? 'var(--accent2)' : 'var(--green)';
+  const estados = [...new Set(items.map((d) => d.estado).filter(Boolean) as string[])].sort();
+  const visibles = estado ? items.filter((d) => d.estado === estado) : items;
 
   return (
     <>
@@ -27,13 +30,14 @@ export default function DocumentosFirmados() {
       <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div className="field"><label>Tipo</label><select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>{TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
         <div className="field"><label>Empresa</label><select className="input" value={empresa} onChange={(e) => setEmpresa(e.target.value)}><option value="">Todas</option>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
+        <div className="field"><label>Estado</label><select className="input" value={estado} onChange={(e) => setEstado(e.target.value)}><option value="">Todos</option>{estados.map((s2) => <option key={s2} value={s2}>{s2}</option>)}</select></div>
       </div>
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
           <thead><tr><th>Tipo</th><th>Empleado</th><th>Empresa</th><th>Detalle</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
           <tbody>
-            {items.map((d, i) => (
+            {visibles.map((d, i) => (
               <tr key={i}>
                 <td><span className="badge" style={{ color: colorTipo(d.tipo) }}>{d.tipo}</span></td>
                 <td>{d.empleado} <span className="muted">({d.legNum})</span></td>
@@ -41,7 +45,7 @@ export default function DocumentosFirmados() {
                 <td style={{ textAlign: 'right' }}><button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => nav(`/m/${d.modulo}`)}>Abrir módulo →</button></td>
               </tr>
             ))}
-            {!items.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 20 }}>No hay documentos para esos filtros.</td></tr>}
+            {!visibles.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 20 }}>No hay documentos para esos filtros.</td></tr>}
           </tbody>
         </table>
       </div>
