@@ -17,6 +17,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'aprobaciones': { ico: '✅', col: '34,197,94', desc: 'Recomendá adelantos de tu equipo (RR.HH. resuelve)' },
   'licencias-equipo': { ico: '🏖', col: '34,197,94', desc: 'Licencias y vacaciones de tu equipo' },
   'organigrama': { ico: '🗂', col: '61,127,255', desc: 'Estructura y personas a cargo' },
+  'puestos': { ico: '🧩', col: '61,127,255', desc: 'Estructura por puesto: quién reporta a quién y ocupantes de cada puesto' },
   'costo-equipo': { ico: '💰', col: '34,197,94', desc: 'Costo laboral de tus empleados a cargo' },
   'datos-equipo': { ico: '🪪', col: '61,127,255', desc: 'Datos personales y de contacto de tu equipo' },
   // Comité de Higiene y Seguridad

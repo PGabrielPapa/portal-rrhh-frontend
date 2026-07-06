@@ -66,6 +66,7 @@ import AdminUsuarios from '../pages/AdminUsuarios';
 import AdminAuditoria from '../pages/AdminAuditoria';
 import AdminEmpresas from '../pages/AdminEmpresas';
 import CentrosOperaciones from '../pages/CentrosOperaciones';
+import Puestos from '../pages/Puestos';
 import Elementos from '../pages/Elementos';
 import Beneficios from '../pages/Beneficios';
 import CambiosDomicilio from '../pages/CambiosDomicilio';
@@ -175,6 +176,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'auditoria': AdminAuditoria,
   'admin-empresas': AdminEmpresas,
   'centros-operaciones': CentrosOperaciones,
+  'puestos': Puestos,
   'elementos-trabajo': Elementos,
   'beneficios': Beneficios,
   'cambios-domicilio': CambiosDomicilio,

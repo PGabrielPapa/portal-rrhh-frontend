@@ -285,6 +285,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
       contacto_nombre: e.contacto_nombre || '', contacto_tel: e.contacto_tel || '', contacto_vinculo: e.contacto_vinculo || '',
       email: e.email || '', ingreso: e.ingreso || '', fecha_nac: e.fecha_nac || '', sexo: e.sexo || '', estado_civil: e.estado_civil || '', nacionalidad: e.nacionalidad || '',
       lugar: e.lugar || '', tarea: e.tarea || '', cat: e.cat || '', tramo: e.tramo || '', desc_categoria: e.desc_categoria || '', condicion: e.condicion || '',
+      puestoId: e.puestoId != null ? String(e.puestoId) : '',
       cod_convenio: e.cod_convenio || '', cod_sindicato: e.cod_sindicato || '', categoria_convenio: e.categoria_convenio || '',
       basico: e.basico ?? '', antiguedad_monto: e.antiguedad_monto ?? '', complemento: e.complemento ?? '', norem: e.norem ?? '', sueldo: e.sueldo ?? '',
       bruto: e.bruto != null ? String(e.bruto) : '', neto: e.neto != null ? String(e.neto) : '',
@@ -300,7 +301,9 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [lugHist, setLugHist] = useState<any[]>([]);
   const [cambHist, setCambHist] = useState<any[]>([]);
   const [centrosCO, setCentrosCO] = useState<{ id: number; codigo: string; denominacion: string }[]>([]);
+  const [puestos, setPuestos] = useState<{ id: number; nombre: string; area?: string }[]>([]);
   useEffect(() => { api.get<{ id: number; codigo: string; denominacion: string }[]>('/empleados/centros').then(setCentrosCO).catch(() => {}); }, []);
+  useEffect(() => { api.get<{ id: number; nombre: string; area?: string }[]>('/puestos').then(setPuestos).catch(() => {}); }, []);
   useEffect(() => { if (centrosCO.length && !f.centroCodigo && f.lugar) { const c = centrosCO.find((x) => x.denominacion === f.lugar); if (c) setF((p) => ({ ...p, centroCodigo: c.codigo, centroId: String(c.id) })); } /* eslint-disable-next-line */ }, [centrosCO]);
   useEffect(() => { const id = (emp as any)?.id; if (id) { api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); api.get<any[]>(`/empleados/${id}/cambios`).then(setCambHist).catch(() => {}); } }, [emp]);
   const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
@@ -362,6 +365,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     setBusy(true);
     try {
       const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0, esAdmin };
+      body.puestoId = f.puestoId ? Number(f.puestoId) : null;
       body.nom = [f.apellido, f.nombres].filter(Boolean).join(', ').toUpperCase().trim();
       delete body.cod_os; delete body.desc_os;
       if (esNueva) {
@@ -455,6 +459,12 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
             {f.lugar && !f.centroCodigo && <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Valor actual sin centro asociado: {f.lugar}</div>}
           </div>
           <F k="tarea" label="Tarea / Puesto" f={f} set={set} />
+          <div className="field"><label>Puesto (organigrama)</label>
+            <select className="input" value={f.puestoId || ''} onChange={set('puestoId')}>
+              <option value="">— Sin puesto asignado —</option>
+              {puestos.map((p) => <option key={p.id} value={p.id}>{p.nombre}{p.area ? ` · ${p.area}` : ''}</option>)}
+            </select>
+          </div>
           <Sel k="cat" label="Categoría (escala unificada)" opts={catOpts} f={f} set={set} />
           <Sel k="tramo" label="Tramo (escala unificada)" opts={tramoOpts} f={f} set={set} />
           <F k="desc_categoria" label="Descripción de categoría" f={f} set={set} />
