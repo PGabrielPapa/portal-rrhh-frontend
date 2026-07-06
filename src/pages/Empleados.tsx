@@ -469,7 +469,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <div className="field"><label>Jornada (art. 92 ter LCT)</label>
             <select className="input" value={f.jornadaParcial || ''} onChange={set('jornadaParcial')}><option value="">Jornada completa</option><option value="si">Tiempo parcial</option></select>
           </div>
-          {f.jornadaParcial === 'si' && <div className="field"><label>Remuneración jornada completa (para O. Social)</label><input className="input" type="number" value={f.remFullTime || ''} onChange={set('remFullTime')} placeholder="Bruto full-time de la categoría" /></div>}
+          {f.jornadaParcial === 'si' && <div className="field"><label>Remuneración jornada completa (para O. Social)</label><input className="input" type="number" value={f.remFullTime || ''} onChange={set('remFullTime')} placeholder="Opcional: si se deja vacío, se usa el básico de convenio" /></div>}
           <Sel k="cat" label="Categoría (escala unificada)" opts={catOpts} f={f} set={set} />
           <Sel k="tramo" label="Tramo (escala unificada)" opts={tramoOpts} f={f} set={set} />
           <F k="desc_categoria" label="Descripción de categoría" f={f} set={set} />
