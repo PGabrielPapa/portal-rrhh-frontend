@@ -9,6 +9,22 @@ export function setToken(t: string | null) {
   else localStorage.removeItem('prh_token');
 }
 
+// Manejo central de sesión expirada. La UI (AuthProvider) registra un callback
+// para limpiar el usuario y redirigir al login cuando un request autenticado
+// devuelve 401 (token vencido/ inválido).
+let onSessionExpired: (() => void) | null = null;
+export function setOnSessionExpired(fn: (() => void) | null) { onSessionExpired = fn; }
+
+function handle401(path: string) {
+  const hadToken = !!getToken();
+  setToken(null);
+  if (path.startsWith('/auth/')) return; // login / verificación inicial: no notificar
+  if (hadToken) {
+    try { sessionStorage.setItem('prh_expired', '1'); } catch { /* noop */ }
+    if (onSessionExpired) onSessionExpired();
+  }
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = getToken();
@@ -20,7 +36,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401) setToken(null);
+    if (res.status === 401) handle401(path);
     throw new Error((data as any).error || `Error ${res.status}`);
   }
   return data as T;
@@ -35,7 +51,7 @@ async function requestForm<T>(method: string, path: string, form: FormData): Pro
   const res = await fetch(`${BASE}${path}`, { method, headers, body: form });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401) setToken(null);
+    if (res.status === 401) handle401(path);
     throw new Error((data as any).error || `Error ${res.status}`);
   }
   return data as T;
@@ -48,7 +64,7 @@ export async function fetchBlob(path: string): Promise<Blob> {
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${BASE}${path}`, { headers });
   if (!res.ok) {
-    if (res.status === 401) setToken(null);
+    if (res.status === 401) handle401(path);
     throw new Error(`Error ${res.status}`);
   }
   return res.blob();

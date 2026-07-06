@@ -11,6 +11,7 @@ export default function Login() {
   const [need2fa, setNeed2fa] = useState(false);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [expiro] = useState(() => { try { const v = sessionStorage.getItem('prh_expired'); if (v) { sessionStorage.removeItem('prh_expired'); return true; } } catch { /* noop */ } return false; });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,6 +27,7 @@ export default function Login() {
       <form className="card" style={{ width: 360 }} onSubmit={submit}>
         <h2 style={{ marginTop: 0 }}>Portal RR.HH.</h2>
         <p className="muted" style={{ marginTop: -8 }}>Grupo LEITEN</p>
+        {expiro && <div className="err" style={{ marginBottom: 12 }}>Tu sesión expiró. Ingresá de nuevo.</div>}
         <div className="field" style={{ marginBottom: 12 }}>
           <label>DNI</label>
           <input className="input" value={dni} onChange={(e) => setDni(e.target.value)} autoFocus />

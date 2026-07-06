@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { api, setToken, getToken } from './api';
+import { api, setToken, getToken, setOnSessionExpired } from './api';
 import type { AuthUser, LoginResult } from './types';
 
 interface AuthCtx {
@@ -23,6 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     finally { setLoading(false); }
   }
   useEffect(() => { refresh(); }, []);
+  // Sesión expirada (401 en un request autenticado): limpiar usuario → redirige al login.
+  useEffect(() => { setOnSessionExpired(() => setUser(null)); return () => setOnSessionExpired(null); }, []);
 
   async function login(dni: string, password: string, token?: string) {
     const r = await api.post<LoginResult>('/auth/login', { dni, password, token });

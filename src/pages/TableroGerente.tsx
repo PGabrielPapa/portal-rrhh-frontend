@@ -88,7 +88,7 @@ export default function TableroGerente() {
   }
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [anio, mes]);
 
-  const maxEvo = data ? Math.max(1, ...data.evolucion.map((e) => e.neto)) : 1;
+  const maxEvo = data?.evolucion?.length ? Math.max(1, ...data.evolucion.map((e) => e.neto)) : 1;
 
   return (
     <>
