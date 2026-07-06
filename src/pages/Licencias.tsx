@@ -188,7 +188,7 @@ export default function Licencias() {
         const team = filtroEmp ? items.filter((l) => l.leg_num === filtroEmp) : items;
         const paneles: [string, string][] = [['pendiente', 'Pendientes'], ['aprobada', 'Aprobadas'], ['rechazada', 'Rechazadas']];
         return paneles.map(([k, tit]) => {
-          const rows = team.filter((l) => l.estado === k);
+          const rows = team.filter((l) => l.estado === k).sort((a, b) => String(b.desde || '').localeCompare(String(a.desde || '')) || String(b.created_at || '').localeCompare(String(a.created_at || '')));
           return (
             <div key={k} className="card" style={{ padding: 0, overflow: 'auto', marginBottom: 14 }}>
               <div style={{ padding: '8px 12px', fontWeight: 700, borderBottom: '1px solid var(--border)' }}>{tit} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({rows.length})</span></div>
