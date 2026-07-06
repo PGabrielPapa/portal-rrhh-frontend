@@ -1,0 +1,21 @@
+# Frontend Portal RR.HH. — compose standalone (para levantar SOLO el front).
+# Construye la SPA (Vite) y la sirve con nginx en el puerto 8080.
+# El /api se proxya al backend que debe estar corriendo en el host en :4000
+# (el docker-compose.yml del backend expone 4000).
+#
+# Uso:  docker compose up -d --build     (desde ESTA carpeta)
+# Abrir: http://localhost:8080
+#
+# Nota: para el servidor de producción se usa el docker-compose.prod.yml del
+# backend (servicio "web"), que construye este mismo frontend y lo publica con
+# Caddy/HTTPS. Este archivo es para desarrollo local por carpeta.
+services:
+  web:
+    build: .
+    container_name: prh_web
+    restart: unless-stopped
+    ports: ["8080:80"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./nginx.standalone.conf:/etc/nginx/conf.d/default.conf:ro

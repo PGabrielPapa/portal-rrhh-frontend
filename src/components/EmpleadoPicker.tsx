@@ -8,7 +8,7 @@ export default function EmpleadoPicker({ onSelect, value }: { onSelect: (e: Empl
   async function buscar(v: string) {
     setQ(v); onSelect(null);
     if (v.trim().length < 2) { setMatches([]); return; }
-    try { setMatches((await api.get<Empleado[]>(`/empleados?q=${encodeURIComponent(v)}`)).slice(0, 8)); } catch { /* noop */ }
+    try { setMatches((await api.get<Empleado[]>(`/empleados/buscar?q=${encodeURIComponent(v)}`)).slice(0, 8)); } catch { /* noop */ }
   }
   return (
     <div style={{ position: 'relative' }}>
