@@ -72,6 +72,7 @@ export default function Sanciones() {
     } catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   async function resolver(s: S, estado: string) { try { await api.patch(`/sanciones/${s.id}`, { estado }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
+  async function borrar(s: S) { if (!window.confirm(`¿Borrar la sanción de ${s.nom} (${s.tipo} ${fmt(s.fecha)})?`)) return; try { await api.del(`/sanciones/${s.id}`); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   async function comunicar(s: S) {
     try { await api.post(`/sanciones/${s.id}/notificar`, { fecha: notif[s.id] || hoy() }); setMsg({ t: `Sanción comunicada electrónicamente a ${s.nom}`, ok: true }); load(); }
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
@@ -124,6 +125,31 @@ export default function Sanciones() {
         </div>
       )}
 
+      {esGerente ? (() => {
+        const paneles: [string, string][] = [['solicitada', 'Solicitadas (pendientes de RR.HH.)'], ['aplicada', 'Aplicadas'], ['rechazada', 'Rechazadas']];
+        return paneles.map(([k, tit]) => {
+          const rows = items.filter((s) => (s.estado || 'solicitada') === k).sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+          return (
+            <div key={k} className="card" style={{ padding: 0, overflow: 'auto', marginBottom: 14 }}>
+              <div style={{ padding: '8px 12px', fontWeight: 700, borderBottom: '1px solid var(--border)' }}>{tit} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({rows.length})</span></div>
+              <table>
+                <thead><tr><th>Empleado</th><th>Tipo</th><th>Falta</th><th>Hecho</th><th>Estado</th><th>Comprobante</th><th></th></tr></thead>
+                <tbody>
+                  {rows.map((s) => (
+                    <tr key={s.id}>
+                      <td>{s.nom} <span className="muted">({s.leg_num})</span></td>
+                      <td>{s.tipo}</td><td>{s.falta || '—'}</td><td>{fmt(s.fecha)}</td>
+                      <td><span className="badge" style={{ color: colorEstado(s.estado) }}>{s.estado || 'solicitada'}</span></td>
+                      <td>{s.tiene_notif ? <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => descargarNotif(s)}>⬇ Notificación</button> : <span className="muted">—</span>}</td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => borrar(s)}>🗑 Borrar</button></td>
+                    </tr>))}
+                  {!rows.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 14 }}>Sin {tit.toLowerCase()}.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          );
+        });
+      })() : (<>
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
           <thead><tr>{!modoMias && <th>Empleado</th>}{esRRHH && <th>Empresa</th>}<th>Tipo</th><th>Falta</th><th>Hecho</th><th>Estado</th>{!esRRHH && <th>Comprobante</th>}{esRRHH && <th>Notificación</th>}{esRRHH && <th>Cumplimiento</th>}{esRRHH && <th></th>}</tr></thead>
@@ -158,6 +184,7 @@ export default function Sanciones() {
           </tbody>
         </table>
       </div>
+      </>)}
     </>
   );
 }
