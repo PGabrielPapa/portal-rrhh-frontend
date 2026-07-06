@@ -14,11 +14,13 @@ export default function Puestos() {
   const [f, setF] = useState<Form>(vacio);
   const [editId, setEditId] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const [sinAsignar, setSinAsignar] = useState<{ id: number; nom: string; legNum: string; empresa: string }[]>([]);
 
   async function load() {
     try { setItems(await api.get<Puesto[]>('/puestos')); } catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => { api.get<{ id: number; nom: string; legNum: string; empresa: string }[]>('/puestos/sin-asignar').then(setSinAsignar).catch(() => {}); }, []);
 
   const set = (k: keyof Form) => (e: any) => setF({ ...f, [k]: k === 'goToHr' ? e.target.checked : e.target.value });
   function cancelar() { setEditId(null); setF(vacio); }
@@ -56,6 +58,17 @@ export default function Puestos() {
         La estructura del organigrama se define por <b>puesto</b>: cada puesto reporta a otro puesto, y los empleados se asignan a un puesto desde su legajo (ABM Empleados). Un mismo puesto puede tener varios ocupantes. Cuando cambia la persona a cargo, solo reasignás el puesto y toda la cadena de dependencia se mantiene. Para crear un mando medio, agregá el puesto intermedio y hacé que los subordinados reporten a él.
       </p>
 
+      {sinAsignar.length > 0 && (
+        <div className="card" style={{ marginBottom: 16, borderLeft: '3px solid var(--yellow)' }}>
+          <strong>⚠ {sinAsignar.length} empleado(s) activo(s) sin puesto asignado</strong>
+          <div className="muted" style={{ fontSize: 12, margin: '4px 0 8px' }}>Mientras no tengan puesto, sus aprobaciones y las de su equipo se resuelven por el organigrama por nombre (fallback). Asignales un puesto desde RR.HH. → ABM Empleados.</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {sinAsignar.map((e) => (
+              <span key={e.id} className="badge" style={{ fontSize: 12 }}>{e.nom} <span className="muted">({e.legNum} · {e.empresa})</span></span>
+            ))}
+          </div>
+        </div>
+      )}
       <form className="card" style={{ marginBottom: 18 }} onSubmit={guardar}>
         <h3 style={{ marginTop: 0 }}>{editId ? 'Editar puesto' : 'Nuevo puesto'}</h3>
         <div className="grid2" style={{ marginBottom: 10 }}>
