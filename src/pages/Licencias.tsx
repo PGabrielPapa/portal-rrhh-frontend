@@ -73,6 +73,7 @@ export default function Licencias() {
     catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }
   async function resolver(l: Lic, est: string) { try { await api.patch(`/licencias/${l.id}`, { estado: est }); load(); } catch (e: any) { setErr(e.message); } }
+  async function borrar(l: Lic) { if (!window.confirm(`¿Borrar la licencia de ${l.nom} (${l.tipo} ${fmt(l.desde)})?`)) return; try { await api.del(`/licencias/${l.id}`); load(); } catch (e: any) { setErr(e.message); } }
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
   const diasSol = (f.desde && f.hasta && f.hasta >= f.desde) ? Math.round((new Date(f.hasta + 'T12:00:00').getTime() - new Date(f.desde + 'T12:00:00').getTime()) / 86400000) + 1 : 0;
   const esVac = String(f.tipo || '').toLowerCase() === 'vacaciones';
@@ -172,16 +173,49 @@ export default function Licencias() {
               {empresas.map((em) => <option key={em} value={em}>{em}</option>)}
             </select>
           )}
+          {!esEquipo && (
           <select className="input" style={{ maxWidth: 180 }} value={estado} onChange={(e) => setEstado(e.target.value)}>
             <option value="">Todos los estados</option>
             <option value="pendiente">Pendientes</option>
             <option value="aprobada">Aprobadas</option>
             <option value="rechazada">Rechazadas</option>
-          </select>
+          </select>)}
         </div>
       )}
       {!modoMias && err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
 
+      {esEquipo ? (() => {
+        const team = filtroEmp ? items.filter((l) => l.leg_num === filtroEmp) : items;
+        const paneles: [string, string][] = [['pendiente', 'Pendientes'], ['aprobada', 'Aprobadas'], ['rechazada', 'Rechazadas']];
+        return paneles.map(([k, tit]) => {
+          const rows = team.filter((l) => l.estado === k);
+          return (
+            <div key={k} className="card" style={{ padding: 0, overflow: 'auto', marginBottom: 14 }}>
+              <div style={{ padding: '8px 12px', fontWeight: 700, borderBottom: '1px solid var(--border)' }}>{tit} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({rows.length})</span></div>
+              <table>
+                <thead><tr><th>Empleado</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Comprobante</th><th></th></tr></thead>
+                <tbody>
+                  {rows.map((l) => (
+                    <tr key={l.id}>
+                      <td>{l.nom} <span className="muted">({l.leg_num})</span></td>
+                      <td>{l.tipo}</td><td>{fmt(l.desde)}</td><td>{fmt(l.hasta)}</td><td>{l.dias}</td>
+                      <td>{l.tiene_comprobante ? <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => verComprobante(l.id)}>📄 Ver</button> : <span className="muted">—</span>}</td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {l.estado === 'pendiente' && <>
+                          <button className="btn" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => resolver(l, 'aprobada')}>Aprobar</button>
+                          <button className="btn danger" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => resolver(l, 'rechazada')}>Rechazar</button>
+                        </>}
+                        {l.estado !== 'pendiente' && l.resuelto_por && <span className="muted" style={{ fontSize: 12, marginRight: 6 }}>por {l.resuelto_por}</span>}
+                        <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => borrar(l)}>🗑 Borrar</button>
+                      </td>
+                    </tr>))}
+                  {!rows.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 14 }}>Sin {tit.toLowerCase()}.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          );
+        });
+      })() : (
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
           <thead><tr>
@@ -190,7 +224,7 @@ export default function Licencias() {
             <th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Estado</th><th>Comprobante</th>{!modoMias && <th></th>}
           </tr></thead>
           <tbody>
-            {(esEquipo && filtroEmp ? items.filter((l) => l.leg_num === filtroEmp) : items).map((l) => (
+            {items.map((l) => (
               <tr key={l.id}>
                 {!modoMias && <td>{l.nom} <span className="muted">({l.leg_num})</span></td>}
                 {esRRHH && <td>{l.empresa}</td>}
@@ -209,6 +243,7 @@ export default function Licencias() {
           </tbody>
         </table>
       </div>
+      )}
     </>
   );
 }
