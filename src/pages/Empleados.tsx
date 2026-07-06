@@ -286,6 +286,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
       email: e.email || '', ingreso: e.ingreso || '', fecha_nac: e.fecha_nac || '', sexo: e.sexo || '', estado_civil: e.estado_civil || '', nacionalidad: e.nacionalidad || '',
       lugar: e.lugar || '', tarea: e.tarea || '', cat: e.cat || '', tramo: e.tramo || '', desc_categoria: e.desc_categoria || '', condicion: e.condicion || '',
       puestoId: e.puestoId != null ? String(e.puestoId) : '',
+      jornadaParcial: (e.jornadaParcial === true || e.jornadaParcial === 'si') ? 'si' : '', remFullTime: e.remFullTime != null ? String(e.remFullTime) : '',
       cod_convenio: e.cod_convenio || '', cod_sindicato: e.cod_sindicato || '', categoria_convenio: e.categoria_convenio || '',
       basico: e.basico ?? '', antiguedad_monto: e.antiguedad_monto ?? '', complemento: e.complemento ?? '', norem: e.norem ?? '', sueldo: e.sueldo ?? '',
       bruto: e.bruto != null ? String(e.bruto) : '', neto: e.neto != null ? String(e.neto) : '',
@@ -465,6 +466,10 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
               {puestos.map((p) => <option key={p.id} value={p.id}>{p.nombre}{p.area ? ` · ${p.area}` : ''}</option>)}
             </select>
           </div>
+          <div className="field"><label>Jornada (art. 92 ter LCT)</label>
+            <select className="input" value={f.jornadaParcial || ''} onChange={set('jornadaParcial')}><option value="">Jornada completa</option><option value="si">Tiempo parcial</option></select>
+          </div>
+          {f.jornadaParcial === 'si' && <div className="field"><label>Remuneración jornada completa (para O. Social)</label><input className="input" type="number" value={f.remFullTime || ''} onChange={set('remFullTime')} placeholder="Bruto full-time de la categoría" /></div>}
           <Sel k="cat" label="Categoría (escala unificada)" opts={catOpts} f={f} set={set} />
           <Sel k="tramo" label="Tramo (escala unificada)" opts={tramoOpts} f={f} set={set} />
           <F k="desc_categoria" label="Descripción de categoría" f={f} set={set} />
