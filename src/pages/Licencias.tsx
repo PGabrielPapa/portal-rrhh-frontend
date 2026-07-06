@@ -11,8 +11,9 @@ interface Lic { id: number; tipo: string; desde: string; hasta: string; dias: nu
 const LIC_TIPOS: { value: string; label: string; soloRRHH?: boolean }[] = [
   { value: 'Vacaciones', label: 'Vacaciones' },
   { value: 'Enfermedad', label: 'Enfermedad', soloRRHH: true },
+  { value: 'Enfermedad de familiar a cargo', label: 'Enfermedad de familiar a cargo — CCT 130/75, SIN goce de haberes (hasta 30 días/año)' },
   { value: 'Matrimonio', label: 'Matrimonio (12 días corridos)' },
-  { value: 'Nacimiento de hijo', label: 'Nacimiento de hijo — empleados varones (2 días corridos)', soloRRHH: true },
+  { value: 'Nacimiento de hijo', label: 'Nacimiento de hijo (2 días corridos, uno hábil)' },
   { value: 'Fallecimiento familiar directo', label: 'Fallecimiento — padres, cónyuge, hermano/a (4 días corridos)', soloRRHH: true },
   { value: 'Fallecimiento familiar político', label: 'Fallecimiento — abuelos, suegros, cuñados, hijastros (2 días corridos)', soloRRHH: true },
   { value: 'Examen', label: 'Examen (hasta 4 días corridos por examen)' },
