@@ -30,7 +30,7 @@ interface Reloj {
 }
 
 const TOPE_EXAMEN = 20; // Tope anual de licencia por examen/estudio (grupo LEITEN-SINIS-BARTON-IDEE).
-interface SaldoLic { id: number; nom: string; legNum: string; antiguedad: number; corresponden: number; tomados: number; saldoEsteAnio: number; saldoAnteriores: number; disponible: number; pendientes: number; aprobadasAnio: number; examenAnio: number; }
+interface SaldoLic { id: number; nom: string; legNum: string; antiguedad: number; corresponden: number; tomados: number; saldoEsteAnio: number; saldoAnteriores: number; disponible: number; pendientes: number; aprobadasAnio: number; examenAnio: number; examenTope: number; }
 const MESES = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const $ = (n: number) => '$ ' + (n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 const hm = (min: number) => { const h = Math.floor((min || 0) / 60); const m = Math.round((min || 0) % 60); return h ? `${h} h ${m} min` : `${m} min`; };
@@ -235,18 +235,19 @@ export default function TableroGerente() {
         <div className="card" style={{ marginBottom: 18, padding: 0, overflow: 'auto' }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
             <h4 style={{ margin: 0 }}>📖 Licencias por examen — {new Date().getFullYear()}</h4>
-            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Días de licencia por examen/estudio tomados en el año sobre un tope de {TOPE_EXAMEN} días/año. Solo se listan quienes ya tomaron algún día.</div>
+            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Días de licencia por examen/estudio tomados en el año. El tope depende del nivel de estudios del legajo (10 secundario · 20 terciario/universitario). Solo se listan quienes ya tomaron algún día.</div>
           </div>
           <table>
             <thead><tr><th>Empleado</th><th style={{ textAlign: 'center' }}>Días tomados</th><th style={{ textAlign: 'center' }}>Tope anual</th><th style={{ textAlign: 'center' }}>Disponible</th></tr></thead>
             <tbody>
               {saldos.filter((s) => s.examenAnio > 0).sort((a, b) => b.examenAnio - a.examenAnio).map((s) => {
-                const disp = TOPE_EXAMEN - s.examenAnio;
+                const tope = s.examenTope || TOPE_EXAMEN;
+                const disp = tope - s.examenAnio;
                 return (
                 <tr key={s.id}>
                   <td>{s.nom} <span className="muted">({s.legNum})</span></td>
                   <td style={{ textAlign: 'center' }}>{s.examenAnio}</td>
-                  <td style={{ textAlign: 'center' }}>{TOPE_EXAMEN}</td>
+                  <td style={{ textAlign: 'center' }}>{tope}</td>
                   <td style={{ textAlign: 'center', fontWeight: 700, color: disp > 0 ? 'var(--green)' : 'var(--red)' }}>{disp}</td>
                 </tr>); })}
             </tbody>

@@ -4,6 +4,7 @@ import { api, fetchBlob } from '../lib/api';
 import MiBanner from '../components/MiBanner';
 import type { Empleado } from '../lib/types';
 
+interface Especial { key: string; nombre: string; base: string; anual: boolean; sinGoce: boolean; tope: number; tomados?: number; pendientes?: number; disponible?: number; }
 interface Lic { id: number; tipo: string; desde: string; hasta: string; dias: number; motivo?: string; estado: string; created_at: string; nom?: string; leg_num?: string; empresa?: string; resuelto_por?: string; justificacion?: boolean; tiene_comprobante?: boolean; }
 
 // Tipos de licencia (réplica del desplegable de la vanilla, con los días entre paréntesis).
@@ -46,6 +47,7 @@ export default function Licencias() {
   const [filtroEmp, setFiltroEmp] = useState('');
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [vac, setVac] = useState<any>(null);
+  const [misSaldos, setMisSaldos] = useState<{ anio: number; especiales: Especial[] } | null>(null);
   // registrar (RR.HH.)
   const [regQ, setRegQ] = useState('');
   const [regMatches, setRegMatches] = useState<Empleado[]>([]);
@@ -64,6 +66,7 @@ export default function Licencias() {
     } catch (e: any) { setErr(e.message); }
   }
   useEffect(() => { if (modoMias) api.get('/licencias/vacaciones-info').then(setVac).catch(() => {}); }, [modoMias]);
+  useEffect(() => { if (modoMias) api.get<{ anio: number; especiales: Especial[] }>('/licencias/mis-saldos').then(setMisSaldos).catch(() => {}); }, [modoMias]);
   useEffect(() => { if (!modoMias) api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, [modoMias]);
   useEffect(() => { if (esEquipo) api.get<Empleado[]>('/empleados/equipo').then(setDirectos).catch(() => {}); }, [esEquipo]);
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [key, estado, empresa, q]);
@@ -112,6 +115,27 @@ export default function Licencias() {
             {vac.saldoAnteriores > 0 ? <> · Saldo años anteriores: <strong>{vac.saldoAnteriores}</strong></> : null}
             {' '}· <strong>Disponible para solicitar: {vac.disponible} día(s)</strong>
           </div>
+        </div>
+      )}
+      {modoMias && misSaldos && (
+        <div className="card" style={{ marginBottom: 14, padding: 0, overflow: 'auto' }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+            <strong>📋 Licencias especiales — saldos {misSaldos.anio}</strong>
+            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Topes según la planilla del grupo y la LCT/CCT. Las anuales muestran tomados y disponible; el resto es el máximo por evento.</div>
+          </div>
+          <table>
+            <thead><tr><th>Licencia</th><th>Base legal</th><th style={{ textAlign: 'center' }}>Tope</th><th style={{ textAlign: 'center' }}>Tomados</th><th style={{ textAlign: 'center' }}>Disponible</th></tr></thead>
+            <tbody>
+              {misSaldos.especiales.map((e) => (
+                <tr key={e.key}>
+                  <td>{e.nombre}{e.sinGoce ? <span className="muted" style={{ fontSize: 11 }}> · sin goce</span> : ''}</td>
+                  <td className="muted" style={{ fontSize: 12 }}>{e.base}</td>
+                  <td style={{ textAlign: 'center' }}>{e.anual ? `${e.tope}/año` : `${e.tope}/evento`}</td>
+                  <td style={{ textAlign: 'center' }}>{e.anual ? (e.tomados ?? 0) : '—'}</td>
+                  <td style={{ textAlign: 'center', fontWeight: e.anual ? 700 : 400, color: e.anual ? ((e.disponible ?? 0) > 0 ? 'var(--green)' : 'var(--red)') : undefined }}>{e.anual ? (e.disponible ?? 0) : '—'}</td>
+                </tr>))}
+            </tbody>
+          </table>
         </div>
       )}
       {modoMias && (
