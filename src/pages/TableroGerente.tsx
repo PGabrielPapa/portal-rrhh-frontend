@@ -29,6 +29,7 @@ interface Reloj {
   tardanzas: { casos: number; totalMin: number; ranking: { nom: string; min: number }[]; detalle: DetT[] };
 }
 
+interface SaldoLic { id: number; nom: string; legNum: string; antiguedad: number; corresponden: number; tomados: number; saldoEsteAnio: number; saldoAnteriores: number; disponible: number; pendientes: number; aprobadasAnio: number; examenAnio: number; }
 const MESES = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const $ = (n: number) => '$ ' + (n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 const hm = (min: number) => { const h = Math.floor((min || 0) / 60); const m = Math.round((min || 0) % 60); return h ? `${h} h ${m} min` : `${m} min`; };
@@ -68,12 +69,15 @@ export default function TableroGerente() {
   const [reloj, setReloj] = useState<Reloj | null>(null);
   const [relojErr, setRelojErr] = useState('');
   const [verAutorizar, setVerAutorizar] = useState(false);
+  const [saldos, setSaldos] = useState<SaldoLic[]>([]);
 
   // Datos del reloj EN VIVO (equipo): fichadas de hoy, ausentes y tardanzas del mes.
   useEffect(() => {
     setRelojErr(''); setReloj(null);
     api.get<Reloj>(`/prosoft/tablero?scope=equipo&anio=${anio}&mes=${mes}`).then(setReloj).catch((e) => setRelojErr(e.message));
   }, [anio, mes]);
+
+  useEffect(() => { api.get<SaldoLic[]>('/licencias/equipo-saldos').then(setSaldos).catch(() => setSaldos([])); }, []);
 
   async function cargar() {
     setErr(''); setBusy(true);
@@ -199,6 +203,50 @@ export default function TableroGerente() {
             </div>
           </div>
         </div>
+
+        {/* Licencias del equipo — saldos */}
+        <div className="card" style={{ marginBottom: 18, padding: 0, overflow: 'auto' }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+            <h4 style={{ margin: 0 }}>🏖 Licencias del equipo — saldos de vacaciones</h4>
+            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Días por antigüedad (Art. 150 LCT), tomados en el año y saldo disponible. Incluye saldo de los 2 años anteriores. «Pend.» = solicitudes pendientes de aprobar.</div>
+          </div>
+          <table>
+            <thead><tr><th>Empleado</th><th style={{ textAlign: 'center' }}>Antig.</th><th style={{ textAlign: 'center' }}>Corresponden</th><th style={{ textAlign: 'center' }}>Tomados {new Date().getFullYear()}</th><th style={{ textAlign: 'center' }}>Saldo año</th><th style={{ textAlign: 'center' }}>Saldo ant.</th><th style={{ textAlign: 'center' }}>Disponible</th><th style={{ textAlign: 'center' }}>Pend.</th></tr></thead>
+            <tbody>
+              {saldos.map((s) => (
+                <tr key={s.id}>
+                  <td>{s.nom} <span className="muted">({s.legNum})</span></td>
+                  <td style={{ textAlign: 'center' }}>{s.antiguedad} a</td>
+                  <td style={{ textAlign: 'center' }}>{s.corresponden}</td>
+                  <td style={{ textAlign: 'center' }}>{s.tomados}</td>
+                  <td style={{ textAlign: 'center' }}>{s.saldoEsteAnio}</td>
+                  <td style={{ textAlign: 'center' }}>{s.saldoAnteriores}</td>
+                  <td style={{ textAlign: 'center', fontWeight: 700, color: s.disponible > 0 ? 'var(--green)' : s.disponible < 0 ? 'var(--red)' : undefined }}>{s.disponible}</td>
+                  <td style={{ textAlign: 'center' }}>{s.pendientes ? <span className="badge" style={{ color: 'var(--yellow)' }}>{s.pendientes}</span> : '—'}</td>
+                </tr>))}
+              {!saldos.length && <tr><td colSpan={8} className="muted" style={{ textAlign: 'center', padding: 16 }}>Sin datos de licencias del equipo.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Licencias por examen */}
+        {saldos.some((s) => s.examenAnio > 0) && (
+        <div className="card" style={{ marginBottom: 18, padding: 0, overflow: 'auto' }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+            <h4 style={{ margin: 0 }}>📖 Licencias por examen — {new Date().getFullYear()}</h4>
+            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Días de licencia por examen tomados en el año. Solo se listan quienes ya tomaron algún día.</div>
+          </div>
+          <table>
+            <thead><tr><th>Empleado</th><th style={{ textAlign: 'center' }}>Días tomados</th></tr></thead>
+            <tbody>
+              {saldos.filter((s) => s.examenAnio > 0).sort((a, b) => b.examenAnio - a.examenAnio).map((s) => (
+                <tr key={s.id}>
+                  <td>{s.nom} <span className="muted">({s.legNum})</span></td>
+                  <td style={{ textAlign: 'center', fontWeight: 700 }}>{s.examenAnio}</td>
+                </tr>))}
+            </tbody>
+          </table>
+        </div>)}
 
         {/* Avisos */}
         <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
