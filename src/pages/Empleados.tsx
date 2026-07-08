@@ -438,12 +438,12 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
               <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={esAdmin} onChange={(ev) => setEsAdmin(ev.target.checked)} /> Administrador</label>
             </div>
           )}
-          {_u?.role === 'admin' && (
+          {(_u?.role === 'admin' || _u?.role === 'rrhh') && (
             <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={confidencial} onChange={(ev) => setConfidencial(ev.target.checked)} /> Legajo confidencial</label>
             </div>
           )}
-          {_u?.role === 'admin' && (
+          {(_u?.role === 'admin' || _u?.role === 'rrhh') && (
             <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={verConf} onChange={(ev) => setVerConf(ev.target.checked)} /> Puede ver legajos confidenciales</label>
             </div>
