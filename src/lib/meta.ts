@@ -38,6 +38,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   // RR.HH.
   'personas': { ico: '🧑‍🤝‍🧑', col: '99,102,241', desc: 'Base de personas: empleados, familiares, prestadores, postulantes y sus períodos' },
   'empleados': { ico: '👥', col: '61,127,255', desc: 'Alta, baja y modificación de empleados' },
+  'actualizacion-masiva': { ico: '🗂️', col: '61,127,255', desc: 'Cambiá un mismo dato (obra social, convenio, sindicato, categoría, lugar…) a varios legajos a la vez' },
   'adelantos-rrhh': { ico: '💸', col: '61,127,255', desc: 'Otorgá/rechazá adelantos y definí las cuotas' },
   'liquidacion': { ico: '🧮', col: '61,200,160', desc: 'Liquidá haberes por tipo y corrida' },
   'controles-liq': { ico: '✅', col: '239,68,68', desc: 'Controles previos al cierre: netos negativos, aportes, tope SIPA, variaciones y faltantes' },

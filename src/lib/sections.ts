@@ -56,6 +56,7 @@ export const GROUPS: Group[] = [
     items: [
       { key: 'personas', label: 'Personas (base)', ready: true },
       { key: 'empleados', label: 'ABM Empleados', ready: true },
+      { key: 'actualizacion-masiva', label: 'Actualización masiva de legajos', ready: true },
       { key: 'puestos', label: 'Puestos y estructura', ready: true },
       { key: 'legajo-docs', label: 'Legajo digital (documentos)', ready: true },
       { key: 'vacaciones', label: 'Vacaciones (saldos)', ready: true },
