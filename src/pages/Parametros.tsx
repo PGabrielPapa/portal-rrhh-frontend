@@ -5,23 +5,69 @@ import { useAuth } from '../lib/auth';
 type Data = Record<string, any>;
 
 const LABELS: Record<string, string> = {
-  pctJubilacion: 'Jubilación (trab.) %', pctObraSocial: 'Obra Social (trab.) %', pctAnssal: 'ANSSAL %',
-  pctPamiEmp: 'PAMI (trab.) %', pctSindicatoEmp: 'Sindicato (trab.) %', nombreSindicato: 'Nombre sindicato',
-  pctJubPatronal: 'Jubilación patronal %', pctOsPatronal: 'Obra Social patronal %', pctPamiPatronal: 'PAMI patronal %',
-  pctDesempleo: 'Fondo desempleo %', pctArt: 'ART %', pctSindicatoPatronal: 'Sindicato patronal %',
-  scvoPercapita: 'SCVO ($ per cápita)', gan_topeRetencionPct: 'Tope retención Ganancias %',
-  pctPresentismo: 'Presentismo %', pctAntiguedadPorAnio: 'Antigüedad por año %',
-  smvmMensual: 'SMVM mensual', f931TopeJub: 'F.931 tope jubilación', f931TopeOS: 'F.931 tope OS',
-  ffep: 'FFEP ($ por trabajador)', topeAportesMax: 'Tope base SIPA (máx)', topeAportesMin: 'Base imponible mínima', mesesPeriodoPrueba: 'Período de prueba (meses)',
-  fondoCesePct: 'Fondo de cese %', modoIndemnizacion: 'Modo indemnización (art245 | fondo_cese)',
+  // Aportes del trabajador (nacionales)
+  pctJubilacion: 'Jubilación (trabajador) %',
+  pctObraSocial: 'Obra Social (trabajador) %',
+  pctAnssal: 'ANSSAL %',
+  pctPamiEmp: 'PAMI / INSSJP (trabajador) %',
+  pctSindicatoEmp: 'Cuota sindical (trabajador) % — por defecto',
+  nombreSindicato: 'Sindicato por defecto (nombre)',
+  // Contribuciones patronales
+  pctJubPatronal: 'Jubilación patronal %',
+  pctOsPatronal: 'Obra Social patronal %',
+  pctPamiPatronal: 'PAMI / INSSJP patronal %',
+  pctDesempleo: 'Fondo Nacional de Empleo (desempleo) %',
+  pctArt: 'ART % — por defecto (la real es por empresa en “ART por empresa”)',
+  pctSindicatoPatronal: 'Cuota sindical patronal % — por defecto',
+  scvoPercapita: 'Seguro de Vida Obligatorio — SCVO ($ por trabajador)',
+  ffep: 'FFEP — Fondo Fiduc. Enf. Profesionales ($ por trabajador)',
+  fondoCesePct: 'Fondo de cese laboral (Ley Bases) %',
+  pctFal: 'FAL — Fondo de Asistencia Laboral (Ley 27.802) %',
+  detraccionContrib: 'Detracción de contribuciones (Ley 27.541) $ por trabajador',
+  // Conceptos remunerativos
+  pctPresentismo: 'Presentismo % — por defecto',
+  pctAntiguedadPorAnio: 'Antigüedad por año % — por defecto',
+  // Indemnización
+  modoIndemnizacion: 'Modo de indemnización (art245 | fondo_cese)',
+  mesesPeriodoPrueba: 'Período de prueba (meses)',
+  // Topes y valores legales
+  smvmMensual: 'SMVM — Salario Mínimo Vital y Móvil ($)',
+  topeAportesMax: 'Tope base SIPA (máximo) $',
+  topeAportesMin: 'Base imponible mínima SIPA $',
+  f931TopeJub: 'F.931 — tope jubilación $',
+  f931TopeOS: 'F.931 — tope Obra Social $',
+  gan_topeRetencionPct: 'Ganancias — tope de retención (% del neto)',
+  // Ganancias — topes de deducciones (RG 4003)
+  gan_pctEducacionMni: 'Ganancias — deducción educación: tope (% del MNI)',
+  gan_topePctDonaciones: 'Ganancias — donaciones: tope (% ganancia neta)',
+  gan_pctAlquilerDeducible: 'Ganancias — alquiler: % deducible',
+  gan_topePctHonorariosMed: 'Ganancias — honorarios médicos: % del gasto deducible',
+  gan_pctCorredoresViajantes: 'Ganancias — corredores/viajantes de comercio: %',
+  gan_pctServDomesticoMniMax: 'Ganancias — servicio doméstico: tope (% del MNI)',
+  gan_topePctHonorariosMedGanNeta: 'Ganancias — honorarios médicos: tope (% ganancia neta)',
+  // Datos de la empresa
+  cbuEmpresa: 'CBU de la empresa (débito de haberes)',
+  bancoEmpresa: 'Banco de la empresa',
 };
 
-const GROUPS: { titulo: string; keys: string[] }[] = [
-  { titulo: 'Aportes del trabajador', keys: ['pctJubilacion', 'pctObraSocial', 'pctAnssal', 'pctPamiEmp', 'pctSindicatoEmp', 'nombreSindicato'] },
-  { titulo: 'Contribuciones patronales', keys: ['pctJubPatronal', 'pctOsPatronal', 'pctPamiPatronal', 'pctDesempleo', 'pctArt', 'pctSindicatoPatronal', 'scvoPercapita', 'ffep', 'fondoCesePct'] },
+interface Grupo { titulo: string; nota?: string; keys: string[]; }
+const GROUPS: Grupo[] = [
+  { titulo: 'Aportes del trabajador',
+    nota: 'Los % de SIPA, Obra Social, ANSSAL y PAMI son nacionales (iguales para todas las empresas). La cuota sindical real se define por sindicato en el módulo “Sindicatos” y se aplica según el sindicato de cada empleado; el valor de acá es solo el respaldo por defecto.',
+    keys: ['pctJubilacion', 'pctObraSocial', 'pctAnssal', 'pctPamiEmp', 'pctSindicatoEmp', 'nombreSindicato'] },
+  { titulo: 'Contribuciones patronales',
+    nota: 'La ART se configura por empresa en “ART por empresa”. El FAL puede diferir por empresa (MiPyME 2,5% / grandes 1%) y se puede fijar en la ficha de cada empresa. El “Fondo Nacional de Empleo (desempleo)” es la contribución patronal de la Ley 24.013 — distinto del FAL.',
+    keys: ['pctJubPatronal', 'pctOsPatronal', 'pctPamiPatronal', 'pctDesempleo', 'pctArt', 'pctSindicatoPatronal', 'scvoPercapita', 'ffep', 'fondoCesePct', 'pctFal', 'detraccionContrib'] },
+  { titulo: 'Conceptos remunerativos (por defecto)',
+    nota: 'El presentismo, la antigüedad y los adicionales por título reales salen del sindicato/convenio de cada empleado. Estos son valores por defecto para quienes no tengan sindicato.',
+    keys: ['pctPresentismo', 'pctAntiguedadPorAnio'] },
   { titulo: 'Indemnización / Ley Bases', keys: ['modoIndemnizacion', 'mesesPeriodoPrueba'] },
-  { titulo: 'Conceptos remunerativos', keys: ['pctPresentismo', 'pctAntiguedadPorAnio'] },
-  { titulo: 'Ganancias / Topes', keys: ['gan_topeRetencionPct', 'smvmMensual', 'topeAportesMax', 'topeAportesMin', 'f931TopeJub', 'f931TopeOS'] },
+  { titulo: 'Topes y valores legales',
+    nota: 'Se actualizan solos con el calendario oficial (SMVM y topes SIPA). No hace falta cargarlos a mano.',
+    keys: ['smvmMensual', 'topeAportesMax', 'topeAportesMin', 'f931TopeJub', 'f931TopeOS', 'gan_topeRetencionPct'] },
+  { titulo: 'Ganancias — topes de deducciones (RG 4003)',
+    keys: ['gan_pctEducacionMni', 'gan_topePctDonaciones', 'gan_pctAlquilerDeducible', 'gan_topePctHonorariosMed', 'gan_pctCorredoresViajantes', 'gan_pctServDomesticoMniMax', 'gan_topePctHonorariosMedGanNeta'] },
+  { titulo: 'Datos de la empresa (pagos)', keys: ['cbuEmpresa', 'bancoEmpresa'] },
 ];
 
 export default function Parametros() {
@@ -78,7 +124,8 @@ export default function Parametros() {
 
       {GROUPS.map((g) => (
         <div className="card" style={{ marginBottom: 14 }} key={g.titulo}>
-          <h3 style={{ marginTop: 0 }}>{g.titulo}</h3>
+          <h3 style={{ marginTop: 0, marginBottom: g.nota ? 4 : 10 }}>{g.titulo}</h3>
+          {g.nota && <p className="muted" style={{ marginTop: 0, marginBottom: 10, fontSize: 12 }}>{g.nota}</p>}
           <div className="grid2">{g.keys.filter((k) => k in data).map(renderField)}</div>
         </div>
       ))}
