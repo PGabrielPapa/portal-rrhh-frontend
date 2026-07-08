@@ -7,6 +7,8 @@ import { api } from '../lib/api';
 
 interface Verif {
   ok: boolean;
+  estado?: 'aldia' | 'provisoria' | 'incompleta' | 'falta';
+  provisional?: boolean;
   semOk: boolean;
   dedOk: boolean;
   escOk: boolean;
@@ -30,8 +32,14 @@ export default function GananciasCheck({ anio, mes }: { anio: number; mes: numbe
   }, [anio, mes]);
   if (!v) return null;
 
-  const color = v.ok ? 'rgba(34,197,94,.30)' : 'rgba(234,179,8,.40)';
-  const bg = v.ok ? 'rgba(34,197,94,.06)' : 'rgba(234,179,8,.08)';
+  const estado = v.estado || (v.ok ? 'aldia' : 'incompleta');
+  const pal = estado === 'aldia'
+    ? { c: 'var(--green)', b: 'rgba(34,197,94,.30)', bg: 'rgba(34,197,94,.06)', ico: '✓ ' }
+    : estado === 'provisoria'
+      ? { c: 'var(--accent2, #3d7fff)', b: 'rgba(61,127,255,.35)', bg: 'rgba(61,127,255,.07)', ico: 'ⓘ ' }
+      : { c: 'var(--yellow)', b: 'rgba(234,179,8,.40)', bg: 'rgba(234,179,8,.08)', ico: '⚠ ' };
+  const color = pal.b;
+  const bg = pal.bg;
   const chip = (okv: boolean, label: string) => (
     <span style={{ fontSize: 11, padding: '1px 8px', borderRadius: 999, marginLeft: 6, whiteSpace: 'nowrap', color: okv ? 'var(--green)' : 'var(--yellow)', border: `1px solid ${okv ? 'rgba(34,197,94,.4)' : 'rgba(234,179,8,.5)'}` }}>
       {okv ? '✓' : '⚠'} {label}
@@ -41,8 +49,8 @@ export default function GananciasCheck({ anio, mes }: { anio: number; mes: numbe
   return (
     <div className="card" style={{ margin: '8px 0 4px', padding: '8px 12px', fontSize: 13, background: bg, border: `1px solid ${color}` }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-        <span style={{ color: v.ok ? 'var(--green)' : 'var(--yellow)' }}>
-          {v.ok ? '✓ ' : '⚠ '}{v.mensaje}
+        <span style={{ color: pal.c }}>
+          {pal.ico}{v.mensaje}
           {chip(v.dedOk, 'Deducciones art. 30')}
           {chip(v.escOk, 'Escala art. 94')}
         </span>
