@@ -299,6 +299,8 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [foto, setFoto] = useState<string>((e as any).foto || '');
   const { user: _u } = useAuth();
   const [esAdmin, setEsAdmin] = useState<boolean>((e as any).role === 'admin');
+  const [confidencial, setConfidencial] = useState<boolean>((e as any).confidencial === true);
+  const [verConf, setVerConf] = useState<boolean>((e as any).verConfidenciales === true || (e as any).verConfidenciales === 'true');
   const [lugHist, setLugHist] = useState<any[]>([]);
   const [cambHist, setCambHist] = useState<any[]>([]);
   const [centrosCO, setCentrosCO] = useState<{ id: number; codigo: string; denominacion: string }[]>([]);
@@ -365,7 +367,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     if (ce) { onError(ce); return; }
     setBusy(true);
     try {
-      const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0, esAdmin };
+      const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0, esAdmin, confidencial, verConfidenciales: verConf };
       body.puestoId = f.puestoId ? Number(f.puestoId) : null;
       body.nom = [f.apellido, f.nombres].filter(Boolean).join(', ').toUpperCase().trim();
       delete body.cod_os; delete body.desc_os;
@@ -434,6 +436,16 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           {(_u?.role === 'admin' || _u?.role === 'rrhh') && (
             <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={esAdmin} onChange={(ev) => setEsAdmin(ev.target.checked)} /> Administrador</label>
+            </div>
+          )}
+          {_u?.role === 'admin' && (
+            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={confidencial} onChange={(ev) => setConfidencial(ev.target.checked)} /> Legajo confidencial</label>
+            </div>
+          )}
+          {_u?.role === 'admin' && (
+            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={verConf} onChange={(ev) => setVerConf(ev.target.checked)} /> Puede ver legajos confidenciales</label>
             </div>
           )}
           <F k="email_laboral" label="Mail laboral" f={f} set={set} />
