@@ -17,6 +17,7 @@ export default function ActualizacionMasiva() {
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [modoSueldo, setModoSueldo] = useState<'pct' | 'importe'>('pct'); const [valorSueldo, setValorSueldo] = useState(''); const [busyS, setBusyS] = useState(false);
 
   async function load() {
     try {
@@ -69,6 +70,24 @@ export default function ActualizacionMasiva() {
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }
 
+  async function aplicarSueldo() {
+    setErr(''); setMsg('');
+    const ids = filtrados.filter((e) => sel.has(e.id)).map((e) => e.id);
+    const v = Number(valorSueldo);
+    if (!Number.isFinite(v) || v === 0) return setErr('Ingresá el porcentaje o importe (distinto de 0).');
+    if (!ids.length) return setErr('Seleccioná al menos un empleado.');
+    const txt = modoSueldo === 'pct' ? `+${v}%` : `+$${v}`;
+    if (!window.confirm(`Vas a actualizar el básico (${txt}) en ${ids.length} legajo(s). ¿Confirmás?`)) return;
+    try {
+      setBusyS(true);
+      const r = await api.post<{ actualizados: number; omitidos: number; detalles: string[] }>('/empleados/masivo-sueldo', { ids, modo: modoSueldo, valor: v });
+      setMsg(`Listo: ${r.actualizados} sueldo(s) actualizado(s)${r.omitidos ? `, ${r.omitidos} omitido(s) (por escala/convenio)` : ''}.`);
+      if (r.detalles.length) setErr(r.detalles.slice(0, 5).join(' · '));
+      setSel(new Set()); setValorSueldo('');
+      await load();
+    } catch (e: any) { setErr(e.message); } finally { setBusyS(false); }
+  }
+
   return (
     <>
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
@@ -90,6 +109,19 @@ export default function ActualizacionMasiva() {
           <button className="btn primary" disabled={busy} onClick={aplicar}>{busy ? 'Aplicando…' : `Aplicar a seleccionados (${filtrados.filter((e) => sel.has(e.id)).length})`}</button>
         </div>
         <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>El cambio queda registrado en el histórico de cada legajo y se sincroniza con su período vigente.</div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+          <div><label className="muted" style={{ fontSize: 12 }}>Actualizar sueldos (básico) de los seleccionados</label><br />
+            <select className="input" style={{ minWidth: 180 }} value={modoSueldo} onChange={(e) => setModoSueldo(e.target.value as any)}><option value="pct">Aumentar por %</option><option value="importe">Sumar importe fijo</option></select>
+          </div>
+          <div><label className="muted" style={{ fontSize: 12 }}>{modoSueldo === 'pct' ? 'Porcentaje' : 'Importe'}</label><br />
+            <input className="input" type="number" step="0.01" style={{ width: 140 }} value={valorSueldo} onChange={(e) => setValorSueldo(e.target.value)} placeholder={modoSueldo === 'pct' ? 'Ej: 10' : 'Ej: 50000'} />
+          </div>
+          <button className="btn" disabled={busyS} onClick={aplicarSueldo}>{busyS ? 'Aplicando…' : `Actualizar sueldos (${filtrados.filter((e) => sel.has(e.id)).length})`}</button>
+        </div>
+        <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>Actúa sobre el básico manual del legajo. Los legajos por escala/convenio se omiten (suben cambiando la escala).</div>
       </div>
 
       <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>

@@ -246,6 +246,40 @@ function SimFinalMasiva() {
     </>
   );
 }
+function SimBruto() {
+  const [neto, setNeto] = useState('');
+  const [sind, setSind] = useState('');
+  const [data, setData] = useState<any>(null);
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  async function calc() {
+    setErr(''); setBusy(true); setData(null);
+    try { setData(await api.post<any>('/liquidacion/simular-bruto', { neto: Number(neto), sindicalPct: Number(sind) || 0 })); }
+    catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <>
+      <p className="muted" style={{ marginTop: 0, marginBottom: 14 }}>Ingresá el neto "de bolsillo" y calculá el sueldo bruto necesario (aportes del trabajador con tope SIPA; sin Impuesto a las Ganancias).</p>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="field"><label>Neto deseado *</label><input className="input" type="number" style={{ width: 180 }} value={neto} onChange={(e) => setNeto(e.target.value)} /></div>
+          <div className="field"><label>Cuota sindical % (opcional)</label><input className="input" type="number" step="0.01" style={{ width: 150 }} value={sind} onChange={(e) => setSind(e.target.value)} /></div>
+          <button className="btn" onClick={calc} disabled={busy || !(Number(neto) > 0)}>{busy ? 'Calculando…' : 'Calcular bruto'}</button>
+        </div>
+        {err && <p className="err" style={{ marginBottom: 0 }}>⚠ {err}</p>}
+      </div>
+      {data && (
+        <div className="card">
+          <div className="row" style={{ justifyContent: 'space-between', fontSize: 15 }}><span>Sueldo bruto necesario</span><strong style={{ color: 'var(--green)', fontFamily: 'monospace' }}>$ {$(data.bruto)}</strong></div>
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '10px 0' }} />
+          <div className="row" style={{ justifyContent: 'space-between', fontSize: 13 }}><span className="muted">Aportes Jub + OS + ANSSAL + PAMI (base $ {$(data.base)})</span><span style={{ fontFamily: 'monospace' }}>$ {$(data.aportes.jubOsPamiAnssal)}</span></div>
+          {data.aportes.sindical > 0 && <div className="row" style={{ justifyContent: 'space-between', fontSize: 13 }}><span className="muted">Cuota sindical</span><span style={{ fontFamily: 'monospace' }}>$ {$(data.aportes.sindical)}</span></div>}
+          <div className="row" style={{ justifyContent: 'space-between', fontSize: 13 }}><span className="muted">Neto resultante</span><span style={{ fontFamily: 'monospace' }}>$ {$(data.neto)}</span></div>
+          <p className="muted" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>{data.nota}</p>
+        </div>
+      )}
+    </>
+  );
+}
 export default function Simulaciones() {
   const [tab, setTab] = useState('incremento');
   return (
@@ -255,8 +289,9 @@ export default function Simulaciones() {
         <button className={`btn ${tab === 'gratificacion' ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setTab('gratificacion')}>Gratificaciones</button>
         <button className={`btn ${tab === 'final' ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setTab('final')}>Liquidación final</button>
         <button className={`btn ${tab === 'final_masiva' ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setTab('final_masiva')}>Final masiva</button>
+        <button className={`btn ${tab === 'bruto' ? '' : 'ghost'}`} style={{ padding: '5px 12px', fontSize: 13 }} onClick={() => setTab('bruto')}>Bruto desde neto</button>
       </div>
-      {tab === 'incremento' ? <SimIncremento /> : tab === 'gratificacion' ? <SimGratificacion /> : tab === 'final' ? <SimFinal /> : <SimFinalMasiva />}
+      {tab === 'incremento' ? <SimIncremento /> : tab === 'gratificacion' ? <SimGratificacion /> : tab === 'final' ? <SimFinal /> : tab === 'final_masiva' ? <SimFinalMasiva /> : <SimBruto />}
     </>
   );
 }
