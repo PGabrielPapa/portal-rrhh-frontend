@@ -144,6 +144,18 @@ function ConceptoModal({ concepto, onClose, onSaved, onError }: { concepto: Conc
           </div>
         )}
         {f.formula && (
+          <details style={{ marginTop: 10 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13 }}>Alcance y vigencia (opcional)</summary>
+            <div className="grid2" style={{ marginTop: 8 }}>
+              <div className="field"><label>Empresa (vacío = todas)</label><input className="input" value={(f.data || {}).alcanceEmpresa || ''} onChange={setD('alcanceEmpresa')} placeholder="Nombre exacto de la empresa" /></div>
+              <div className="field"><label>Convenio (código, vacío = todos)</label><input className="input" value={(f.data || {}).alcanceConvenio || ''} onChange={setD('alcanceConvenio')} /></div>
+              <div className="field"><label>Sindicato (código, vacío = todos)</label><input className="input" value={(f.data || {}).alcanceSindicato || ''} onChange={setD('alcanceSindicato')} /></div>
+              <div className="field"><label>Vigencia desde (AAAA-MM)</label><input className="input" value={(f.data || {}).desde || ''} onChange={setD('desde')} placeholder="2026-01" /></div>
+              <div className="field"><label>Vigencia hasta (AAAA-MM)</label><input className="input" value={(f.data || {}).hasta || ''} onChange={setD('hasta')} placeholder="2026-12" /></div>
+            </div>
+          </details>
+        )}
+        {f.formula && (
           <div style={{ marginTop: 10 }}>
             <button type="button" className="btn ghost" onClick={probar}>Probar con datos de ejemplo</button>
             <button type="button" className="btn ghost" style={{ marginLeft: 8 }} onClick={() => setAyuda((v) => !v)}>{ayuda ? 'Ocultar ayuda' : 'Ver variables y funciones'}</button>
