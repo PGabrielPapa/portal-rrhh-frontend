@@ -79,12 +79,15 @@ export default function Parametros() {
   const [loadErr, setLoadErr] = useState('');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [hist, setHist] = useState<any[]>([]);
+  const [verHist, setVerHist] = useState(false);
 
   async function load() {
     try {
       const r = await api.get<{ data: Data; updated_by?: string; updated_at?: string }>('/parametros');
       setData(r.data || {});
       if (r.updated_at) setInfo(`Última actualización: ${new Date(r.updated_at).toLocaleString('es-AR')}${r.updated_by ? ` por ${r.updated_by}` : ''}`);
+      api.get<any[]>('/parametros/historial').then(setHist).catch(() => {});
     } catch (e: any) { setLoadErr(e.message); }
   }
   useEffect(() => { load(); }, []);
@@ -134,6 +137,33 @@ export default function Parametros() {
         <div className="card" style={{ marginBottom: 14 }}>
           <h3 style={{ marginTop: 0 }}>Otros parámetros</h3>
           <div className="grid2">{otros.map(renderField)}</div>
+        </div>
+      )}
+
+      {hist.length > 0 && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>Historial de cambios <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>({hist.length})</span></h3>
+            <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setVerHist((v) => !v)}>{verHist ? 'Ocultar' : 'Ver'}</button>
+          </div>
+          {verHist && (
+            <div style={{ overflowX: 'auto', marginTop: 8 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead><tr style={{ background: 'var(--bg2)' }}>{['Fecha', 'Parámetro', 'Antes', 'Después', 'Por'].map((h, i) => <th key={i} style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {hist.map((h) => (
+                    <tr key={h.id}>
+                      <td style={{ padding: '3px 8px', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{new Date(h.created_at).toLocaleString('es-AR')}</td>
+                      <td style={{ padding: '3px 8px' }}>{LABELS[h.campo] || h.campo}</td>
+                      <td style={{ padding: '3px 8px', fontFamily: 'monospace' }} className="muted">{h.valor_anterior ?? '—'}</td>
+                      <td style={{ padding: '3px 8px', fontFamily: 'monospace' }}>{h.valor_nuevo ?? '—'}</td>
+                      <td style={{ padding: '3px 8px' }} className="muted">{h.actor_dni || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

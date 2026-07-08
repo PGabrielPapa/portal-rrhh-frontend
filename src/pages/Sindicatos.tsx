@@ -12,9 +12,12 @@ export default function Sindicatos() {
   const [items, setItems] = useState<Sind[]>([]);
   const [edit, setEdit] = useState<Sind | null>(null);
   const [err, setErr] = useState('');
+  const [porEmp, setPorEmp] = useState<any[]>([]);
+  const [verEmp, setVerEmp] = useState(false);
 
   async function load() { try { setItems(await api.get<Sind[]>('/sindicatos')); } catch (e: any) { setErr(e.message); } }
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (puede) api.get<any[]>('/sindicatos/por-empresa').then(setPorEmp).catch(() => {}); }, [puede]);
 
   async function guardar() {
     if (!edit) return; setErr('');
@@ -28,8 +31,38 @@ export default function Sindicatos() {
 
   return (
     <>
-      <p className="muted" style={{ marginTop: -6, marginBottom: 14 }}>Catálogo de sindicatos y sus parámetros de aportes (cuota del empleado, contribución patronal, antigüedad, base de presentismo y adicional por título).</p>
+      <p className="muted" style={{ marginTop: -6, marginBottom: 14 }}>Catálogo de sindicatos y sus parámetros de aportes (cuota del empleado, contribución patronal, antigüedad, base de presentismo y adicional por título). Cada empleado usa el sindicato de su convenio; una empresa puede tener varios.</p>
       {err && <div className="err" style={{ marginBottom: 12 }}>⚠ {err}</div>}
+
+      {porEmp.length > 0 && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>Sindicatos por empresa <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>(según los empleados activos)</span></h3>
+            <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setVerEmp((v) => !v)}>{verEmp ? 'Ocultar' : 'Ver'}</button>
+          </div>
+          {verEmp && porEmp.map((em) => (
+            <div key={em.empresa} style={{ marginTop: 10 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{em.empresa} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>· {em.total} empleado(s)</span></div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead><tr style={{ background: 'var(--bg2)' }}>{['Código', 'Sindicato', 'Empleados', '% aporte', '% patronal'].map((h, i) => <th key={i} style={{ textAlign: i >= 2 ? 'right' : 'left', padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {em.sindicatos.map((x: any) => (
+                      <tr key={x.codigo}>
+                        <td style={{ padding: '3px 8px', fontFamily: 'monospace' }}>{x.codigo}</td>
+                        <td style={{ padding: '3px 8px' }}>{x.nombre} {!x.definido && <span className="badge" style={{ color: 'var(--yellow)' }}>⚠ definir en el catálogo</span>}</td>
+                        <td style={{ padding: '3px 8px', textAlign: 'right' }}>{x.empleados}</td>
+                        <td style={{ padding: '3px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{x.pctEmpleado != null ? x.pctEmpleado + '%' : '—'}</td>
+                        <td style={{ padding: '3px 8px', textAlign: 'right', fontFamily: 'monospace' }}>{x.pctPatronal != null ? x.pctPatronal + '%' : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {edit ? (
         <div className="card" style={{ marginBottom: 16 }}>
