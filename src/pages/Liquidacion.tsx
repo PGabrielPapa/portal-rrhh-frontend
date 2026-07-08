@@ -241,7 +241,7 @@ function Corrida() {
                 <span className="badge" style={{ color: estadoColor(c.estado), fontSize: 11 }}>{c.estado}</span>
               </div>
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-                <span className="muted" style={{ fontSize: 11 }}>{c.tipo}{c.empresa ? ' · ' + c.empresa : ''}</span>
+                <span className="muted" style={{ fontSize: 11 }}>{c.tipo}{c.correlativo > 1 ? ' #' + c.correlativo : ''}{c.empresa ? ' · ' + c.empresa : ''}</span>
                 <span style={{ fontFamily: 'monospace', fontSize: 12 }}>${$(c.total_neto)}</span>
               </div>
               {c.estado !== 'publicada' && <button className="btn ghost" style={{ padding: '0 6px', fontSize: 11, color: 'var(--red)', marginTop: 4 }} onClick={(ev) => { ev.stopPropagation(); borrar(c.id); }}>✕ borrar</button>}
@@ -256,7 +256,7 @@ function Corrida() {
           {sel && (
             <div className="card">
               <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-                <div><strong>Planilla {String(sel.corrida.mes).padStart(2, '0')}/{sel.corrida.anio}</strong> <span className="muted">· {sel.corrida.tipo} · {sel.corrida.cant} empleados · <span className="badge" style={{ color: estadoColor(sel.corrida.estado) }}>{sel.corrida.estado}</span></span></div>
+                <div><strong>Planilla {String(sel.corrida.mes).padStart(2, '0')}/{sel.corrida.anio}</strong> <span className="muted">· {sel.corrida.tipo}{sel.corrida.correlativo > 1 ? ' #' + sel.corrida.correlativo : ''} · {sel.corrida.cant} empleados · <span className="badge" style={{ color: estadoColor(sel.corrida.estado) }}>{sel.corrida.estado}</span></span></div>
               </div>
               <div className="row" style={{ gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
                 {sel.corrida.estado === 'borrador' && <button className="btn" onClick={aprobar}>✓ Aprobar</button>}

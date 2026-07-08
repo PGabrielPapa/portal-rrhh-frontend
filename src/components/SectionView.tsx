@@ -74,6 +74,7 @@ import ValoresAux from '../pages/ValoresAux';
 import PlantillasLegajo from '../pages/PlantillasLegajo';
 import SimplificacionRegistral from '../pages/SimplificacionRegistral';
 import ModeloRecibo from '../pages/ModeloRecibo';
+import Agrupaciones from '../pages/Agrupaciones';
 import Elementos from '../pages/Elementos';
 import Beneficios from '../pages/Beneficios';
 import CambiosDomicilio from '../pages/CambiosDomicilio';
@@ -191,6 +192,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'plantillas-legajo': PlantillasLegajo,
   'simplificacion': SimplificacionRegistral,
   'modelo-recibo': ModeloRecibo,
+  'agrupaciones': Agrupaciones,
   'elementos-trabajo': Elementos,
   'beneficios': Beneficios,
   'cambios-domicilio': CambiosDomicilio,

@@ -61,6 +61,8 @@ export default function Empleados() {
   const [q, setQ] = useState('');
   const [empresa, setEmpresa] = useState('');
   const [soloActivos, setSoloActivos] = useState(false);
+  const [agrupacion, setAgrupacion] = useState('');
+  const [agrupaciones, setAgrupaciones] = useState<{ id: number; nombre: string }[]>([]);
   const navE = useNavigate();
   const [bajaEmp, setBajaEmp] = useState<Empleado | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,13 +78,15 @@ export default function Empleados() {
       if (q) params.set('q', q);
       if (empresa) params.set('empresa', empresa);
       if (soloActivos) params.set('activos', 'true');
+      if (agrupacion) params.set('agrupacion', agrupacion);
       const data = await api.get<Empleado[]>(`/empleados?${params.toString()}`);
       setItems(data);
       // Acumula las empresas vistas (nunca pierde opciones al filtrar y suma las nuevas, p.ej. tras importar).
       setEmpresas((prev) => [...new Set([...prev, ...data.map((e) => e.empresa)])].filter(Boolean).sort());
     } catch (e: any) { setMsg({ t: e.message, ok: false }); } finally { setLoading(false); }
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, empresa, soloActivos]);
+  useEffect(() => { if (canEdit) api.get<{ id: number; nombre: string }[]>('/agrupaciones').then(setAgrupaciones).catch(() => {}); }, [canEdit]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, empresa, soloActivos, agrupacion]);
 
   async function toggleActivo(emp: Empleado) {
     try { await api.patch(`/empleados/${emp.id}/activo`, { activo: !emp.activo }); load(); }
@@ -134,6 +138,12 @@ export default function Empleados() {
             <option value="">Todas las empresas</option>
             {empresas.map((em) => <option key={em} value={em}>{em}</option>)}
           </select>
+          {agrupaciones.length > 0 && (
+            <select className="input" style={{ maxWidth: 200 }} value={agrupacion} onChange={(e) => setAgrupacion(e.target.value)}>
+              <option value="">Todas las agrupaciones</option>
+              {agrupaciones.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+            </select>
+          )}
           <label className="row muted" style={{ gap: 6 }}>
             <input type="checkbox" checked={soloActivos} onChange={(e) => setSoloActivos(e.target.checked)} /> Solo activos
           </label>

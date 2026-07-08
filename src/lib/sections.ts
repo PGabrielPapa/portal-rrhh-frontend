@@ -58,6 +58,7 @@ export const GROUPS: Group[] = [
       { key: 'empleados', label: 'ABM Empleados', ready: true },
       { key: 'actualizacion-masiva', label: 'Actualización masiva de legajos', ready: true },
       { key: 'plantillas-legajo', label: 'Plantillas de legajo', ready: true },
+      { key: 'agrupaciones', label: 'Agrupaciones auxiliares', ready: true },
       { key: 'puestos', label: 'Puestos y estructura', ready: true },
       { key: 'legajo-docs', label: 'Legajo digital (documentos)', ready: true },
       { key: 'vacaciones', label: 'Vacaciones (saldos)', ready: true },
