@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { api } from '../lib/api';
+
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const money = (n: number) => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
 const fmtFecha = (s?: string | null) => { if (!s) return '—'; const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s); };
@@ -25,8 +28,16 @@ export interface Recibo {
 }
 
 export default function ReciboView({ recibo }: { recibo: Recibo }) {
+  const [modelo, setModelo] = useState<any>(null);
+  useEffect(() => { api.get<any>('/modelo-recibo').then(setModelo).catch(() => {}); }, []);
   return (
     <div>
+      {modelo && ((modelo.mostrar_logo && modelo.logo) || modelo.encabezado) && (
+        <div className="row" style={{ gap: 12, alignItems: 'center', marginBottom: 10, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
+          {modelo.mostrar_logo && modelo.logo && <img src={modelo.logo} alt="logo" style={{ maxHeight: 52, maxWidth: 180, objectFit: 'contain' }} />}
+          {modelo.encabezado && <div className="muted" style={{ whiteSpace: 'pre-line', fontSize: 12 }}>{modelo.encabezado}</div>}
+        </div>
+      )}
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div>
           <strong>{recibo.empleado.empresa}</strong>
@@ -93,6 +104,7 @@ export default function ReciboView({ recibo }: { recibo: Recibo }) {
       <CostoLaboralChart recibo={recibo} />
 
       {recibo.nota && <p className="muted" style={{ marginTop: 10 }}>⚠ {recibo.nota}</p>}
+      {modelo?.leyenda_pie && <p className="muted" style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid var(--border)', whiteSpace: 'pre-line', fontSize: 12 }}>{modelo.leyenda_pie}</p>}
     </div>
   );
 }

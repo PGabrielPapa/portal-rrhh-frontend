@@ -71,6 +71,9 @@ import ActualizacionMasiva from '../pages/ActualizacionMasiva';
 import CamposAdicionales from '../pages/CamposAdicionales';
 import CertServicios from '../pages/CertServicios';
 import ValoresAux from '../pages/ValoresAux';
+import PlantillasLegajo from '../pages/PlantillasLegajo';
+import SimplificacionRegistral from '../pages/SimplificacionRegistral';
+import ModeloRecibo from '../pages/ModeloRecibo';
 import Elementos from '../pages/Elementos';
 import Beneficios from '../pages/Beneficios';
 import CambiosDomicilio from '../pages/CambiosDomicilio';
@@ -185,6 +188,9 @@ const COMPONENTS: Record<string, ComponentType> = {
   'campos-adicionales': CamposAdicionales,
   'cert-servicios': CertServicios,
   'valores-aux': ValoresAux,
+  'plantillas-legajo': PlantillasLegajo,
+  'simplificacion': SimplificacionRegistral,
+  'modelo-recibo': ModeloRecibo,
   'elementos-trabajo': Elementos,
   'beneficios': Beneficios,
   'cambios-domicilio': CambiosDomicilio,

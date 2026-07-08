@@ -307,6 +307,9 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [centrosCO, setCentrosCO] = useState<{ id: number; codigo: string; denominacion: string }[]>([]);
   const [puestos, setPuestos] = useState<{ id: number; nombre: string; area?: string }[]>([]);
   const [camposAd, setCamposAd] = useState<any[]>([]);
+  const [plantillas, setPlantillas] = useState<any[]>([]);
+  useEffect(() => { if (esNueva) api.get<any[]>('/plantillas-legajo?activos=1').then(setPlantillas).catch(() => {}); }, []);
+  function aplicarPlantilla(id: string) { const p = plantillas.find((x) => String(x.id) === id); if (!p) return; setF((prev: any) => ({ ...prev, ...p.data })); }
   useEffect(() => { api.get<{ id: number; codigo: string; denominacion: string }[]>('/empleados/centros').then(setCentrosCO).catch(() => {}); }, []);
   useEffect(() => { api.get<{ id: number; nombre: string; area?: string }[]>('/puestos').then(setPuestos).catch(() => {}); }, []);
   useEffect(() => { if (centrosCO.length && !f.centroCodigo && f.lugar) { const c = centrosCO.find((x) => x.denominacion === f.lugar); if (c) setF((p) => ({ ...p, centroCodigo: c.codigo, centroId: String(c.id) })); } /* eslint-disable-next-line */ }, [centrosCO]);
@@ -401,6 +404,11 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     <div className="modal-bg" onClick={onClose}>
       <div className="modal" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: 760, maxHeight: '90vh', overflow: 'auto' }}>
         <h3 style={{ marginTop: 0 }}>{esNueva ? 'Nueva alta de empleado' : `Editar — ${e.nom}`}</h3>
+        {esNueva && plantillas.length > 0 && (
+          <div className="field" style={{ marginBottom: 10, maxWidth: 320 }}><label>Aplicar plantilla</label>
+            <select className="input" defaultValue="" onChange={(ev) => aplicarPlantilla(ev.target.value)}><option value="">— Ninguna —</option>{plantillas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select>
+          </div>
+        )}
 
         <div className="sb-group-label" style={{ margin: '4px 0 6px' }}>Identificación</div>
         <div className="row" style={{ gap: 14, alignItems: 'center', marginBottom: 12 }}>

@@ -39,6 +39,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'personas': { ico: '🧑‍🤝‍🧑', col: '99,102,241', desc: 'Base de personas: empleados, familiares, prestadores, postulantes y sus períodos' },
   'empleados': { ico: '👥', col: '61,127,255', desc: 'Alta, baja y modificación de empleados' },
   'actualizacion-masiva': { ico: '🗂️', col: '61,127,255', desc: 'Cambiá un mismo dato (obra social, convenio, sindicato, categoría, lugar…) a varios legajos a la vez' },
+  'plantillas-legajo': { ico: '🧾', col: '61,127,255', desc: 'Moldes con valores por defecto para dar de alta empleados más rápido' },
   'adelantos-rrhh': { ico: '💸', col: '61,127,255', desc: 'Otorgá/rechazá adelantos y definí las cuotas' },
   'liquidacion': { ico: '🧮', col: '61,200,160', desc: 'Liquidá haberes por tipo y corrida' },
   'controles-liq': { ico: '✅', col: '239,68,68', desc: 'Controles previos al cierre: netos negativos, aportes, tope SIPA, variaciones y faltantes' },
@@ -77,6 +78,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'bancos': { ico: '🏦', col: '61,200,160', desc: 'Archivos de acreditación bancaria' },
   'cbu-novedades': { ico: '🏦', col: '61,200,160', desc: 'Novedades y validación de CBU' },
   'ddjj-sindical': { ico: '🤝', col: '168,85,247', desc: 'Declaración jurada de aportes sindicales' },
+  'simplificacion': { ico: '🏛', col: '234,179,8', desc: 'Altas y bajas de personal del período para AFIP/ARCA (Simplificación Registral)' },
   'documentos': { ico: '✍️', col: '99,102,241', desc: 'Documentos firmados por el personal' },
   'cert-trabajo-rrhh': { ico: '📋', col: '99,102,241', desc: 'Emisión de certificados de trabajo' },
   'cert-servicios': { ico: '📃', col: '99,102,241', desc: 'Certificación de servicios y remuneraciones (ANSES PS.6.2) para el egreso' },
@@ -86,6 +88,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'sindicatos': { ico: '🤝', col: '168,85,247', desc: 'Sindicatos y convenios colectivos' },
   'reglamento': { ico: '📜', col: '92,104,128', desc: 'Reglamento y licencias especiales' },
   'campos-adicionales': { ico: '🏷️', col: '99,102,241', desc: 'Definí campos propios del legajo (talles, matrículas, etc.) para el ABM de Empleados' },
+  'modelo-recibo': { ico: '🧾', col: '92,104,128', desc: 'Encabezado, leyenda al pie y logo del recibo de haberes' },
   'cierre-periodos': { ico: '🔒', col: '239,68,68', desc: 'Cierre de períodos de liquidación' },
   'valores-legales': { ico: '🏛', col: '239,68,68', desc: 'Tope SIPA, SMVM, Seguro de Vida Obligatorio y FFEP versionados por vigencia (se verifican antes de cada corrida)' },
   // Administración

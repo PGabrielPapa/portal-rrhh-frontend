@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import EmpleadoPicker from '../components/EmpleadoPicker';
 
 interface Concepto { id: number; codigo: string; descripcion: string; tipo: string; formula?: string; base_legal?: string; activo: boolean; data?: any; }
 const FLAGS: [string, string][] = [['rem', 'Remunerativo'], ['incideSac', 'Incide SAC'], ['incidePresentismo', 'Incide presentismo'], ['incideAntiguedad', 'Incide antigüedad'], ['remAsignada', 'Rem. asignada'], ['saleRecibo', 'Sale en recibo'], ['libroLey', 'Libro ley'], ['f931', 'F.931'], ['boletaSindical', 'Boleta sindical']];
@@ -97,6 +98,13 @@ function ConceptoModal({ concepto, onClose, onSaved, onError }: { concepto: Conc
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
   const setD = (k: string) => (e: any) => setF({ ...f, data: { ...(f.data || {}), [k]: e.target.value } });
+  const TIPOS_LIQ: [string, string][] = [['mensual', 'Mensual'], ['quincenal_1', 'Quinc. 1'], ['quincenal_2', 'Quinc. 2'], ['sac1', 'SAC 1'], ['sac2', 'SAC 2'], ['vacaciones', 'Vacaciones'], ['final', 'Final'], ['complementaria', 'Extra. rem.'], ['extra_norem', 'Extra. no rem.']];
+  const dtipos: string[] = (f.data || {}).tipos || [];
+  const toggleTipo = (t: string) => setF({ ...f, data: { ...(f.data || {}), tipos: dtipos.includes(t) ? dtipos.filter((x: string) => x !== t) : [...dtipos, t] } });
+  const legs: number[] = ((f.data || {}).soloLegajos || []).map(Number);
+  const legsNom: any = (f.data || {}).soloLegajosNom || {};
+  const addLeg = (e: any) => { if (!e || legs.includes(e.id)) return; setF({ ...f, data: { ...(f.data || {}), soloLegajos: [...legs, e.id], soloLegajosNom: { ...legsNom, [e.id]: `${e.nom} (${e.legNum})` } } }); };
+  const rmLeg = (id: number) => setF({ ...f, data: { ...(f.data || {}), soloLegajos: legs.filter((x) => x !== id) } });
   const [vars, setVars] = useState<{ variables: { clave: string; desc: string }[]; funciones: string[] } | null>(null);
   const [ayuda, setAyuda] = useState(false);
   const [prueba, setPrueba] = useState<any>(null);
@@ -152,6 +160,19 @@ function ConceptoModal({ concepto, onClose, onSaved, onError }: { concepto: Conc
               <div className="field"><label>Sindicato (código, vacío = todos)</label><input className="input" value={(f.data || {}).alcanceSindicato || ''} onChange={setD('alcanceSindicato')} /></div>
               <div className="field"><label>Vigencia desde (AAAA-MM)</label><input className="input" value={(f.data || {}).desde || ''} onChange={setD('desde')} placeholder="2026-01" /></div>
               <div className="field"><label>Vigencia hasta (AAAA-MM)</label><input className="input" value={(f.data || {}).hasta || ''} onChange={setD('hasta')} placeholder="2026-12" /></div>
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <label className="muted" style={{ fontSize: 12 }}>Aplica en los tipos de liquidación (vacío = mensual y quincena)</label>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                {TIPOS_LIQ.map(([v, l]) => <label key={v} className="row" style={{ gap: 4, cursor: 'pointer', fontSize: 12 }}><input type="checkbox" checked={dtipos.includes(v)} onChange={() => toggleTipo(v)} /> {l}</label>)}
+              </div>
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <label className="muted" style={{ fontSize: 12 }}>Solo estos legajos (vacío = todos los del alcance)</label>
+              <EmpleadoPicker onSelect={addLeg} />
+              <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                {legs.map((id) => <span key={id} className="badge" style={{ cursor: 'pointer' }} onClick={() => rmLeg(id)} title="Quitar">{legsNom[id] || id} ✕</span>)}
+              </div>
             </div>
           </details>
         )}
