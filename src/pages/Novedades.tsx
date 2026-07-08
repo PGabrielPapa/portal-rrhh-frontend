@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 
 interface Tipo { tipo: string; label: string; unidad: string }
 interface Nov { id: number; nom: string; legNum: string; empresa: string; tipo: string; tipoLabel: string; unidad: string; cantidad: number; monto: number; detalle?: string }
+interface Tope { tipo: string; label: string; unidad: string; periodo: string; topeCantidad: number; topeMonto: number; bloquear: boolean }
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const $ = (n: number) => (n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 });
 
@@ -15,8 +16,13 @@ export default function Novedades() {
   const [items, setItems] = useState<Nov[]>([]);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [showTopes, setShowTopes] = useState(false);
+  const [topes, setTopes] = useState<Tope[]>([]);
 
   useEffect(() => { api.get<Tipo[]>('/novedades/_tipos').then(setTipos).catch(() => {}); }, []);
+  useEffect(() => { api.get<Tope[]>('/novedades/topes').then(setTopes).catch(() => {}); }, []);
+  function setTope(tipo: string, patch: Partial<Tope>) { setTopes((ts) => ts.map((t) => t.tipo === tipo ? { ...t, ...patch } : t)); }
+  async function saveTopes() { try { await api.put('/novedades/topes', { topes }); setMsg({ t: 'Topes guardados.', ok: true }); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   async function load() { try { setItems(await api.get<Nov[]>(`/novedades?anio=${anio}&mes=${mes}`)); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [anio, mes]);
 
@@ -36,8 +42,9 @@ export default function Novedades() {
       const hdr = (aoa[0] || []).map((h) => String(h).trim());
       const rows = aoa.slice(1).filter((r) => r.some((c) => String(c).trim())).map((r) => Object.fromEntries(hdr.map((h, j) => [h, String(r[j] ?? '').trim()])));
       const reemplazar = confirm('¿Reemplazar las novedades importadas por Excel de este período? (Aceptar = reemplaza · Cancelar = agrega)');
-      const res = await api.post<{ importadas: number; errores: string[] }>('/novedades/import', { anio, mes, reemplazar, rows });
-      setMsg({ t: `Importadas ${res.importadas}.${res.errores.length ? ' Errores: ' + res.errores.slice(0, 4).join(' · ') + (res.errores.length > 4 ? '…' : '') : ''}`, ok: res.importadas > 0 });
+      const res = await api.post<{ importadas: number; errores: string[]; avisos?: string[] }>('/novedades/import', { anio, mes, reemplazar, rows });
+      const av = res.avisos && res.avisos.length ? ' Avisos: ' + res.avisos.slice(0, 3).join(' · ') + (res.avisos.length > 3 ? '…' : '') : '';
+      setMsg({ t: `Importadas ${res.importadas}.${res.errores.length ? ' Errores: ' + res.errores.slice(0, 4).join(' · ') + (res.errores.length > 4 ? '…' : '') : ''}${av}`, ok: res.importadas > 0 });
       load();
     } catch (err: any) { setMsg({ t: 'No se pudo procesar: ' + err.message, ok: false }); }
   }
@@ -60,10 +67,41 @@ export default function Novedades() {
           <button className="btn" onClick={() => fileRef.current?.click()}>⬆ Importar Excel</button>
           <button className="btn ghost" onClick={plantilla}>⬇ Plantilla</button>
           <button className="btn ghost" onClick={desdeFichadas}>↳ Generar desde fichadas (autorizadas)</button>
+          <button className="btn ghost" onClick={() => setShowTopes((v) => !v)}>⚙ Topes de novedades</button>
         </div>
         {msg && <p className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 0 }}>{msg.t}</p>}
       </div>
 
+      {showTopes && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <h3 style={{ marginTop: 0 }}>Topes por novedad</h3>
+          <p className="muted" style={{ marginTop: 0 }}>Controlan el acumulado por legajo en el período elegido. Tope 0 = sin control. "Bloquear" rechaza la carga; si está destildado, solo avisa.</p>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr style={{ background: 'var(--bg2)' }}>{['Concepto', 'Período', 'Tope', 'Bloquear'].map((h, i) => <th key={i} style={{ padding: '6px 8px', textAlign: 'left', borderBottom: '2px solid var(--border)' }}>{h}</th>)}</tr></thead>
+              <tbody>
+                {topes.map((t) => (
+                  <tr key={t.tipo}>
+                    <td style={{ padding: '4px 8px' }}>{t.label} <span className="muted">({t.unidad === 'cantidad' ? 'cantidad' : 'monto'})</span></td>
+                    <td style={{ padding: '4px 8px' }}>
+                      <select className="input" value={t.periodo} onChange={(e) => setTope(t.tipo, { periodo: e.target.value })}>
+                        <option value="anual">Anual</option><option value="semestral">Semestral</option><option value="mensual">Mensual</option>
+                      </select>
+                    </td>
+                    <td style={{ padding: '4px 8px' }}>
+                      {t.unidad === 'cantidad'
+                        ? <input className="input" type="number" style={{ width: 120 }} value={t.topeCantidad} onChange={(e) => setTope(t.tipo, { topeCantidad: Number(e.target.value) })} />
+                        : <input className="input" type="number" style={{ width: 140 }} value={t.topeMonto} onChange={(e) => setTope(t.tipo, { topeMonto: Number(e.target.value) })} />}
+                    </td>
+                    <td style={{ padding: '4px 8px' }}><input type="checkbox" checked={t.bloquear} onChange={(e) => setTope(t.tipo, { bloquear: e.target.checked })} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: 10 }}><button className="btn primary" onClick={saveTopes}>Guardar topes</button></div>
+        </div>
+      )}
       <h3 style={{ margin: '0 0 8px' }}>Novedades {MESES[mes]} {anio} <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>({items.length})</span></h3>
       {!items.length && <p className="muted">No hay novedades cargadas para el período.</p>}
       {items.length > 0 && (
