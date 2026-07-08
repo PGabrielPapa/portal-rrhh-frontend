@@ -300,11 +300,13 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const { user: _u } = useAuth();
   const [esAdmin, setEsAdmin] = useState<boolean>((e as any).role === 'admin');
   const [confidencial, setConfidencial] = useState<boolean>((e as any).confidencial === true);
+  useEffect(() => { api.get<any[]>('/campos?entidad=empleado&activos=1').then((defs) => { setCamposAd(defs); setF((prev) => { const base: any = {}; for (const d of defs) if (prev[d.clave] === undefined) base[d.clave] = String((e as any)[d.clave] ?? ''); return { ...base, ...prev }; }); }).catch(() => {}); }, []);
   const [verConf, setVerConf] = useState<boolean>((e as any).verConfidenciales === true || (e as any).verConfidenciales === 'true');
   const [lugHist, setLugHist] = useState<any[]>([]);
   const [cambHist, setCambHist] = useState<any[]>([]);
   const [centrosCO, setCentrosCO] = useState<{ id: number; codigo: string; denominacion: string }[]>([]);
   const [puestos, setPuestos] = useState<{ id: number; nombre: string; area?: string }[]>([]);
+  const [camposAd, setCamposAd] = useState<any[]>([]);
   useEffect(() => { api.get<{ id: number; codigo: string; denominacion: string }[]>('/empleados/centros').then(setCentrosCO).catch(() => {}); }, []);
   useEffect(() => { api.get<{ id: number; nombre: string; area?: string }[]>('/puestos').then(setPuestos).catch(() => {}); }, []);
   useEffect(() => { if (centrosCO.length && !f.centroCodigo && f.lugar) { const c = centrosCO.find((x) => x.denominacion === f.lugar); if (c) setF((p) => ({ ...p, centroCodigo: c.codigo, centroId: String(c.id) })); } /* eslint-disable-next-line */ }, [centrosCO]);
@@ -453,6 +455,19 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <F k="tel_laboral" label="Teléfono laboral" f={f} set={set} />
           <F k="tel_personal" label="Teléfono personal" f={f} set={set} />
         </div>
+        {camposAd.length > 0 && (<>
+          <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Campos adicionales</div>
+          <div className="grid2">
+            {camposAd.map((c) => (
+              <div className="field" key={c.id}>
+                <label>{c.etiqueta}</label>
+                {c.tipo === 'lista'
+                  ? <select className="input" value={f[c.clave] ?? ''} onChange={set(c.clave)}><option value="">—</option>{(c.opciones || []).map((o: string) => <option key={o} value={o}>{o}</option>)}</select>
+                  : <input className="input" type={c.tipo === 'numero' ? 'number' : c.tipo === 'fecha' ? 'date' : 'text'} value={f[c.clave] ?? ''} onChange={set(c.clave)} />}
+              </div>
+            ))}
+          </div>
+        </>)}
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Persona de contacto (emergencia)</div>
         <div className="grid2">

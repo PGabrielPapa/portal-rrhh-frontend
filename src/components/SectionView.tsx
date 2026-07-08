@@ -68,6 +68,7 @@ import AdminEmpresas from '../pages/AdminEmpresas';
 import CentrosOperaciones from '../pages/CentrosOperaciones';
 import Puestos from '../pages/Puestos';
 import ActualizacionMasiva from '../pages/ActualizacionMasiva';
+import CamposAdicionales from '../pages/CamposAdicionales';
 import Elementos from '../pages/Elementos';
 import Beneficios from '../pages/Beneficios';
 import CambiosDomicilio from '../pages/CambiosDomicilio';
@@ -179,6 +180,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'centros-operaciones': CentrosOperaciones,
   'puestos': Puestos,
   'actualizacion-masiva': ActualizacionMasiva,
+  'campos-adicionales': CamposAdicionales,
   'elementos-trabajo': Elementos,
   'beneficios': Beneficios,
   'cambios-domicilio': CambiosDomicilio,

@@ -83,6 +83,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'art-empresas': { ico: '🛡', col: '245,158,11', desc: 'Contratos de ART por empresa' },
   'sindicatos': { ico: '🤝', col: '168,85,247', desc: 'Sindicatos y convenios colectivos' },
   'reglamento': { ico: '📜', col: '92,104,128', desc: 'Reglamento y licencias especiales' },
+  'campos-adicionales': { ico: '🏷️', col: '99,102,241', desc: 'Definí campos propios del legajo (talles, matrículas, etc.) para el ABM de Empleados' },
   'cierre-periodos': { ico: '🔒', col: '239,68,68', desc: 'Cierre de períodos de liquidación' },
   'valores-legales': { ico: '🏛', col: '239,68,68', desc: 'Tope SIPA, SMVM, Seguro de Vida Obligatorio y FFEP versionados por vigencia (se verifican antes de cada corrida)' },
   // Administración
