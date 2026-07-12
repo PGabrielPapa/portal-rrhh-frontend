@@ -18,6 +18,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'licencias-equipo': { ico: '🏖', col: '34,197,94', desc: 'Licencias y vacaciones de tu equipo' },
   'organigrama': { ico: '🗂', col: '61,127,255', desc: 'Estructura y personas a cargo' },
   'puestos': { ico: '🧩', col: '61,127,255', desc: 'Estructura por puesto: quién reporta a quién y ocupantes de cada puesto' },
+  'descripcion-puestos': { ico: '📝', col: '61,127,255', desc: 'Perfil de cada puesto: misión, funciones, requisitos y competencias' },
   'costo-equipo': { ico: '💰', col: '34,197,94', desc: 'Costo laboral de tus empleados a cargo' },
   'datos-equipo': { ico: '🪪', col: '61,127,255', desc: 'Datos personales y de contacto de tu equipo' },
   // Comité de Higiene y Seguridad
@@ -37,6 +38,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'evaluaciones-equipo': { ico: '📈', col: '94,194,255', desc: 'Evaluá el desempeño de tu equipo' },
   // RR.HH.
   'personas': { ico: '🧑‍🤝‍🧑', col: '99,102,241', desc: 'Base de personas: empleados, familiares, prestadores, postulantes y sus períodos' },
+  'reclutamiento': { ico: '🎯', col: '99,102,241', desc: 'Búsquedas y candidatos: postulado → entrevista → oferta → contratado' },
   'empleados': { ico: '👥', col: '61,127,255', desc: 'Alta, baja y modificación de empleados' },
   'actualizacion-masiva': { ico: '🗂️', col: '61,127,255', desc: 'Cambiá un mismo dato (obra social, convenio, sindicato, categoría, lugar…) a varios legajos a la vez' },
   'plantillas-legajo': { ico: '🧾', col: '61,127,255', desc: 'Moldes con valores por defecto para dar de alta empleados más rápido' },

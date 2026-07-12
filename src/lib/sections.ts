@@ -55,11 +55,13 @@ export const GROUPS: Group[] = [
     panel: 'RRHH — Personal y legajos', roles: ['rrhh', 'admin'],
     items: [
       { key: 'personas', label: 'Personas (base)', ready: true },
+      { key: 'reclutamiento', label: 'Reclutamiento / Selección', ready: true },
       { key: 'empleados', label: 'ABM Empleados', ready: true },
       { key: 'actualizacion-masiva', label: 'Actualización masiva de legajos', ready: true },
       { key: 'plantillas-legajo', label: 'Plantillas de legajo', ready: true },
       { key: 'agrupaciones', label: 'Agrupaciones auxiliares', ready: true },
       { key: 'puestos', label: 'Puestos y estructura', ready: true },
+      { key: 'descripcion-puestos', label: 'Descripción de puestos', ready: true },
       { key: 'legajo-docs', label: 'Legajo digital (documentos)', ready: true },
       { key: 'vacaciones', label: 'Vacaciones (saldos)', ready: true },
       { key: 'licencias-rrhh', ready: true, label: 'Licencias (gestión)' },

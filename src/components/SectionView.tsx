@@ -67,6 +67,8 @@ import AdminAuditoria from '../pages/AdminAuditoria';
 import AdminEmpresas from '../pages/AdminEmpresas';
 import CentrosOperaciones from '../pages/CentrosOperaciones';
 import Puestos from '../pages/Puestos';
+import DescripcionPuestos from '../pages/DescripcionPuestos';
+import Reclutamiento from '../pages/Reclutamiento';
 import ActualizacionMasiva from '../pages/ActualizacionMasiva';
 import CamposAdicionales from '../pages/CamposAdicionales';
 import CertServicios from '../pages/CertServicios';
@@ -185,6 +187,8 @@ const COMPONENTS: Record<string, ComponentType> = {
   'admin-empresas': AdminEmpresas,
   'centros-operaciones': CentrosOperaciones,
   'puestos': Puestos,
+  'descripcion-puestos': DescripcionPuestos,
+  'reclutamiento': Reclutamiento,
   'actualizacion-masiva': ActualizacionMasiva,
   'campos-adicionales': CamposAdicionales,
   'cert-servicios': CertServicios,
