@@ -71,6 +71,9 @@ import DescripcionPuestos from '../pages/DescripcionPuestos';
 import Reclutamiento from '../pages/Reclutamiento';
 import Desempeno9box from '../pages/Desempeno9box';
 import Onboarding from '../pages/Onboarding';
+import Formacion from '../pages/Formacion';
+import EncuestasRRHH from '../pages/EncuestasRRHH';
+import MisEncuestas from '../pages/MisEncuestas';
 import Sucesion from '../pages/Sucesion';
 import ActualizacionMasiva from '../pages/ActualizacionMasiva';
 import CamposAdicionales from '../pages/CamposAdicionales';
@@ -194,6 +197,9 @@ const COMPONENTS: Record<string, ComponentType> = {
   'reclutamiento': Reclutamiento,
   'desempeno-9box': Desempeno9box,
   'onboarding': Onboarding,
+  'formacion': Formacion,
+  'encuestas-rrhh': EncuestasRRHH,
+  'mis-encuestas': MisEncuestas,
   'sucesion': Sucesion,
   'actualizacion-masiva': ActualizacionMasiva,
   'campos-adicionales': CamposAdicionales,

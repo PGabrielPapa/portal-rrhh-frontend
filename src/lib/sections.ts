@@ -18,6 +18,7 @@ export const GROUPS: Group[] = [
       { key: 'mis-licencias', ready: true, label: 'Mis licencias' },
       { key: 'justificar-licencia', ready: true, label: 'Justificación de licencias' },
       { key: 'mensajes', label: 'Mensajes', ready: true },
+      { key: 'mis-encuestas', label: 'Encuestas', ready: true },
       { key: 'mis-cbus', label: 'Mis CBUs', ready: true },
       { key: 'cert-trabajo', label: 'Certificado de trabajo', ready: true },
       { key: 'mis-sanciones', label: 'Mis sanciones', ready: true },
@@ -49,6 +50,7 @@ export const GROUPS: Group[] = [
       { key: 'alertas', label: 'Alertas de vencimientos', ready: true },
       { key: 'controles-liq', label: 'Controles de liquidación', ready: true },
       { key: 'reportes', label: 'Generador de reportes', ready: true },
+      { key: 'encuestas-rrhh', label: 'Encuestas de clima', ready: true },
     ],
   },
   {
@@ -69,6 +71,7 @@ export const GROUPS: Group[] = [
       { key: 'evaluaciones', label: 'Evaluaciones de desempeño', ready: true },
       { key: 'desempeno-9box', label: 'Desempeño / 9-box', ready: true },
       { key: 'onboarding', label: 'Onboarding', ready: true },
+      { key: 'formacion', label: 'Formación / Capacitación', ready: true },
       { key: 'sucesion', label: 'Planes de sucesión', ready: true },
       { key: 'beneficios', label: 'Beneficios', ready: true },
       { key: 'elementos-trabajo', label: 'Elementos de trabajo', ready: true },
