@@ -69,6 +69,9 @@ import CentrosOperaciones from '../pages/CentrosOperaciones';
 import Puestos from '../pages/Puestos';
 import DescripcionPuestos from '../pages/DescripcionPuestos';
 import Reclutamiento from '../pages/Reclutamiento';
+import Desempeno9box from '../pages/Desempeno9box';
+import Onboarding from '../pages/Onboarding';
+import Sucesion from '../pages/Sucesion';
 import ActualizacionMasiva from '../pages/ActualizacionMasiva';
 import CamposAdicionales from '../pages/CamposAdicionales';
 import CertServicios from '../pages/CertServicios';
@@ -189,6 +192,9 @@ const COMPONENTS: Record<string, ComponentType> = {
   'puestos': Puestos,
   'descripcion-puestos': DescripcionPuestos,
   'reclutamiento': Reclutamiento,
+  'desempeno-9box': Desempeno9box,
+  'onboarding': Onboarding,
+  'sucesion': Sucesion,
   'actualizacion-masiva': ActualizacionMasiva,
   'campos-adicionales': CamposAdicionales,
   'cert-servicios': CertServicios,
