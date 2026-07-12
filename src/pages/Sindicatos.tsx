@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HistorialConfig from '../components/HistorialConfig';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
@@ -106,6 +107,7 @@ export default function Sindicatos() {
           </tbody>
         </table>
       </div>
+      <HistorialConfig modulo="sindicatos" />
     </>
   );
 }

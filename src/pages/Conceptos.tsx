@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import HistorialConfig from '../components/HistorialConfig';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import EmpleadoPicker from '../components/EmpleadoPicker';
@@ -89,6 +90,7 @@ export default function Conceptos() {
       <p className="muted" style={{ marginTop: 10 }}>{items.length} concepto(s)</p>
 
       {(showNew || edit) && <ConceptoModal concepto={edit} onClose={() => { setShowNew(false); setEdit(null); }} onSaved={() => { setShowNew(false); setEdit(null); load(); }} onError={setErr} />}
+      <HistorialConfig modulo="conceptos" />
     </>
   );
 }
