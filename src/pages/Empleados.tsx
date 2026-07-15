@@ -315,13 +315,13 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [lugHist, setLugHist] = useState<any[]>([]);
   const [cambHist, setCambHist] = useState<any[]>([]);
   const [centrosCO, setCentrosCO] = useState<{ id: number; codigo: string; denominacion: string }[]>([]);
-  const [puestos, setPuestos] = useState<{ id: number; nombre: string; area?: string }[]>([]);
+  const [puestos, setPuestos] = useState<{ id: number; nombre: string; area?: string; reporta_a?: number | null; reporta_nombre?: string | null }[]>([]);
   const [camposAd, setCamposAd] = useState<any[]>([]);
   const [plantillas, setPlantillas] = useState<any[]>([]);
   useEffect(() => { if (esNueva) api.get<any[]>('/plantillas-legajo?activos=1').then(setPlantillas).catch(() => {}); }, []);
   function aplicarPlantilla(id: string) { const p = plantillas.find((x) => String(x.id) === id); if (!p) return; setF((prev: any) => ({ ...prev, ...p.data })); }
   useEffect(() => { api.get<{ id: number; codigo: string; denominacion: string }[]>('/empleados/centros').then(setCentrosCO).catch(() => {}); }, []);
-  useEffect(() => { api.get<{ id: number; nombre: string; area?: string }[]>('/puestos').then(setPuestos).catch(() => {}); }, []);
+  useEffect(() => { api.get<{ id: number; nombre: string; area?: string; reporta_a?: number | null; reporta_nombre?: string | null }[]>('/puestos').then(setPuestos).catch(() => {}); }, []);
   useEffect(() => { if (centrosCO.length && !f.centroCodigo && f.lugar) { const c = centrosCO.find((x) => x.denominacion === f.lugar); if (c) setF((p) => ({ ...p, centroCodigo: c.codigo, centroId: String(c.id) })); } /* eslint-disable-next-line */ }, [centrosCO]);
   useEffect(() => { const id = (emp as any)?.id; if (id) { api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); api.get<any[]>(`/empleados/${id}/cambios`).then(setCambHist).catch(() => {}); } }, [emp]);
   const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
@@ -510,6 +510,15 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
               <option value="">— Sin puesto asignado —</option>
               {puestos.map((p) => <option key={p.id} value={p.id}>{p.nombre}{p.area ? ` · ${p.area}` : ''}</option>)}
             </select>
+          </div>
+          <div className="field"><label>Depende de (según organigrama)</label>
+            <input className="input" readOnly style={{ opacity: .85 }}
+              value={(() => {
+                if (!f.puestoId) return '— Asigná un puesto para definir la dependencia —';
+                const p = puestos.find((x) => String(x.id) === String(f.puestoId));
+                return p?.reporta_nombre ? `Reporta a: ${p.reporta_nombre}` : 'Puesto raíz (sin superior)';
+              })()} />
+            <div className="muted" style={{ fontSize: 11 }}>Se define automáticamente por el <b>puesto</b>: el equipo y las aprobaciones (fichadas, licencias, etc.) cuelgan de la cadena del organigrama. Para cambiar la dependencia, elegí otro puesto o ajustá el “reporta a” en Puestos/Organigrama.</div>
           </div>
           <div className="field"><label>Jornada (art. 92 ter LCT)</label>
             <select className="input" value={f.jornadaParcial || ''} onChange={set('jornadaParcial')}><option value="">Jornada completa</option><option value="si">Tiempo parcial</option></select>
