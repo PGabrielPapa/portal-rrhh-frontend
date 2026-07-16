@@ -111,6 +111,9 @@ function ConceptoModal({ concepto, onClose, onSaved, onError }: { concepto: Conc
   const [ayuda, setAyuda] = useState(false);
   const [prueba, setPrueba] = useState<any>(null);
   const BASES: [string, string][] = [['rem', 'Remunerativo (con aportes)'], ['norem', 'No remunerativo'], ['exento', 'Exento de Ganancias'], ['descuento', 'Descuento']];
+  const MOTIVOS_EGRESO: [string, string][] = [['renuncia', 'Renuncia'], ['sin_causa', 'Despido sin causa'], ['despido_indirecto', 'Despido indirecto'], ['fin_contrato', 'Fin de contrato'], ['fallecimiento', 'Fallecimiento'], ['fuerza_mayor', 'Fuerza mayor'], ['incapacidad_parcial', 'Incapacidad parcial'], ['incapacidad_absoluta', 'Incapacidad absoluta'], ['prueba', 'Período de prueba'], ['mutuo_acuerdo', 'Mutuo acuerdo']];
+  const dmotivos: string[] = (f.data || {}).motivosEgreso || [];
+  const toggleMotivo = (m: string) => setF({ ...f, data: { ...(f.data || {}), motivosEgreso: dmotivos.includes(m) ? dmotivos.filter((x: string) => x !== m) : [...dmotivos, m] } });
   useEffect(() => { api.get<any>('/conceptos/variables').then(setVars).catch(() => {}); }, []);
   async function probar() {
     setPrueba(null);
@@ -152,6 +155,26 @@ function ConceptoModal({ concepto, onClose, onSaved, onError }: { concepto: Conc
             </div>
             <div className="field"><label>Condición (opcional) — si da 0, no aplica</label><input className="input" value={(f.data || {}).condicion || ''} onChange={setD('condicion')} placeholder="Ej: anios >= 1" /></div>
           </div>
+        )}
+        {f.formula && (
+          <details style={{ marginTop: 10 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13 }}>Fórmula en 3 partes (cantidad × valor) — opcional</summary>
+            <div className="grid2" style={{ marginTop: 8 }}>
+              <div className="field"><label>Cantidad (fórmula)</label><input className="input" value={(f.data || {}).cantidad || ''} onChange={setD('cantidad')} placeholder="Ej: he50" /></div>
+              <div className="field"><label>Valor unitario (fórmula)</label><input className="input" value={(f.data || {}).valorUnit || ''} onChange={setD('valorUnit')} placeholder="Ej: (basico/200)*1.5" /></div>
+              <div className="field"><label>Unidad (opcional)</label><input className="input" value={(f.data || {}).unidad || ''} onChange={setD('unidad')} placeholder="hs, días…" /></div>
+            </div>
+            <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Si completás cantidad y valor, el importe = cantidad × valor y el recibo muestra las tres columnas. Si no, se usa la fórmula de arriba (un solo importe).</div>
+          </details>
+        )}
+        {f.formula && (
+          <details style={{ marginTop: 10 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13 }}>Conceptos por motivo de egreso — opcional</summary>
+            <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Si elegís motivos, este concepto se aplica SOLO en la liquidación final y solo cuando el egreso es por alguno de esos motivos.</div>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+              {MOTIVOS_EGRESO.map(([v, l]) => <label key={v} className="row" style={{ gap: 4, cursor: 'pointer', fontSize: 12 }}><input type="checkbox" checked={dmotivos.includes(v)} onChange={() => toggleMotivo(v)} /> {l}</label>)}
+            </div>
+          </details>
         )}
         {f.formula && (
           <details style={{ marginTop: 10 }}>

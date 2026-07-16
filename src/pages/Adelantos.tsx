@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import MiBanner from '../components/MiBanner';
+import FlujoAdelanto from '../components/FlujoAdelanto';
 
 interface Anticipo { id: number; monto: number; motivo?: string; cuotas: number; cuota_desde?: string; cuotas_pagadas?: number; total_pagado?: number; bruto?: number; ultimo_neto?: number; estado: string; created_at: string; nom?: string; leg_num?: string; empresa?: string; resuelto_por?: string; recomendacion?: string; recomendado_por?: string; }
 interface Cuota { nro: number; anio: number; mes: number; monto: number; }
@@ -175,6 +176,9 @@ export default function Adelantos() {
                     : <span className="muted" style={{ fontSize: 12 }}>{a.resuelto_por ? `por ${a.resuelto_por}` : ''}</span>}
                 </td>}
               </tr>,
+              a.estado === 'pendiente' && (
+                <tr key={`f${a.id}`}><td colSpan={12} style={{ padding: '0 10px 10px' }}><FlujoAdelanto anticipoId={a.id} onResuelto={load} /></td></tr>
+              ),
               verCuotas === a.id && (
                 <tr key={`c${a.id}`}>
                   <td colSpan={puedeAprobar ? 11 : 6} style={{ background: 'var(--bg2)', padding: '8px 14px' }}>

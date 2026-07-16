@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api, fetchBlob } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import EmpleadoPicker from '../components/EmpleadoPicker';
+import FlujoAprobacion from '../components/FlujoAprobacion';
 
 interface S { id: number; tipo: string; falta?: string; fecha: string; dias: number; descripcion?: string; estado?: string; fecha_notificacion?: string; fecha_cumplimiento?: string; nom?: string; leg_num?: string; empresa?: string; created_by?: string; resuelto_por?: string; tiene_notif?: boolean; notif_nombre?: string; }
 const TIPOS = ['Llamado de atención', 'Apercibimiento', 'Severo apercibimiento', 'Suspensión', 'Desvinculación'];
@@ -135,14 +136,17 @@ export default function Sanciones() {
               <table>
                 <thead><tr><th>Empleado</th><th>Tipo</th><th>Falta</th><th>Hecho</th><th>Estado</th><th>Comprobante</th><th></th></tr></thead>
                 <tbody>
-                  {rows.map((s) => (
+                  {rows.map((s) => ([
                     <tr key={s.id}>
                       <td>{s.nom} <span className="muted">({s.leg_num})</span></td>
                       <td>{s.tipo}</td><td>{s.falta || '—'}</td><td>{fmt(s.fecha)}</td>
                       <td><span className="badge" style={{ color: colorEstado(s.estado) }}>{s.estado || 'solicitada'}</span></td>
                       <td>{s.tiene_notif ? <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => descargarNotif(s)}>⬇ Notificación</button> : <span className="muted">—</span>}</td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => borrar(s)}>🗑 Borrar</button></td>
-                    </tr>))}
+                    </tr>,
+                    (s.estado || 'solicitada') === 'solicitada' && (
+                      <tr key={`f${s.id}`}><td colSpan={7} style={{ padding: '0 12px 10px' }}><FlujoAprobacion base="/sanciones" id={s.id} onResuelto={load} /></td></tr>
+                    )]))}
                   {!rows.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 14 }}>Sin {tit.toLowerCase()}.</td></tr>}
                 </tbody>
               </table>
@@ -154,7 +158,7 @@ export default function Sanciones() {
         <table>
           <thead><tr>{!modoMias && <th>Empleado</th>}{esRRHH && <th>Empresa</th>}<th>Tipo</th><th>Falta</th><th>Hecho</th><th>Estado</th>{!esRRHH && <th>Comprobante</th>}{esRRHH && <th>Notificación</th>}{esRRHH && <th>Cumplimiento</th>}{esRRHH && <th></th>}</tr></thead>
           <tbody>
-            {items.map((s) => (
+            {items.map((s) => ([
               <tr key={s.id}>
                 {!modoMias && <td>{s.nom} <span className="muted">({s.leg_num})</span></td>}{esRRHH && <td>{s.empresa}</td>}
                 <td>{s.tipo}</td><td>{s.falta || '—'}</td><td>{fmt(s.fecha)}</td>
@@ -178,8 +182,11 @@ export default function Sanciones() {
                     {!s.fecha_notificacion && <button className="btn" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => comunicar(s)}>📧 Comunicar</button>}
                   </> : null}
                 </td>}
-              </tr>
-            ))}
+              </tr>,
+              (!modoMias && (s.estado || 'solicitada') === 'solicitada') && (
+                <tr key={`f${s.id}`}><td colSpan={esRRHH ? 10 : 7} style={{ padding: '0 12px 10px' }}><FlujoAprobacion base="/sanciones" id={s.id} onResuelto={load} /></td></tr>
+              )
+            ]))}
             {!items.length && <tr><td className="muted" style={{ textAlign: 'center', padding: 20 }} colSpan={modoMias ? 6 : (esRRHH ? 10 : 7)}>Sin sanciones.</td></tr>}
           </tbody>
         </table>

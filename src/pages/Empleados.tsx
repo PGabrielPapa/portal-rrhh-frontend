@@ -298,6 +298,8 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
       puestoId: e.puestoId != null ? String(e.puestoId) : '',
       jornadaParcial: (e.jornadaParcial === true || e.jornadaParcial === 'si') ? 'si' : '', remFullTime: e.remFullTime != null ? String(e.remFullTime) : '',
       cod_convenio: e.cod_convenio || '', cod_sindicato: e.cod_sindicato || '', categoria_convenio: e.categoria_convenio || '',
+      modalidadId: (e as any).modalidadId != null ? String((e as any).modalidadId) : '',
+      unidadId: (e as any).unidadId != null ? String((e as any).unidadId) : '',
       basico: e.basico ?? '', antiguedad_monto: e.antiguedad_monto ?? '', complemento: e.complemento ?? '', norem: e.norem ?? '', sueldo: e.sueldo ?? '',
       bruto: e.bruto != null ? String(e.bruto) : '', neto: e.neto != null ? String(e.neto) : '',
       dom_calle: e.dom_calle || '', dom_nro: e.dom_nro || '', dom_piso: e.dom_piso || '', dom_depto: e.dom_depto || '', dom_torre: e.dom_torre || '', dom_bloque: e.dom_bloque || '', dom_loc: e.dom_loc || '', dom_cp: e.dom_cp || '', dom_prov: e.dom_prov || '',
@@ -322,6 +324,10 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   function aplicarPlantilla(id: string) { const p = plantillas.find((x) => String(x.id) === id); if (!p) return; setF((prev: any) => ({ ...prev, ...p.data })); }
   useEffect(() => { api.get<{ id: number; codigo: string; denominacion: string }[]>('/empleados/centros').then(setCentrosCO).catch(() => {}); }, []);
   useEffect(() => { api.get<{ id: number; nombre: string; area?: string; reporta_a?: number | null; reporta_nombre?: string | null }[]>('/puestos').then(setPuestos).catch(() => {}); }, []);
+  const [modalidades, setModalidades] = useState<{ id: number; nombre: string }[]>([]);
+  useEffect(() => { api.get<{ id: number; nombre: string }[]>('/modalidades').then(setModalidades).catch(() => {}); }, []);
+  const [unidades, setUnidades] = useState<{ id: number; nombre: string }[]>([]);
+  useEffect(() => { api.get<{ id: number; nombre: string }[]>('/unidades').then(setUnidades).catch(() => {}); }, []);
   useEffect(() => { if (centrosCO.length && !f.centroCodigo && f.lugar) { const c = centrosCO.find((x) => x.denominacion === f.lugar); if (c) setF((p) => ({ ...p, centroCodigo: c.codigo, centroId: String(c.id) })); } /* eslint-disable-next-line */ }, [centrosCO]);
   useEffect(() => { const id = (emp as any)?.id; if (id) { api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); api.get<any[]>(`/empleados/${id}/cambios`).then(setCambHist).catch(() => {}); } }, [emp]);
   const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
@@ -530,6 +536,8 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <Sel k="condicion" label="Condición" opts={CONDICION_OPTS} f={f} set={set} />
           <Sel k="cod_convenio" label="Convenio (CCT)" opts={convOpts} f={f} set={set} />
           <Sel k="categoria_convenio" label="Categoría de convenio (define básico)" opts={catConvOpts} f={f} set={set} />
+          <div className="field"><label>Modalidad de contratación</label><select className="input" value={f.modalidadId || ''} onChange={set('modalidadId')}><option value="">— Sin especificar —</option>{modalidades.map((m) => <option key={m.id} value={String(m.id)}>{m.nombre}</option>)}</select></div>
+          <div className="field"><label>Unidad organizativa</label><select className="input" value={f.unidadId || ''} onChange={set('unidadId')}><option value="">— Sin asignar —</option>{unidades.map((u) => <option key={u.id} value={String(u.id)}>{u.nombre}</option>)}</select></div>
           <Sel k="cod_sindicato" label="Sindicato" opts={sindOpts} f={f} set={set} />
         </div>
 

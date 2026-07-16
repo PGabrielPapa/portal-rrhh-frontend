@@ -6,6 +6,17 @@ import { GROUPS } from '../lib/sections';
 interface U { id: number; leg_num: string; dni: string; nom: string; role: string; disabled: boolean; must_change_pwd: boolean; empresa: string; comite_hys?: boolean; modulos_ocultos?: string[]; twofa?: boolean; }
 const ROLES = [{ v: 'employee', l: 'Empleado' }, { v: 'manager', l: 'Gerente' }, { v: 'rrhh', l: 'RR.HH.' }, { v: 'admin', l: 'Admin' }];
 
+// Plantillas de acceso por área: al aplicarlas, dejan visible SOLO los paneles del
+// área elegida (ocultan el resto). Sirven para asignar de una a un usuario de RR.HH.
+// las herramientas de su área sin que se pisen con las de otras áreas.
+const PLANTILLAS: { label: string; panels: string[] }[] = [
+  { label: 'Administración de personal', panels: ['RR.HH. — Personal y legajos', 'RR.HH. — Documentación y comunicación', 'RR.HH. — Tiempos y ausencias', 'RR.HH. — Comunicación'] },
+  { label: 'Selección y desarrollo', panels: ['RR.HH. — Organización y puestos', 'RR.HH. — Selección e incorporación', 'RR.HH. — Desarrollo y desempeño'] },
+  { label: 'Liquidación e impuestos', panels: ['RR.HH. — Liquidación de haberes', 'RR.HH. — Impuesto a las Ganancias', 'RR.HH. — Cargas sociales y AFIP', 'RR.HH. — Tablas y configuración', 'RR.HH. — Compensaciones'] },
+  { label: 'Tablero y control', panels: ['RR.HH. — Tablero y control'] },
+  { label: 'Higiene y Seguridad', panels: ['RR.HH. — Higiene y Seguridad', 'Comité de HyS'] },
+];
+
 export default function AdminUsuarios() {
   const { user } = useAuth();
   const [items, setItems] = useState<U[]>([]);
@@ -16,7 +27,6 @@ export default function AdminUsuarios() {
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [perms, setPerms] = useState<U | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
-  const todasSecciones = GROUPS.flatMap((g) => g.items.map((it) => ({ key: it.key, label: it.label, panel: g.panel })));
 
   async function load() {
     try { const p = new URLSearchParams(); if (q) p.set('q', q); if (role) p.set('role', role); if (empresa) p.set('empresa', empresa); setItems(await api.get<U[]>(`/admin/usuarios?${p}`)); }
@@ -32,6 +42,14 @@ export default function AdminUsuarios() {
   async function toggle(u: U) { try { await api.patch(`/admin/usuarios/${u.id}`, { disabled: !u.disabled }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   async function toggleComite(u: U) { try { await api.patch(`/admin/usuarios/${u.id}`, { comiteHys: !u.comite_hys }); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   function abrirPerms(u: U) { setPerms(u); setSel(new Set(u.modulos_ocultos || [])); }
+  // Aplica una plantilla de área: oculta todo salvo los paneles indicados (y los "siempre visibles").
+  function aplicarPlantilla(panelsKeep: string[]) {
+    const keep = new Set(panelsKeep);
+    const ocultar = GROUPS
+      .filter((g) => g.panel !== 'Mi espacio' && g.panel !== 'Gerencia' && !keep.has(g.panel))
+      .flatMap((g) => g.items.map((it) => it.key));
+    setSel(new Set(ocultar));
+  }
   async function guardarPerms() {
     if (!perms) return;
     try { await api.patch(`/admin/usuarios/${perms.id}`, { modulosOcultos: [...sel] }); setMsg({ t: `Módulos actualizados para ${perms.nom}`, ok: true }); setPerms(null); load(); }
@@ -100,6 +118,14 @@ export default function AdminUsuarios() {
           <div className="modal" style={{ maxWidth: 680, maxHeight: '80vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0 }}>Módulos ocultos — {perms.nom}</h3>
             <p className="muted">Tildá los módulos que querés OCULTAR para este usuario (además de lo que ya restringe su rol). Usá el tilde del encabezado para marcar o desmarcar un grupo completo. «Mi espacio» y «Gerencia» no se listan: su acceso está garantizado para todos los empleados y gerentes.</p>
+            <div style={{ marginBottom: 12, padding: 10, background: 'var(--bg2)', borderRadius: 8 }}>
+              <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>Plantillas de acceso por área — dejan visible solo esa área</div>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                {PLANTILLAS.map((p) => <button key={p.label} className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => aplicarPlantilla(p.panels)}>{p.label}</button>)}
+                <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setSel(new Set())}>Acceso total</button>
+              </div>
+              <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>Aplican una selección de base; después podés ajustar módulos puntuales y Guardar.</div>
+            </div>
             {GROUPS.filter((g) => g.panel !== 'Mi espacio' && g.panel !== 'Gerencia').map((g) => (
               <div key={g.panel} style={{ marginBottom: 10 }}>
                 <label className="row" style={{ gap: 6, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 4, cursor: 'pointer' }}>

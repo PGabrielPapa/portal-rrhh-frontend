@@ -56,6 +56,8 @@ import Liquidacion from '../pages/Liquidacion';
 import MisRecibos from '../pages/MisRecibos';
 import RecibosGestion from '../pages/RecibosGestion';
 import Licencias from '../pages/Licencias';
+import MisAprobaciones from '../pages/MisAprobaciones';
+import EstadoSistema from '../pages/EstadoSistema';
 import Sanciones from '../pages/Sanciones';
 import Evaluaciones from '../pages/Evaluaciones';
 import Delegaciones from '../pages/Delegaciones';
@@ -70,6 +72,27 @@ import Puestos from '../pages/Puestos';
 import DescripcionPuestos from '../pages/DescripcionPuestos';
 import Reclutamiento from '../pages/Reclutamiento';
 import Desempeno9box from '../pages/Desempeno9box';
+import TableroTalento from '../pages/TableroTalento';
+import Compensaciones from '../pages/Compensaciones';
+import SeleccionEmbudo from '../pages/SeleccionEmbudo';
+import LMS from '../pages/LMS';
+import Desarrollo from '../pages/Desarrollo';
+import Muro from '../pages/Muro';
+import ComunicadosRRHH from '../pages/ComunicadosRRHH';
+import FicharWeb from '../pages/FicharWeb';
+import FichajeWebRRHH from '../pages/FichajeWebRRHH';
+import MisDocumentosFirma from '../pages/MisDocumentosFirma';
+import DocumentosFirma from '../pages/DocumentosFirma';
+import MiFormacion from '../pages/MiFormacion';
+import MiFeedback from '../pages/MiFeedback';
+import AsistenteIA from '../pages/AsistenteIA';
+import SicoreGanancias from '../pages/SicoreGanancias';
+import MatrizAntiguedad from '../pages/MatrizAntiguedad';
+import Modalidades from '../pages/Modalidades';
+import Competencias from '../pages/Competencias';
+import Unidades from '../pages/Unidades';
+import Posiciones from '../pages/Posiciones';
+import Workflows from '../pages/Workflows';
 import Onboarding from '../pages/Onboarding';
 import Formacion from '../pages/Formacion';
 import EncuestasRRHH from '../pages/EncuestasRRHH';
@@ -177,6 +200,8 @@ const COMPONENTS: Record<string, ComponentType> = {
   'liquidacion': Liquidacion,
   'mis-recibos': MisRecibos,
   'recibos-gestion': RecibosGestion,
+  'aprobaciones-pendientes': MisAprobaciones,
+  'estado-sistema': EstadoSistema,
   'mis-licencias': Licencias,
   'licencias-equipo': Licencias,
   'licencias-rrhh': Licencias,
@@ -196,6 +221,27 @@ const COMPONENTS: Record<string, ComponentType> = {
   'descripcion-puestos': DescripcionPuestos,
   'reclutamiento': Reclutamiento,
   'desempeno-9box': Desempeno9box,
+  'tablero-talento': TableroTalento,
+  'compensaciones': Compensaciones,
+  'seleccion-embudo': SeleccionEmbudo,
+  'lms': LMS,
+  'desarrollo': Desarrollo,
+  'muro': Muro,
+  'comunicados-rrhh': ComunicadosRRHH,
+  'fichar-web': FicharWeb,
+  'fichaje-web': FichajeWebRRHH,
+  'mis-firmas': MisDocumentosFirma,
+  'documentos-firma': DocumentosFirma,
+  'mi-formacion': MiFormacion,
+  'mi-feedback': MiFeedback,
+  'asistente-ia': AsistenteIA,
+  'sicore-ganancias': SicoreGanancias,
+  'matriz-antiguedad': MatrizAntiguedad,
+  'modalidades': Modalidades,
+  'competencias': Competencias,
+  'unidades': Unidades,
+  'posiciones': Posiciones,
+  'workflows': Workflows,
   'onboarding': Onboarding,
   'formacion': Formacion,
   'encuestas-rrhh': EncuestasRRHH,

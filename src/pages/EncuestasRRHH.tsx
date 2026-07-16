@@ -33,12 +33,13 @@ export default function EncuestasRRHH() {
         <div className="card" style={{ flex: '0 0 320px', maxWidth: 360 }}>
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <h3 style={{ margin: 0 }}>Encuestas</h3>
-            <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setNueva({ titulo: '', descripcion: '', anonima: true })}>+ Nueva</button>
+            <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setNueva({ titulo: '', descripcion: '', anonima: true, tipo: 'clima' })}>+ Nueva</button>
           </div>
           {nueva && (
             <div style={{ marginBottom: 10 }}>
               <input className="input" placeholder="Título *" value={nueva.titulo} onChange={(e) => setNueva({ ...nueva, titulo: e.target.value })} style={{ marginBottom: 6 }} />
               <textarea className="input" rows={2} placeholder="Descripción" value={nueva.descripcion} onChange={(e) => setNueva({ ...nueva, descripcion: e.target.value })} style={{ marginBottom: 6 }} />
+              <select className="input" value={nueva.tipo || 'clima'} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value })} style={{ marginBottom: 6 }}><option value="clima">Clima</option><option value="pulso">Pulso (recurrente)</option><option value="enps">eNPS</option></select>
               <label className="row" style={{ gap: 6, cursor: 'pointer', marginBottom: 6 }}><input type="checkbox" checked={nueva.anonima} onChange={(e) => setNueva({ ...nueva, anonima: e.target.checked })} /> Anónima</label>
               <button className="btn primary" onClick={crear}>Crear</button> <button className="btn ghost" onClick={() => setNueva(null)}>Cancelar</button>
             </div>
@@ -70,14 +71,14 @@ export default function EncuestasRRHH() {
               <h4 style={{ margin: '10px 0 6px' }}>Preguntas</h4>
               {preg.map((p) => (
                 <div key={p.id} className="row" style={{ justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '4px 0' }}>
-                  <span style={{ fontSize: 13 }}>{p.texto} <span className="muted">· {p.tipo === 'escala' ? 'escala 1-5' : 'texto'}</span></span>
+                  <span style={{ fontSize: 13 }}>{p.texto} <span className="muted">· {p.tipo === 'escala' ? 'escala 1-5' : p.tipo === 'nps' ? 'NPS 0-10' : 'texto'}</span></span>
                   <button className="btn ghost" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => delPreg(p.id)}>✕</button>
                 </div>
               ))}
               {sel.estado === 'borrador' ? (
                 <div className="row" style={{ gap: 6, marginTop: 8 }}>
                   <input className="input" style={{ flex: 1 }} placeholder="Nueva pregunta" value={np.texto} onChange={(e) => setNp({ ...np, texto: e.target.value })} />
-                  <select className="input" style={{ width: 120 }} value={np.tipo} onChange={(e) => setNp({ ...np, tipo: e.target.value })}><option value="escala">Escala 1-5</option><option value="texto">Texto</option></select>
+                  <select className="input" style={{ width: 120 }} value={np.tipo} onChange={(e) => setNp({ ...np, tipo: e.target.value })}><option value="escala">Escala 1-5</option><option value="nps">NPS 0-10</option><option value="texto">Texto</option></select>
                   <button className="btn" onClick={addPreg}>+</button>
                 </div>
               ) : <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>Para editar preguntas, la encuesta debe estar en borrador.</p>}
@@ -90,6 +91,11 @@ export default function EncuestasRRHH() {
                     <div style={{ fontSize: 12, marginTop: 4 }}>
                       <div className="muted">Promedio: <strong style={{ color: 'var(--green)' }}>{p.promedio ?? '—'}</strong> / 5 ({p.respuestas} resp.)</div>
                       <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}>{[1, 2, 3, 4, 5].map((n) => <span key={n} className="badge">{n}★: {p.distribucion[n] || 0}</span>)}</div>
+                    </div>
+                  ) : p.tipo === 'nps' ? (
+                    <div style={{ fontSize: 12, marginTop: 4 }}>
+                      <div className="muted">eNPS: <strong style={{ color: (p.enps ?? 0) >= 0 ? 'var(--green)' : 'var(--red)', fontSize: 15 }}>{p.enps ?? '—'}</strong> <span style={{ opacity: .7 }}>(-100 a +100)</span> · {p.respuestas} resp.</div>
+                      <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}><span className="badge" style={{ color: 'var(--green)' }}>Promotores: {p.promotores || 0}</span><span className="badge">Pasivos: {p.pasivos || 0}</span><span className="badge" style={{ color: 'var(--red)' }}>Detractores: {p.detractores || 0}</span></div>
                     </div>
                   ) : (
                     <div style={{ fontSize: 12, marginTop: 4 }}>{(p.textos || []).length ? p.textos.map((t: string, i: number) => <div key={i} className="muted" style={{ borderLeft: '2px solid var(--border)', paddingLeft: 8, marginBottom: 3 }}>{t}</div>) : <span className="muted">Sin respuestas.</span>}</div>

@@ -196,7 +196,25 @@ function Corrida() {
   useEffect(() => { loadCorridas(); api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
   useEffect(() => { if (!sel && corridas.length) abrir(corridas[0].id); /* auto-abre la ultima corrida para mostrar la planilla */ }, [corridas]);
 
-  async function crear() { setErr(''); setBusy(true); try { const esExtra = tipo === 'complementaria' || tipo === 'extra_norem'; const r = await api.post<any>('/liquidacion/corrida', { anio, mes, tipo, empresa: empresa || undefined, fechaPago: fechaPago || undefined, ...(esExtra ? { conceptoExtra, modoExtra, montoExtra: Number(montoExtra) || 0 } : {}) }); await loadCorridas(); abrir(r.id); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } }
+  async function crear() {
+    setErr(''); setMsg('');
+    // Confirmación previa: escala salarial unificada vigente + cambios (se adopta al liquidar).
+    let escMsg = '';
+    try {
+      const ver = await api.get<any>(`/escala/verificar?anio=${anio}&mes=${mes}`);
+      const conv = (ver.convenios || []).map((c: any) => `${c.codigo} (${c.mesLabel || c.vigencia || 's/vig'})`).join(', ');
+      const txt = `${ver.mensaje}\n\nConvenios vigentes: ${conv || '—'}\n\n¿Confirmás la corrida ${String(mes).padStart(2, '0')}/${anio} con esta escala unificada?`;
+      if (!window.confirm(txt)) return;
+      escMsg = ver.cambio?.hayCambio ? ` Escala unificada actualizada: ${ver.cambio.texto}` : ' Escala unificada vigente aplicada (sin cambios).';
+    } catch { /* si la verificación falla, no bloquea la corrida */ }
+    setBusy(true);
+    try {
+      const esExtra = tipo === 'complementaria' || tipo === 'extra_norem';
+      const r = await api.post<any>('/liquidacion/corrida', { anio, mes, tipo, empresa: empresa || undefined, fechaPago: fechaPago || undefined, ...(esExtra ? { conceptoExtra, modoExtra, montoExtra: Number(montoExtra) || 0 } : {}) });
+      await loadCorridas(); abrir(r.id);
+      setMsg(`✓ Corrida generada.${escMsg}`);
+    } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  }
   async function abrir(id: number) { setErr(''); setReporte(null); try { setSel(await api.get(`/liquidacion/corrida/${id}`)); } catch (e: any) { setErr(e.message); } }
   async function aprobar() { setErr(''); setMsg(''); try { await api.post(`/liquidacion/corrida/${sel.corrida.id}/aprobar`, {}); await loadCorridas(); abrir(sel.corrida.id); setMsg('Corrida aprobada. Ahora hacé clic en “Publicar recibos” para que los empleados los vean.'); } catch (e: any) { setErr(e.message); } }
   async function publicar() { if (!window.confirm('¿Publicar los recibos de esta corrida? Quedarán visibles para todos los empleados.')) return; setErr(''); setMsg(''); try { await api.post(`/liquidacion/corrida/${sel.corrida.id}/publicar`, {}); await loadCorridas(); abrir(sel.corrida.id); setMsg('✓ Recibos publicados — ya están disponibles en “Mis recibos” de cada empleado.'); } catch (e: any) { setErr(e.message); } }

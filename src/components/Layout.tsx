@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { groupsForRole } from '../lib/sections';
+import ErrorBoundary from './ErrorBoundary';
 
 // Tarea delegada → item de menú (misma pantalla que usa el gerente).
 const DELEG_ITEM: Record<string, { key: string; label: string }> = {
@@ -15,6 +16,8 @@ const DELEG_ITEM: Record<string, { key: string; label: string }> = {
 export default function Layout() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
+  const loc = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false); // sidebar off-canvas en celular
   const groups = groupsForRole(user?.role || 'employee', { comiteHys: !!user?.comiteHys, comiteAcceso: user?.acceso, modulosOcultos: user?.modulosOcultos });
 
   // Delegaciones recibidas → grupo dinámico "Delegado a mí" (solo para no-gerentes;
@@ -29,14 +32,26 @@ export default function Layout() {
     }).catch(() => setDelegItems([]));
   }, [user]);
 
+  // Contador de aprobaciones pendientes (badge del menú) para quienes aprueban.
+  const [pendAprob, setPendAprob] = useState(0);
+  useEffect(() => {
+    if (!user || !['manager', 'rrhh', 'admin'].includes(user.role)) { setPendAprob(0); return; }
+    let vivo = true;
+    const traer = () => api.get<{ total: number }>('/aprobaciones/pendientes').then((r) => { if (vivo) setPendAprob(r.total || 0); }).catch(() => {});
+    traer();
+    const t = setInterval(traer, 60000);
+    return () => { vivo = false; clearInterval(t); };
+  }, [user]);
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <aside className="sidebar">
-        <Link to="/" className="sb-brand" style={{ display: 'block', textDecoration: 'none' }}>
+      {menuOpen && <div className="sb-overlay" onClick={() => setMenuOpen(false)} />}
+      <aside className={`sidebar${menuOpen ? ' open' : ''}`}>
+        <Link to="/" className="sb-brand" style={{ display: 'block', textDecoration: 'none' }} onClick={() => setMenuOpen(false)}>
           <strong>Portal RR.HH.</strong>
           <div className="muted">Grupo LEITEN</div>
         </Link>
-        <nav style={{ padding: '10px' }}>
+        <nav style={{ padding: '10px' }} onClick={() => setMenuOpen(false)}>
           <NavLink to="/" end className="sb-item" style={({ isActive }) => isActive ? { background: 'var(--accent-glow)', color: 'var(--accent2)' } : {}}>🏠 Inicio</NavLink>
           {delegItems.length > 0 && (
             <div style={{ marginTop: 12 }}>
@@ -54,6 +69,9 @@ export default function Layout() {
               {g.items.slice().sort((a, b) => a.label.localeCompare(b.label, 'es')).map((it) => (
                 <NavLink key={it.key} to={`/m/${it.key}`} className={({ isActive }) => `sb-item${isActive ? ' active' : ''}`}>
                   <span>{it.label}</span>
+                  {it.key === 'aprobaciones-pendientes' && pendAprob > 0 && (
+                    <span title="Pendientes de tu aprobación" style={{ marginLeft: 'auto', background: 'var(--accent2)', color: '#fff', borderRadius: 10, padding: '0 7px', fontSize: 11, fontWeight: 700 }}>{pendAprob}</span>
+                  )}
                   {!it.ready && <span title="En migración" style={{ fontSize: 10, opacity: .6 }}>🚧</span>}
                 </NavLink>
               ))}
@@ -64,14 +82,19 @@ export default function Layout() {
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="topbar">
-          <span className="nav-logo" style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--accent2)', letterSpacing: '.05em' }}>LEITEN · RR.HH.</span>
+          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <button className="hamburger" onClick={() => setMenuOpen((v) => !v)} aria-label="Abrir menú">☰</button>
+            <span className="nav-logo" style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--accent2)', letterSpacing: '.05em' }}>LEITEN · RR.HH.</span>
+          </div>
           <div className="row">
             <span className="muted">{user?.nom} · {user?.role}</span>
             <button className="btn ghost" onClick={() => { logout(); nav('/login'); }}>Salir</button>
           </div>
         </div>
         <div className="container">
-          <Outlet />
+          <ErrorBoundary key={loc.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </div>
     </div>

@@ -14,3 +14,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// Registro del service worker (PWA instalable). Solo en producción / con SW disponible.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* SW opcional: no bloquea la app */ });
+  });
+}

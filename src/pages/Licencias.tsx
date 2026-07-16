@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, fetchBlob } from '../lib/api';
 import MiBanner from '../components/MiBanner';
+import FlujoAprobacion from '../components/FlujoAprobacion';
 import type { Empleado } from '../lib/types';
 
 interface Especial { key: string; nombre: string; base: string; anual: boolean; sinGoce: boolean; tope: number; tomados?: number; pendientes?: number; disponible?: number; }
@@ -220,7 +221,7 @@ export default function Licencias() {
               <table>
                 <thead><tr><th>Empleado</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Comprobante</th><th></th></tr></thead>
                 <tbody>
-                  {rows.map((l) => (
+                  {rows.map((l) => ([
                     <tr key={l.id}>
                       <td>{l.nom} <span className="muted">({l.leg_num})</span></td>
                       <td>{l.tipo}</td><td>{fmt(l.desde)}</td><td>{fmt(l.hasta)}</td><td>{l.dias}</td>
@@ -233,7 +234,10 @@ export default function Licencias() {
                         {l.estado !== 'pendiente' && l.resuelto_por && <span className="muted" style={{ fontSize: 12, marginRight: 6 }}>por {l.resuelto_por}</span>}
                         <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => borrar(l)}>🗑 Borrar</button>
                       </td>
-                    </tr>))}
+                    </tr>,
+                    l.estado === 'pendiente' && (
+                      <tr key={`f${l.id}`}><td colSpan={7} style={{ padding: '0 12px 10px' }}><FlujoAprobacion base="/licencias" id={l.id} onResuelto={load} /></td></tr>
+                    )]))}
                   {!rows.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 14 }}>Sin {tit.toLowerCase()}.</td></tr>}
                 </tbody>
               </table>
@@ -249,7 +253,7 @@ export default function Licencias() {
             <th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Estado</th><th>Comprobante</th>{!modoMias && <th></th>}
           </tr></thead>
           <tbody>
-            {items.map((l) => (
+            {items.map((l) => ([
               <tr key={l.id}>
                 {!modoMias && <td>{l.nom} <span className="muted">({l.leg_num})</span></td>}
                 {esRRHH && <td>{l.empresa}</td>}
@@ -262,8 +266,11 @@ export default function Licencias() {
                     <button className="btn danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => resolver(l, 'rechazada')}>Rechazar</button>
                   </> : <span className="muted" style={{ fontSize: 12 }}>{l.resuelto_por ? `por ${l.resuelto_por}` : ''}</span>}
                 </td>}
-              </tr>
-            ))}
+              </tr>,
+              (!modoMias && l.estado === 'pendiente') && (
+                <tr key={`f${l.id}`}><td colSpan={esRRHH ? 9 : 8} style={{ padding: '0 12px 10px' }}><FlujoAprobacion base="/licencias" id={l.id} onResuelto={load} /></td></tr>
+              )
+            ]))}
             {!items.length && <tr><td colSpan={modoMias ? 6 : (esRRHH ? 9 : 8)} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin licencias.</td></tr>}
           </tbody>
         </table>

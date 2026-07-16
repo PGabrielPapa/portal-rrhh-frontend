@@ -41,6 +41,14 @@ export default function MisEncuestas() {
                   })}
                   <span className="muted" style={{ alignSelf: 'center', fontSize: 12 }}>1 = muy en desacuerdo · 5 = muy de acuerdo</span>
                 </div>
+              ) : p.tipo === 'nps' ? (
+                <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
+                    const on = (resp[e.id]?.[p.id]?.valor) === n;
+                    return <button key={n} type="button" className={`btn ${on ? 'primary' : 'ghost'}`} style={{ padding: '4px 10px' }} onClick={() => setR(e.id, p.id, 'valor', n)}>{n}</button>;
+                  })}
+                  <span className="muted" style={{ alignSelf: 'center', fontSize: 12 }}>0 = nada probable · 10 = muy probable</span>
+                </div>
               ) : (
                 <textarea className="input" rows={2} value={resp[e.id]?.[p.id]?.texto || ''} onChange={(ev) => setR(e.id, p.id, 'texto', ev.target.value)} />
               )}
