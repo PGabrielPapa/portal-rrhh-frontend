@@ -315,6 +315,8 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   useEffect(() => { api.get<any[]>('/campos?entidad=empleado&activos=1').then((defs) => { setCamposAd(defs); setF((prev) => { const base: any = {}; for (const d of defs) if (prev[d.clave] === undefined) base[d.clave] = String((e as any)[d.clave] ?? ''); return { ...base, ...prev }; }); }).catch(() => {}); }, []);
   const [verConf, setVerConf] = useState<boolean>((e as any).verConfidenciales === true || (e as any).verConfidenciales === 'true');
   const [lugHist, setLugHist] = useState<any[]>([]);
+  const [afilHist, setAfilHist] = useState<any[]>([]);
+  const [nvAfil, setNvAfil] = useState<{ desde: string; hasta: string; cod_sindicato: string; observacion: string }>({ desde: '', hasta: '', cod_sindicato: '', observacion: '' });
   const [cambHist, setCambHist] = useState<any[]>([]);
   const [centrosCO, setCentrosCO] = useState<{ id: number; codigo: string; denominacion: string }[]>([]);
   const [puestos, setPuestos] = useState<{ id: number; nombre: string; area?: string; reporta_a?: number | null; reporta_nombre?: string | null }[]>([]);
@@ -329,7 +331,11 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const [unidades, setUnidades] = useState<{ id: number; nombre: string }[]>([]);
   useEffect(() => { api.get<{ id: number; nombre: string }[]>('/unidades').then(setUnidades).catch(() => {}); }, []);
   useEffect(() => { if (centrosCO.length && !f.centroCodigo && f.lugar) { const c = centrosCO.find((x) => x.denominacion === f.lugar); if (c) setF((p) => ({ ...p, centroCodigo: c.codigo, centroId: String(c.id) })); } /* eslint-disable-next-line */ }, [centrosCO]);
-  useEffect(() => { const id = (emp as any)?.id; if (id) { api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); api.get<any[]>(`/empleados/${id}/cambios`).then(setCambHist).catch(() => {}); } }, [emp]);
+  const cargarAfil = () => { const id = (emp as any)?.id; if (id) api.get<any>(`/empleados/${id}/afiliaciones`).then((r) => setAfilHist(r.items || [])).catch(() => {}); };
+  useEffect(() => { const id = (emp as any)?.id; if (id) { api.get<any[]>(`/empleados/${id}/lugares`).then(setLugHist).catch(() => {}); api.get<any[]>(`/empleados/${id}/cambios`).then(setCambHist).catch(() => {}); cargarAfil(); } /* eslint-disable-next-line */ }, [emp]);
+  async function addAfil() { const id = (emp as any)?.id; if (!id) return; if (!nvAfil.desde) { onError('Indicá la fecha de alta de la afiliación.'); return; } try { await api.post(`/empleados/${id}/afiliaciones`, nvAfil); setNvAfil({ desde: '', hasta: '', cod_sindicato: '', observacion: '' }); cargarAfil(); } catch (er: any) { onError(er?.message || 'No se pudo agregar la afiliación.'); } }
+  async function cerrarAfil(aid: number, hasta: string) { try { await api.patch(`/empleados/afiliaciones/${aid}`, { hasta }); cargarAfil(); } catch (er: any) { onError(er?.message || 'No se pudo actualizar la afiliación.'); } }
+  async function delAfil(aid: number) { try { await api.del(`/empleados/afiliaciones/${aid}`); cargarAfil(); } catch (er: any) { onError(er?.message || 'No se pudo eliminar la afiliación.'); } }
   const [nacOtra, setNacOtra] = useState<boolean>(() => { const nv = String((e as any).nacionalidad || ''); return !!nv && !NACIONALIDAD_OPTS.some(([v]) => v === nv && v !== 'Otra'); });
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: ev.target.value });
@@ -411,6 +417,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const tramoOpts: [string, string][] = escTramos.map((t: any) => [String(t.key), t.label ? `${t.key} — ${t.label}` : String(t.key)] as [string, string]);
   const convOpts: [string, string][] = convs.map((c: any) => [String(c.codigo), `${c.codigo} — ${c.nombre}`]);
   const sindOpts: [string, string][] = sinds.map((sd: any) => [String(sd.codigo), `${sd.codigo} — ${sd.nombre}`]);
+  const cctAplicable: string = (() => { const c = convs.find((x: any) => String(x.codigo) === String(f.cod_convenio)); return c ? String(c.cct || c.nombre || '') : ''; })();
   const convSel = convs.find((c: any) => String(c.codigo) === String(f.cod_convenio));
   const catConvOpts: [string, string][] = [];
   for (const t of (convSel?.tablas || [])) for (const c of (t.cats || [])) catConvOpts.push([`${t.titulo}||${c.cat}`, `${t.titulo} · ${c.cat}`]);
@@ -539,6 +546,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <div className="field"><label>Modalidad de contratación</label><select className="input" value={f.modalidadId || ''} onChange={set('modalidadId')}><option value="">— Sin especificar —</option>{modalidades.map((m) => <option key={m.id} value={String(m.id)}>{m.nombre}</option>)}</select></div>
           <div className="field"><label>Unidad organizativa</label><select className="input" value={f.unidadId || ''} onChange={set('unidadId')}><option value="">— Sin asignar —</option>{unidades.map((u) => <option key={u.id} value={String(u.id)}>{u.nombre}</option>)}</select></div>
           <Sel k="cod_sindicato" label="Sindicato" opts={sindOpts} f={f} set={set} />
+          <div className="field"><label>CCT aplicable</label><input className="input" value={cctAplicable || '—'} disabled readOnly title="Derivado del convenio seleccionado" /></div>
         </div>
 
         {(emp as any)?.id && (
@@ -554,6 +562,33 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
                     </div>))}
                 </div>}
           </div>
+        )}
+
+        {(emp as any)?.id ? (
+          <div className="field" style={{ marginTop: 8 }}>
+            <label>Afiliación sindical (histórico)</label>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              {afilHist.length === 0
+                ? <div className="muted" style={{ fontSize: 13, padding: '6px 8px' }}>Sin afiliación registrada. Si no hay un período abierto a la fecha de la liquidación, el empleado se toma como NO afiliado (y paga el aporte solidario si está dentro de convenio).</div>
+                : afilHist.map((h: any) => (
+                    <div key={h.id} className="row" style={{ justifyContent: 'space-between', gap: 8, fontSize: 13, padding: '4px 8px', borderTop: '1px solid var(--border)' }}>
+                      <span>{String(h.desde).slice(0, 10)} → {h.hasta ? String(h.hasta).slice(0, 10) : <b style={{ color: 'var(--green)' }}>vigente</b>}{h.cod_sindicato ? ` · ${h.cod_sindicato}` : ''}{h.observacion ? ` · ${h.observacion}` : ''}</span>
+                      <span className="row" style={{ gap: 6 }}>
+                        {!h.hasta && <input className="input" type="date" style={{ width: 140, padding: '2px 6px', fontSize: 12 }} title="Cerrar la afiliación en esta fecha" onChange={(ev) => { if (ev.target.value) cerrarAfil(h.id, ev.target.value); }} />}
+                        <button type="button" className="btn ghost" style={{ padding: '2px 8px', fontSize: 12 }} title="Eliminar" onClick={() => delAfil(h.id)}>✕</button>
+                      </span>
+                    </div>))}
+              <div className="row" style={{ gap: 6, padding: '6px 8px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div><div className="muted" style={{ fontSize: 11 }}>Alta</div><input className="input" type="date" style={{ width: 150 }} value={nvAfil.desde} onChange={(ev) => setNvAfil({ ...nvAfil, desde: ev.target.value })} /></div>
+                <div><div className="muted" style={{ fontSize: 11 }}>Baja (opcional)</div><input className="input" type="date" style={{ width: 150 }} value={nvAfil.hasta} onChange={(ev) => setNvAfil({ ...nvAfil, hasta: ev.target.value })} /></div>
+                <input className="input" style={{ width: 150 }} placeholder="Sindicato (opc.)" value={nvAfil.cod_sindicato} onChange={(ev) => setNvAfil({ ...nvAfil, cod_sindicato: ev.target.value })} />
+                <input className="input" style={{ flex: 1, minWidth: 120 }} placeholder="Observación (opc.)" value={nvAfil.observacion} onChange={(ev) => setNvAfil({ ...nvAfil, observacion: ev.target.value })} />
+                <button type="button" className="btn" style={{ padding: '5px 14px' }} onClick={addAfil}>Agregar</button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="field" style={{ marginTop: 8 }}><label>Afiliación sindical</label><div className="muted" style={{ fontSize: 13 }}>Guardá primero el legajo para cargar el histórico de afiliación.</div></div>
         )}
 
         {(emp as any)?.id && cambHist.length > 0 && (
