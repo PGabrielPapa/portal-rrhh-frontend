@@ -13,9 +13,10 @@ export function minToHhmm(min: number): string {
 
 export type Estado = 'ok' | 'no-laborable' | 'revisar' | 'licencia' | 'licencia-portal' | 'injustificado' | 'home-office';
 
+export type TipoDia = 'habil' | 'sabado' | 'domingo' | 'feriado';
 export interface DiaDetalle {
   fecha: string; dia: string; entrada?: string; salida?: string;
-  hsNetasMin: number; hsNormalMin: number; saldoMin: number | null;
+  hsNetasMin: number; hsNormalMin: number; saldoMin: number | null; tipoDia?: TipoDia;
   extra50Min: number; extra100Min: number; extraComputa: boolean;
   tardeMin: number; completa: boolean; estado: Estado;
   comentario?: string; licenciaPortal?: string | null;
@@ -25,7 +26,7 @@ export interface DiaRevisar { fecha: string; motivo: string; tarde?: string; }
 export interface FichadaData {
   legajoProsoft?: string; diasTrabajados?: number; horasExtra50Min?: number; horasExtra100Min?: number;
   horasExtraDescartadaMin?: number; tardanzasMin?: number; diasTardanza?: number;
-  diasARevisar?: DiaRevisar[]; bancoNetoMin?: number; dias?: DiaDetalle[];
+  diasARevisar?: DiaRevisar[]; bancoNetoMin?: number; aRecuperarMin?: number; dias?: DiaDetalle[];
   licenciasProsoft?: Record<string, number>; diasLicencia?: number; diasInjustificados?: number;
   diasLicenciaConflicto?: number;
 }
@@ -45,7 +46,7 @@ export function aprobBadge(estado?: EstadoAprob) {
 export function estadoBadge(e: Estado) {
   switch (e) {
     case 'ok': return <span style={{ color: '#16a34a' }}>OK</span>;
-    case 'no-laborable': return <span className="muted">finde/feriado (a favor)</span>;
+    case 'no-laborable': return <span className="muted">sáb/dom/feriado (extra)</span>;
     case 'revisar': return <span style={{ color: '#d97706' }}>⚠ revisar (marca incompleta)</span>;
     case 'licencia': return <span style={{ color: '#2563eb' }}>licencia</span>;
     case 'licencia-portal': return <span style={{ color: '#2563eb' }}>licencia (portal)</span>;
@@ -67,56 +68,49 @@ function novedadDe(x: DiaDetalle) {
   return <span className="muted">—</span>;
 }
 
-// Cálculo de lo liquidable del mes. La hora extra COMPENSA primero el tiempo en
-// contra: extra neto = (extra 50 + extra 100) − tiempo en contra. El tiempo en
-// contra es la suma de los días con marca completa trabajados por debajo de la
-// jornada (días en contra). Las horas a favor (banco positivo) son solo control.
+// Lo liquidable del mes. Los totales ya vienen calculados por el backend con el
+// "banco compensatorio corrido": neto trabajado desde las marcas (E1/S1..E4/S4)
+// vs jornada (9 o 10 hs), el déficit se compensa con el a favor de otros días
+// hábiles; lo que sobra de un día por +30 min es extra 50 %, y ≤30 min va al
+// banco. Sábado = extra 50 %, domingo/feriado = extra 100 % (no compensan).
 export function calcLiquidable(d: FichadaData) {
-  // El extra se cuenta POR DÍA: solo los días cuyo saldo a favor llegó a 30 min
-  // suman como extra. Los saldos chicos (<30/día) NO se suman → quedan en banco
-  // de horas (control). El extra compensa primero el tiempo en contra.
-  const dias = d.dias || [];
-  let extraBruta = 0;   // Σ de días con saldo a favor ≥ 30 min
-  let deficit = 0;      // Σ de días trabajados por debajo de la jornada
-  let bancoChico = 0;   // Σ de días a favor < 30 min (banco de horas, no se liquida)
-  for (const x of dias) {
-    const s = typeof x.saldoMin === 'number' ? x.saldoMin : null;
-    if (s == null) continue;
-    if (s >= 30) extraBruta += s;
-    else if (s > 0) bancoChico += s;
-    else if (s < 0) deficit += -s;
-  }
-  const extraLiquidable = Math.max(0, extraBruta - deficit);  // extra compensa lo en contra
-  const aRecuperar = Math.max(0, deficit - extraBruta);
-  const banco = d.bancoNetoMin || 0;
+  const extra50 = d.horasExtra50Min || 0;
+  const extra100 = d.horasExtra100Min || 0;
+  const extraLiquidable = extra50 + extra100;
+  const banco = d.bancoNetoMin || 0;                    // + a favor / − a recuperar
+  const aFavor = banco > 0 ? banco : 0;
+  const aRecuperar = banco < 0 ? -banco : (d.aRecuperarMin || 0);
   const inj = d.diasInjustificados || 0;
-  return { banco, extraBruta, deficit, bancoChico, extraLiquidable, aRecuperar, inj };
+  return { banco, extra50, extra100, extraLiquidable, aFavor, aRecuperar, inj };
 }
 
 export function DetalleDias({ d, nom, gerente = false }: { d: FichadaData; nom: string; gerente?: boolean }) {
   const dias = d.dias || [];
   if (!dias.length) return <span className="muted">Sin detalle diario para este empleado (importado con una versión anterior; reimportá el período).</span>;
-  // Extra del día = lo trabajado por encima de la jornada (Hs netas − jornada = Saldo día).
+  // "Extra/saldo del día": el saldo a favor del día (neto − jornada). En hábiles
+  // puede compensar déficit de otros días; en sábado/domingo/feriado es extra directo.
   const extraDe = (x: DiaDetalle) => {
     const s = typeof x.saldoMin === 'number' ? x.saldoMin : null;
     if (s == null || s <= 0) return '—';
-    return minToHhmm(s) + (s < 30 ? ' (<30m)' : '');
+    const t = x.tipoDia;
+    if (t === 'domingo' || t === 'feriado') return minToHhmm(s) + ' (100%)';
+    if (t === 'sabado') return minToHhmm(s) + ' (50%)';
+    return minToHhmm(s) + (s <= 30 ? ' (banco)' : ' (50%)');
   };
-  const { banco, extraLiquidable, aRecuperar, bancoChico, inj } = calcLiquidable(d);
+  const { banco, extra50, extra100, extraLiquidable, aRecuperar, inj } = calcLiquidable(d);
   // El gerente NO ve el saldo a favor: se oculta la columna de saldo diario.
   const verSaldo = !gerente;
 
   return (
     <div style={{ overflow: 'auto' }}>
       <div style={{ margin: '8px 2px 10px', padding: '8px 10px', background: 'rgba(22,163,74,.07)', borderRadius: 6, fontSize: 12.5 }}>
-        {!gerente && <>Resultado del mes: <b style={{ color: banco < 0 ? '#dc2626' : '#16a34a' }}>{minToHhmm(banco)}</b> ({banco < 0 ? 'en contra' : 'a favor'}) · </>}
+        {!gerente && banco > 0 && <>Banco de horas a favor: <b style={{ color: '#16a34a' }}>{minToHhmm(banco)}</b> · </>}
         {aRecuperar > 0 && <>Tiempo a recuperar <b style={{ color: '#dc2626' }}>{minToHhmm(aRecuperar)}</b> · </>}
         <b>Extra a liquidar: <span style={{ color: extraLiquidable > 0 ? '#16a34a' : undefined }}>{minToHhmm(extraLiquidable)}</span></b>
-        <span className="muted"> (solo días con +30 min a favor)</span>
-        {!gerente && bancoChico > 0 && <span className="muted"> · Banco de horas: {minToHhmm(bancoChico)} (saldos &lt; 30 min/día, no se liquidan)</span>}
+        <span className="muted"> (50%: {minToHhmm(extra50)} · 100%: {minToHhmm(extra100)})</span>
         {inj > 0 && <span style={{ color: '#dc2626', fontWeight: 600 }}> · ⚠ Faltas injustificadas: {inj}</span>}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 600, margin: '8px 2px 6px' }}>Detalle diario de {nom}{verSaldo ? ' — el banco del mes es la suma de "Saldo día". Licencias y findes/feriados no suman al banco.' : ''}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, margin: '8px 2px 6px' }}>Detalle diario de {nom}{verSaldo ? ' — neto trabajado entre marcas vs jornada. El déficit se compensa con el a favor de otros días hábiles; sábado/domingo/feriado no compensan.' : ''}</div>
       <table style={{ fontSize: 12.5 }}>
         <thead><tr>
           <th>Fecha</th><th>Día</th><th>Entrada</th><th>Salida</th>
@@ -145,7 +139,7 @@ export function DetalleDias({ d, nom, gerente = false }: { d: FichadaData; nom: 
         <tfoot>
           {verSaldo ? (
             <tr style={{ fontWeight: 600, borderTop: '2px solid rgba(120,130,160,.3)' }}>
-              <td colSpan={6} style={{ textAlign: 'right' }}>Banco del mes (suma de saldos):</td>
+              <td colSpan={6} style={{ textAlign: 'right' }}>{banco < 0 ? 'Tiempo a recuperar:' : 'Banco de horas a favor:'}</td>
               <td style={{ textAlign: 'right', color: banco < 0 ? '#dc2626' : '#16a34a' }}>{minToHhmm(banco)}</td>
               <td colSpan={4}></td>
             </tr>

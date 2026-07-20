@@ -35,7 +35,7 @@ function Sel({ k, label, opts, f, set, ph }: { k: string; label: string; opts: [
   );
 }
 
-const SEXO_OPTS: [string, string][] = [['M', 'Masculino'], ['F', 'Femenino'], ['X', 'X / No binario']];
+const SEXO_OPTS: [string, string][] = [['F', 'Femenino'], ['M', 'Masculino'], ['X', 'Otro']];
 const ESTADO_CIVIL_OPTS: [string, string][] = [['Soltero/a', 'Soltero/a'], ['Casado/a', 'Casado/a'], ['Divorciado/a', 'Divorciado/a'], ['Viudo/a', 'Viudo/a'], ['Separado/a', 'Separado/a'], ['Unión convivencial', 'Unión convivencial']];
 const NACIONALIDAD_OPTS: [string, string][] = [['Argentina', 'Argentina'], ['Boliviana', 'Boliviana'], ['Brasileña', 'Brasileña'], ['Chilena', 'Chilena'], ['Paraguaya', 'Paraguaya'], ['Peruana', 'Peruana'], ['Uruguaya', 'Uruguaya'], ['Colombiana', 'Colombiana'], ['Venezolana', 'Venezolana'], ['Española', 'Española'], ['Italiana', 'Italiana'], ['China', 'China'], ['Otra', 'Otra']];
 const CONDICION_OPTS: [string, string][] = [['Mensualizado', 'Mensualizado'], ['Jornalizado', 'Jornalizado']];
@@ -451,7 +451,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <div className="field"><label>CUIL *</label><input className="input" value={f.cuil || ''} onChange={set('cuil')} placeholder="XX-XXXXXXXX-X" />{(f.cuil || '') !== '' && cuilErr && <div className="err" style={{ fontSize: 11, marginTop: 4 }}>⚠ {cuilErr}</div>}</div>
           <F k="ingreso" label="Fecha de ingreso" type="date" f={f} set={set} />
           <F k="fecha_nac" label="Fecha de nacimiento" ph="AAAA-MM-DD o DD/MM/AAAA" f={f} set={set} />
-          <Sel k="sexo" label="Sexo" opts={SEXO_OPTS} f={f} set={set} />
+          <Sel k="sexo" label="Género" opts={SEXO_OPTS} f={f} set={set} />
           <Sel k="estado_civil" label="Estado civil" opts={ESTADO_CIVIL_OPTS} f={f} set={set} />
           <div className="field"><label>Nacionalidad</label>
             <select className="input" value={nacOtra ? 'Otra' : (f.nacionalidad || '')} onChange={(ev) => { if (ev.target.value === 'Otra') { setNacOtra(true); setF({ ...f, nacionalidad: '' }); } else { setNacOtra(false); setF({ ...f, nacionalidad: ev.target.value }); } }}>

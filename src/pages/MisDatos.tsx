@@ -5,7 +5,7 @@ import type { Empleado } from '../lib/types';
 import Avatar from '../components/Avatar';
 
 const v = (x: unknown) => (x === null || x === undefined || x === '' ? '—' : String(x));
-const sexoLabel = (x: unknown) => (({ M: 'Masculino', F: 'Femenino', X: 'X / No binario' } as Record<string, string>)[String(x || '')] || (x ? String(x) : '—'));
+const sexoLabel = (x: unknown) => (({ M: 'Masculino', F: 'Femenino', X: 'Otro' } as Record<string, string>)[String(x || '')] || (x ? String(x) : '—'));
 function Field({ label, value }: { label: string; value: unknown }) {
   return (<div className="field" style={{ marginBottom: 10 }}><label>{label}</label><div style={{ fontSize: 14 }}>{v(value)}</div></div>);
 }

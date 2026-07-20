@@ -4,7 +4,7 @@ import type { Empleado } from '../lib/types';
 import Avatar from '../components/Avatar';
 
 const v = (x: unknown) => (x === null || x === undefined || x === '' ? '—' : String(x));
-const sexoLabel = (x: unknown) => (({ M: 'Masculino', F: 'Femenino', X: 'X / No binario' } as Record<string, string>)[String(x || '')] || (x ? String(x) : '—'));
+const sexoLabel = (x: unknown) => (({ M: 'Masculino', F: 'Femenino', X: 'Otro' } as Record<string, string>)[String(x || '')] || (x ? String(x) : '—'));
 const fmtFecha = (s: unknown) => { const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : (s ? String(s) : '—'); };
 const money = (n: number) => '$ ' + (n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 const antigDe = (ing: unknown) => { const d = new Date(String(ing || '').slice(0, 10) + 'T00:00:00'); if (isNaN(d.getTime())) return null; return Math.floor((Date.now() - d.getTime()) / (365.25 * 864e5)); };

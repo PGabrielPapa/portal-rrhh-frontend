@@ -17,7 +17,6 @@ export const GROUPS: Group[] = [
       { key: 'fichar-web', label: 'Fichar (web/celular)', ready: true },
       { key: 'mis-ganancias', label: 'Ganancias (F.1357)', ready: true },
       { key: 'mis-datos', label: 'Mis datos', ready: true },
-      { key: 'seguridad', label: 'Seguridad (2FA)', ready: true },
       { key: 'anticipos', label: 'Adelantos', ready: true },
       { key: 'mis-licencias', ready: true, label: 'Mis licencias' },
       { key: 'justificar-licencia', ready: true, label: 'Justificación de licencias' },
