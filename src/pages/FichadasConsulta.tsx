@@ -19,7 +19,8 @@ interface ImportLog {
   id: number; anio: number; mes: number; archivo?: string; filas: number; legajos: number;
   matcheados: number; sin_match: number; importado_por?: string; created_at?: string;
 }
-type Filtro = 'todos' | 'revisar' | 'injustificado' | 'conflicto' | 'pendientes' | 'observadas' | 'autorizadas';
+type Filtro = 'todos' | 'revisar' | 'injustificado' | 'conflicto' | 'intervalo' | 'pendientes' | 'observadas' | 'autorizadas';
+const tieneIntervalo = (d: FichadaData) => (d.dias || []).some((x) => (x.intermedioMin || 0) > 0 && !x.computarIntermedio);
 
 export default function FichadasConsulta() {
   const now = new Date();
@@ -102,6 +103,16 @@ export default function FichadasConsulta() {
     finally { setBusy(false); }
   }
 
+  // Marcar/desmarcar el intervalo intermedio de un día como jornada trabajada.
+  async function ajusteIntervalo(r: Row, fecha: string, computar: boolean) {
+    setErr(''); setOk('');
+    try {
+      await api.patch(`/fichadas/${r.id}/dia-intermedio`, { fecha, computar });
+      setOk(computar ? `Intervalo del ${fecha} computado como jornada para ${r.nom}.` : `Intervalo del ${fecha} vuelto a descontar para ${r.nom}.`);
+      await load();
+    } catch (e: any) { setErr(e.message); }
+  }
+
   // Borrar un registro del historial de importaciones (no toca las fichadas cargadas).
   async function borrarImport(l: ImportLog) {
     if (!window.confirm(`¿Borrar del historial la importación de ${MESES[l.mes - 1]} ${l.anio}?\n(Solo se borra el registro del historial; las fichadas ya cargadas no se tocan.)`)) return;
@@ -138,6 +149,7 @@ export default function FichadasConsulta() {
     if (filtro === 'revisar') return (r.data.diasARevisar?.length || 0) > 0;
     if (filtro === 'injustificado') return (r.data.diasInjustificados || 0) > 0;
     if (filtro === 'conflicto') return (r.data.diasLicenciaConflicto || 0) > 0;
+    if (filtro === 'intervalo') return tieneIntervalo(r.data);
     if (filtro === 'pendientes') return r.estado === 'pendiente' || r.estado === 'observada';
     if (filtro === 'observadas') return r.estado === 'observada';
     if (filtro === 'autorizadas') return r.estado === 'autorizada';
@@ -149,10 +161,11 @@ export default function FichadasConsulta() {
     acc.lic += (r.data.diasLicencia || 0);
     acc.inj += (r.data.diasInjustificados || 0);
     acc.conf += (r.data.diasLicenciaConflicto || 0);
+    if (tieneIntervalo(r.data)) acc.interv += 1;
     if (r.estado === 'pendiente' || r.estado === 'observada') acc.pend += 1;
     if (r.estado === 'autorizada') acc.autoriz += 1;
     return acc;
-  }, { dias: 0, rev: 0, lic: 0, inj: 0, conf: 0, pend: 0, autoriz: 0 });
+  }, { dias: 0, rev: 0, lic: 0, inj: 0, conf: 0, interv: 0, pend: 0, autoriz: 0 });
 
   const pendientesVisibles = visibles.filter((r) => r.estado === 'pendiente' || r.estado === 'observada').length;
 
@@ -220,6 +233,7 @@ export default function FichadasConsulta() {
                 <option value="revisar">Con días a revisar</option>
                 <option value="injustificado">Con injustificados</option>
                 <option value="conflicto">Con conflicto de licencia</option>
+                <option value="intervalo">Con intervalo a revisar</option>
               </select>
             </div>
           )}
@@ -248,6 +262,7 @@ export default function FichadasConsulta() {
             <Stat n={tot.rev} label="A revisar" color={tot.rev ? '#d97706' : undefined} />
             <Stat n={tot.inj} label="Injustificados" color={tot.inj ? '#dc2626' : undefined} />
             <Stat n={tot.conf} label="Conflicto licencia" color={tot.conf ? '#dc2626' : undefined} />
+            <Stat n={tot.interv} label="Con intervalo (revisar)" color={tot.interv ? '#d97706' : undefined} />
           </div>
         </div>
       )}
@@ -258,7 +273,7 @@ export default function FichadasConsulta() {
             <thead><tr><th style={{ width: 24 }}></th><th>Legajo</th><th>Empleado</th><th>Empresa</th><th>Aprobación</th><th style={{ textAlign: 'right' }}>Días trab.</th><th style={{ textAlign: 'right' }}>Banco mes</th><th style={{ textAlign: 'right' }}>Extra neto</th><th style={{ textAlign: 'right' }}>Tard.</th><th style={{ textAlign: 'right' }}>Lic.</th><th style={{ textAlign: 'right' }}>Revisar</th><th style={{ textAlign: 'right' }}>Injustif.</th><th style={{ textAlign: 'right' }}>Conflic.</th></tr></thead>
             <tbody>
               {visibles.map((r) => (
-                <FilaEmpleado key={r.empleado_id} r={r} abierto={expand.has(r.empleado_id)} onToggle={() => toggle(r.empleado_id)} onResolver={resolver} busy={busy} />
+                <FilaEmpleado key={r.empleado_id} r={r} abierto={expand.has(r.empleado_id)} onToggle={() => toggle(r.empleado_id)} onResolver={resolver} onAjuste={ajusteIntervalo} busy={busy} />
               ))}
               {!visibles.length && <tr><td colSpan={13} className="muted" style={{ textAlign: 'center', padding: 20 }}>{rows.length ? 'Ningún empleado coincide con el filtro.' : `No hay fichadas importadas para ${MESES[mes - 1]} ${anio}.`}</td></tr>}
             </tbody>
@@ -299,9 +314,10 @@ export default function FichadasConsulta() {
   );
 }
 
-function FilaEmpleado({ r, abierto, onToggle, onResolver, busy }: {
+function FilaEmpleado({ r, abierto, onToggle, onResolver, onAjuste, busy }: {
   r: Row; abierto: boolean; onToggle: () => void;
-  onResolver: (r: Row, accion: 'aprobar' | 'rechazar') => void; busy: boolean;
+  onResolver: (r: Row, accion: 'aprobar' | 'rechazar') => void;
+  onAjuste: (r: Row, fecha: string, computar: boolean) => void; busy: boolean;
 }) {
   const d = r.data || {};
   const nRev = d.diasARevisar?.length || 0;
@@ -339,7 +355,7 @@ function FilaEmpleado({ r, abierto, onToggle, onResolver, busy }: {
                 {aceptable && <button className="btn danger" disabled={busy} onClick={(e) => { e.stopPropagation(); onResolver(r, 'rechazar'); }}>✗ Observar</button>}
               </span>
             </div>
-            <DetalleDias d={d} nom={r.nom} />
+            <DetalleDias d={d} nom={r.nom} onAjusteIntervalo={(fecha, computar) => onAjuste(r, fecha, computar)} />
           </td>
         </tr>
       )}
