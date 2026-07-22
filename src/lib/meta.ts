@@ -12,6 +12,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'mis-recibos': { ico: '📄', col: '61,200,160', desc: 'Consultá y descargá tus recibos de haberes' },
   'mis-ganancias': { ico: '🧾', col: '234,179,8', desc: 'Consultá tu cálculo del Impuesto a las Ganancias (F.1357)' },
   'mis-datos': { ico: '👤', col: '92,104,128', desc: 'Tu información personal y laboral' },
+  'turnos-reglas': { ico: '🕒', col: '217,119,6', desc: 'Jornada, horario de ingreso y regla de cada turno (recorte de entrada anticipada)' },
   'seguridad': { ico: '🔐', col: '92,104,128', desc: 'Verificación en dos pasos (2FA) de tu cuenta' },
   'anticipos': { ico: '💸', col: '61,127,255', desc: 'Solicitá un adelanto de tu sueldo' },
   'mis-licencias': { ico: '🏖', col: '34,197,94', desc: 'Solicitá y consultá tus licencias y vacaciones' },

@@ -7,6 +7,7 @@ import Placeholder from './Placeholder';
 import Empleados from '../pages/Empleados';
 import Personas from '../pages/Personas';
 import MisDatos from '../pages/MisDatos';
+import TurnosReglas from '../pages/TurnosReglas';
 import Seguridad from '../pages/Seguridad';
 import Mensajes from '../pages/Mensajes';
 import MensajesRRHH from '../pages/MensajesRRHH';
@@ -262,6 +263,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'justificar-licencia': Justificaciones,
   'fichadas-import': FichadasImport,
   'fichadas-consulta': FichadasConsulta,
+  'turnos-reglas': TurnosReglas,
   'fichadas-equipo': FichadasEquipo,
   'delegaciones': Delegaciones,
   'mis-delegaciones': MisDelegaciones,

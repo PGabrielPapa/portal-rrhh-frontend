@@ -131,6 +131,7 @@ export const GROUPS: Group[] = [
       { key: 'fichadas-import', label: 'Importar fichadas (Pro-Soft)', ready: true },
       { key: 'fichadas-dia', label: 'Fichadas del día', ready: true },
       { key: 'fichadas-consulta', label: 'Fichadas — consulta (control mensual)', ready: true },
+      { key: 'turnos-reglas', label: 'Turnos y reglas', ready: true },
       { key: 'fichaje-web', label: 'Fichaje web (consulta)', ready: true },
       { key: 'vacaciones', label: 'Vacaciones (saldos)', ready: true },
       { key: 'licencias-rrhh', ready: true, label: 'Licencias (gestión)' },

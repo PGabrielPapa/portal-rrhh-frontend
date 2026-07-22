@@ -16,6 +16,7 @@ export type Estado = 'ok' | 'no-laborable' | 'revisar' | 'licencia' | 'licencia-
 export type TipoDia = 'habil' | 'sabado' | 'domingo' | 'feriado';
 export interface DiaDetalle {
   fecha: string; dia: string; entrada?: string; salida?: string; marcas?: string; nMarcas?: number; intermedioMin?: number; computarIntermedio?: boolean;
+  turno?: string; recorteMin?: number;
   hsNetasMin: number; hsNormalMin: number; saldoMin: number | null; tipoDia?: TipoDia;
   extra50Min: number; extra100Min: number; extraComputa: boolean;
   tardeMin: number; completa: boolean; estado: Estado;
@@ -139,6 +140,7 @@ export function DetalleDias({ d, nom, gerente = false, onAjusteIntervalo }: { d:
                     {x.computarIntermedio ? 'Deshacer' : 'Computar como jornada'}
                   </button>}
                 {(x.intermedioMin || 0) === 0 && (x.nMarcas || 0) > 1 && <span className="muted" style={{ fontSize: 11 }}> · {x.nMarcas} tramos</span>}
+                {(x.recorteMin || 0) > 0 && <span style={{ color: '#2563eb', fontSize: 11 }} title="Turno restringido: entró antes del horario; ese tiempo no computa."> · entró {minToHhmm(x.recorteMin!)} antes (no computa)</span>}
               </td>
               <td style={{ textAlign: 'right' }}>{x.hsNetasMin > 0 ? minToHhmm(x.hsNetasMin) : '—'}</td>
               <td style={{ textAlign: 'right' }} className="muted">{minToHhmm(x.hsNormalMin)}</td>
