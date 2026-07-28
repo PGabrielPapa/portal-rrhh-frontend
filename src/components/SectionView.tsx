@@ -54,6 +54,7 @@ import Adelantos from '../pages/Adelantos';
 import Parametros from '../pages/Parametros';
 import Conceptos from '../pages/Conceptos';
 import Liquidacion from '../pages/Liquidacion';
+import Produccion from '../pages/Produccion';
 import MisRecibos from '../pages/MisRecibos';
 import RecibosGestion from '../pages/RecibosGestion';
 import Licencias from '../pages/Licencias';
@@ -199,6 +200,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'parametros': Parametros,
   'conceptos': Conceptos,
   'liquidacion': Liquidacion,
+  'produccion': Produccion,
   'mis-recibos': MisRecibos,
   'recibos-gestion': RecibosGestion,
   'aprobaciones-pendientes': MisAprobaciones,

@@ -70,6 +70,7 @@ export default function Empleados() {
   const [showAlta, setShowAlta] = useState(false);
   const [editEmp, setEditEmp] = useState<Empleado | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileConvRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
@@ -130,6 +131,24 @@ export default function Empleados() {
     } catch (err: any) { setMsg({ t: 'No se pudo procesar el archivo: ' + err.message, ok: false }); }
   }
 
+  // Actualiza SOLO convenio/categoría/sindicato/zona por CUIL (planilla de mapeo).
+  async function onFileConv(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    e.target.value = '';
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const aoa = XLSX.utils.sheet_to_json<any[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false, blankrows: false });
+      if (!aoa.length) return setMsg({ t: 'El archivo no contiene datos', ok: false });
+      const hdr = (aoa[0] || []).map((h) => String(h).trim());
+      const rows = aoa.slice(1).map((r) => Object.fromEntries(hdr.map((h, j) => [h, String(r[j] ?? '').trim()])));
+      const res = await api.post<{ actualizados: number; sinMatch: string[] }>('/empleados/actualizar-convenios', { rows });
+      const sm = res.sinMatch?.length ? ` · ${res.sinMatch.length} sin match (CUIL no encontrado)` : '';
+      setMsg({ t: `Convenios actualizados: ${res.actualizados} legajo(s)${sm}.`, ok: true });
+      load();
+    } catch (err: any) { setMsg({ t: 'No se pudo procesar el archivo: ' + err.message, ok: false }); }
+  }
+
   return (
     <>
         <div className="row" style={{ flexWrap: 'wrap', marginBottom: 16 }}>
@@ -152,6 +171,8 @@ export default function Empleados() {
             <button className="btn ghost" onClick={descargarPlantilla}>📋 Plantilla</button>
             <button className="btn ghost" onClick={() => fileRef.current?.click()}>↑ Importar Excel</button>
             <input ref={fileRef} type="file" accept=".xlsx,.csv" style={{ display: 'none' }} onChange={onFile} />
+            <button className="btn ghost" title="Actualiza convenio, categoría, sindicato y zona por CUIL (no toca otros datos)" onClick={() => fileConvRef.current?.click()}>↑ Convenios</button>
+            <input ref={fileConvRef} type="file" accept=".xlsx,.csv" style={{ display: 'none' }} onChange={onFileConv} />
             <button className="btn" onClick={() => setShowAlta(true)}>+ Nueva alta</button>
           </>}
         </div>
@@ -201,7 +222,9 @@ const CAUSAS_BAJA: [string, string][] = [
   ['despido_indirecto', 'Despido indirecto (Art. 246)'],
   ['mutuo', 'Mutuo acuerdo / retiro voluntario (Art. 241)'],
   ['jubilacion', 'Jubilación / Retiro (Art. 252)'],
-  ['fallecimiento', 'Fallecimiento (Art. 248)'],
+  ['fallecimiento', 'Fallecimiento del trabajador (Art. 248)'],
+  ['fallecimiento_empleador', 'Fallecimiento del empleador (Art. 249)'],
+  ['quiebra', 'Quiebra / concurso del empleador (Art. 251)'],
   ['incapacidad_absoluta', 'Incapacidad absoluta (Art. 212 4°)'], ['incapacidad_parcial', 'Incapacidad parcial / sin tareas (Art. 212 1°-3°)'],
   ['abandono', 'Abandono de trabajo (Art. 244)'],
   ['fin_contrato', 'Vencimiento de plazo / fin de obra'],

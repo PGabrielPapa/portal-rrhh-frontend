@@ -47,6 +47,8 @@ function Individual() {
       if (fin.diasTrabajados) nv.diasTrabajados = Number(fin.diasTrabajados);
       if (fin.horasExtra50) nv.horasExtra50 = Number(fin.horasExtra50);
       if (fin.horasExtra100) nv.horasExtra100 = Number(fin.horasExtra100);
+      if (fin.horasNormales) nv.horasNormales = Number(fin.horasNormales);       // jornal: forzar horas trabajadas
+      if (fin.feriadosNoTrab) nv.feriadosNoTrab = Number(fin.feriadosNoTrab);     // jornal: feriados no trabajados
       if (fin.otrosRemun) { nv.otrosRemun = Number(fin.otrosRemun); nv.otrosRemunLabel = fin.otrosRemunLabel; }
       if (fin.otrosNoRem) { nv.otrosNoRem = Number(fin.otrosNoRem); nv.otrosNoRemLabel = fin.otrosNoRemLabel; }
       if (fin.otrosDesc) { nv.otrosDesc = Number(fin.otrosDesc); nv.otrosDescLabel = fin.otrosDescLabel; }
@@ -122,6 +124,9 @@ function Individual() {
             <div className="grid2" style={{ marginTop: 10 }}>
               <div className="field"><label>Días trabajados (30 = mes completo)</label><input className="input" type="number" value={fin.diasTrabajados || ''} onChange={(e) => setFin({ ...fin, diasTrabajados: e.target.value })} placeholder="30" /></div>
               <div className="field"></div>
+              <div className="field" style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--linea)', paddingTop: 6 }}><span className="muted" style={{ fontSize: 12 }}>Jornal UOCRA — forzar horas (si olvidó fichar o trabajó sin fichero). Vacío = usa las fichadas.</span></div>
+              <div className="field"><label>Horas trabajadas (jornal — forzar)</label><input className="input" type="number" value={fin.horasNormales || ''} onChange={(e) => setFin({ ...fin, horasNormales: e.target.value })} placeholder="de fichadas" /></div>
+              <div className="field"><label>Feriados no trabajados (jornal)</label><input className="input" type="number" value={fin.feriadosNoTrab || ''} onChange={(e) => setFin({ ...fin, feriadosNoTrab: e.target.value })} placeholder="de calendario" /></div>
               <div className="field"><label>Horas extra 50%</label><input className="input" type="number" value={fin.horasExtra50 || ''} onChange={(e) => setFin({ ...fin, horasExtra50: e.target.value })} /></div>
               <div className="field"><label>Horas extra 100%</label><input className="input" type="number" value={fin.horasExtra100 || ''} onChange={(e) => setFin({ ...fin, horasExtra100: e.target.value })} /></div>
               <div className="field"><label>Otros haberes remunerativos — concepto</label><input className="input" value={fin.otrosRemunLabel || ''} onChange={(e) => setFin({ ...fin, otrosRemunLabel: e.target.value })} placeholder="Premio, comisión…" /></div>

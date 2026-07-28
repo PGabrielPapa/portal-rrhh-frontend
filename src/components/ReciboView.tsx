@@ -67,11 +67,22 @@ export default function ReciboView({ recibo }: { recibo: Recibo }) {
         <div>
           <h4 style={{ margin: '0 0 6px' }}>Haberes</h4>
           <table><tbody>
-            {recibo.haberes.map((h, i) => (
-              <tr key={i}><td>{h.concepto} {h.tipo === 'norem' && <span className="badge">No rem.</span>}{h.tipo === 'exento' && <span className="badge">Exento</span>}</td><td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{money(h.monto)}</td></tr>
+            {recibo.haberes.filter((h) => h.tipo !== 'norem').map((h, i) => (
+              <tr key={i}><td>{h.concepto} {h.tipo === 'exento' && <span className="badge">Exento</span>}</td><td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{money(h.monto)}</td></tr>
             ))}
-            <tr><td style={{ fontWeight: 600 }}>Total haberes</td><td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{money(recibo.totales.totalHaberes)}</td></tr>
+            <tr><td style={{ fontWeight: 600 }}>Total haberes</td><td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{money(recibo.totales.totalHaberes - (recibo.totales.totalNoRem || 0))}</td></tr>
           </tbody></table>
+          {recibo.haberes.some((h) => h.tipo === 'norem') && (
+            <>
+              <h4 style={{ margin: '12px 0 6px' }}>Adicionales <span className="muted" style={{ fontWeight: 400 }}>(no remunerativos)</span></h4>
+              <table><tbody>
+                {recibo.haberes.filter((h) => h.tipo === 'norem').map((h, i) => (
+                  <tr key={i}><td>{h.concepto} <span className="badge">No rem.</span></td><td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{money(h.monto)}</td></tr>
+                ))}
+                <tr><td style={{ fontWeight: 600 }}>Total adicionales</td><td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{money(recibo.totales.totalNoRem || 0)}</td></tr>
+              </tbody></table>
+            </>
+          )}
         </div>
         <div>
           <h4 style={{ margin: '0 0 6px' }}>Descuentos</h4>

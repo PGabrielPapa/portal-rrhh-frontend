@@ -20,6 +20,22 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false); // sidebar off-canvas en celular
   const groups = groupsForRole(user?.role || 'employee', { comiteHys: !!user?.comiteHys, comiteAcceso: user?.acceso, modulosOcultos: user?.modulosOcultos });
 
+  // Paneles colapsables: se recuerda qué grupos quedan abiertos (localStorage) y por
+  // defecto se abre el del módulo que estás viendo.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('prh_menu_groups') || '{}'); } catch { return {}; }
+  });
+  const currentKey = loc.pathname.startsWith('/m/') ? loc.pathname.slice(3) : '';
+  const activePanel = groups.find((g) => g.items.some((it) => it.key === currentKey))?.panel || '';
+  const activeEsRRHH = groups.some((g) => g.area === 'rrhh' && g.panel === activePanel);
+  const isGroupOpen = (panel: string, def = false) => (panel in openGroups ? openGroups[panel] : def);
+  const toggleGroup = (panel: string, def = false) => setOpenGroups((prev) => {
+    const cur = panel in prev ? prev[panel] : def;
+    const next = { ...prev, [panel]: !cur };
+    try { localStorage.setItem('prh_menu_groups', JSON.stringify(next)); } catch { /* noop */ }
+    return next;
+  });
+
   // Delegaciones recibidas → grupo dinámico "Delegado a mí" (solo para no-gerentes;
   // los gerentes ya ven esas pantallas y el equipo delegado aparece dentro).
   const [delegItems, setDelegItems] = useState<{ key: string; label: string; ready?: boolean }[]>([]);
@@ -63,20 +79,57 @@ export default function Layout() {
               ))}
             </div>
           )}
-          {groups.map((g) => (
-            <div key={g.panel} style={{ marginTop: 12 }}>
-              <div className="sb-group-label">{g.panel}</div>
-              {g.items.slice().sort((a, b) => a.label.localeCompare(b.label, 'es')).map((it) => (
-                <NavLink key={it.key} to={`/m/${it.key}`} className={({ isActive }) => `sb-item${isActive ? ' active' : ''}`}>
-                  <span>{it.label}</span>
-                  {it.key === 'aprobaciones-pendientes' && pendAprob > 0 && (
-                    <span title="Pendientes de tu aprobación" style={{ marginLeft: 'auto', background: 'var(--accent2)', color: '#fff', borderRadius: 10, padding: '0 7px', fontSize: 11, fontWeight: 700 }}>{pendAprob}</span>
-                  )}
-                  {!it.ready && <span title="En migración" style={{ fontSize: 10, opacity: .6 }}>🚧</span>}
-                </NavLink>
-              ))}
-            </div>
-          ))}
+          {(() => {
+            // Ítems de un panel (nivel más profundo).
+            const itemsDe = (g: typeof groups[number]) => g.items.slice().sort((a, b) => a.label.localeCompare(b.label, 'es')).map((it) => (
+              <NavLink key={it.key} to={`/m/${it.key}`} className={({ isActive }) => `sb-item${isActive ? ' active' : ''}`}>
+                <span>{it.label}</span>
+                {it.key === 'aprobaciones-pendientes' && pendAprob > 0 && (
+                  <span title="Pendientes de tu aprobación" style={{ marginLeft: 'auto', background: 'var(--accent2)', color: '#fff', borderRadius: 10, padding: '0 7px', fontSize: 11, fontWeight: 700 }}>{pendAprob}</span>
+                )}
+                {!it.ready && <span title="En migración" style={{ fontSize: 10, opacity: .6 }}>🚧</span>}
+              </NavLink>
+            ));
+            // Un panel colapsable (título + ítems). indent = anidado dentro de RR.HH.
+            const panel = (g: typeof groups[number], indent = false) => {
+              const abierto = isGroupOpen(g.panel, g.panel === activePanel);
+              return (
+                <div key={g.panel} style={{ marginTop: indent ? 4 : 12 }}>
+                  <div className="sb-group-label" onClick={(e) => { e.stopPropagation(); toggleGroup(g.panel, g.panel === activePanel); }}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }} title={abierto ? 'Ocultar' : 'Mostrar'}>
+                    <span>{g.panel}</span><span style={{ fontSize: 10, opacity: .7 }}>{abierto ? '▾' : '▸'}</span>
+                  </div>
+                  {abierto && itemsDe(g)}
+                </div>
+              );
+            };
+            const rrhhGroups = groups.filter((g) => g.area === 'rrhh');
+            const out: JSX.Element[] = [];
+            let rrhhListo = false;
+            for (const g of groups) {
+              if (g.area === 'rrhh') {
+                if (rrhhListo) continue;
+                rrhhListo = true;
+                const abierto = isGroupOpen('__RRHH__', activeEsRRHH);
+                out.push(
+                  <div key="__rrhh__" style={{ marginTop: 12 }}>
+                    <div className="sb-group-label" onClick={(e) => { e.stopPropagation(); toggleGroup('__RRHH__', activeEsRRHH); }}
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none', fontWeight: 700 }} title={abierto ? 'Ocultar' : 'Mostrar'}>
+                      <span>RR.HH.</span><span style={{ fontSize: 10, opacity: .7 }}>{abierto ? '▾' : '▸'}</span>
+                    </div>
+                    {abierto && (
+                      <div style={{ marginLeft: 8, borderLeft: '1px solid var(--border, rgba(120,130,160,.25))', paddingLeft: 6 }}>
+                        {rrhhGroups.map((rg) => panel(rg, true))}
+                      </div>
+                    )}
+                  </div>
+                );
+                continue;
+              }
+              out.push(panel(g));
+            }
+            return out;
+          })()}
         </nav>
       </aside>
 

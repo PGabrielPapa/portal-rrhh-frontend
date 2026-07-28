@@ -1,12 +1,12 @@
 // Registro de secciones (módulos) agrupadas por panel, con los roles que las ven.
 // ready=true → ya migrada (tiene componente). ready=false → placeholder.
-// Los paneles de RR.HH. están separados por ÁREA funcional para que cada equipo
-// (personal, selección, desarrollo, tiempos, liquidación, impuestos, AFIP, etc.)
-// encuentre sus herramientas sin mezclarse con las de otras áreas.
+// area='rrhh' → el panel va DENTRO del desplegable "RR.HH." del menú (anidado).
+// Los paneles sin area (Mi espacio, Gerencia, HyS, Comité, Asistente IA, Administración)
+// van sueltos en el menú, fuera del desplegable de RR.HH.
 export type Role = 'employee' | 'manager' | 'rrhh' | 'admin';
 
 export interface Section { key: string; label: string; ready?: boolean; }
-export interface Group { panel: string; roles: Role[]; items: Section[]; flag?: 'comiteHys'; }
+export interface Group { panel: string; roles: Role[]; items: Section[]; flag?: 'comiteHys'; area?: 'rrhh'; }
 
 export const GROUPS: Group[] = [
   {
@@ -52,9 +52,9 @@ export const GROUPS: Group[] = [
     ],
   },
 
-  // ── RR.HH.: Dirección ────────────────────────────────────────────────
+  // ══════════ RR.HH. (desplegable anidado) ══════════
   {
-    panel: 'RR.HH. — Tablero y control', roles: ['rrhh', 'admin'],
+    panel: 'Tablero y control', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'tablero', label: 'Tablero de RR.HH.', ready: true },
       { key: 'aprobaciones-pendientes', label: 'Aprobaciones pendientes', ready: true },
@@ -63,10 +63,8 @@ export const GROUPS: Group[] = [
       { key: 'reportes', label: 'Generador de reportes', ready: true },
     ],
   },
-
-  // ── Administración de personal ───────────────────────────────────────
   {
-    panel: 'RR.HH. — Personal y legajos', roles: ['rrhh', 'admin'],
+    panel: 'Personal y legajos', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'personas', label: 'Personas (base)', ready: true },
       { key: 'empleados', label: 'ABM Empleados', ready: true },
@@ -76,41 +74,23 @@ export const GROUPS: Group[] = [
       { key: 'campos-adicionales', label: 'Campos adicionales del legajo', ready: true },
       { key: 'legajo-docs', label: 'Legajo digital (documentos)', ready: true },
       { key: 'cambios-domicilio', label: 'Cambios de domicilio', ready: true },
-      { key: 'beneficios', label: 'Beneficios', ready: true },
-      { key: 'elementos-trabajo', label: 'Elementos de trabajo', ready: true },
+      { key: 'sanciones', label: 'Sanciones', ready: true },
     ],
   },
   {
-    panel: 'RR.HH. — Documentación y comunicación', roles: ['rrhh', 'admin'],
-    items: [
-      { key: 'cert-trabajo-rrhh', label: 'Certificados de trabajo', ready: true },
-      { key: 'cert-servicios', label: 'Certificación de servicios (ANSES)', ready: true },
-      { key: 'documentos', label: 'Documentos firmados', ready: true },
-      { key: 'documentos-firma', label: 'Documentos para firma', ready: true },
-      { key: 'mensajes-rrhh', label: 'Mensajes de empleados', ready: true },
-    ],
-  },
-
-  // ── Organización, selección y desarrollo ─────────────────────────────
-  {
-    panel: 'RR.HH. — Organización y puestos', roles: ['rrhh', 'admin'],
+    panel: 'Organización y selección', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'puestos', label: 'Puestos y estructura', ready: true },
       { key: 'descripcion-puestos', label: 'Descripción de puestos', ready: true },
       { key: 'unidades', label: 'Estructura organizativa', ready: true },
       { key: 'posiciones', label: 'Posiciones y vacantes', ready: true },
-    ],
-  },
-  {
-    panel: 'RR.HH. — Selección e incorporación', roles: ['rrhh', 'admin'],
-    items: [
       { key: 'reclutamiento', label: 'Reclutamiento / Selección', ready: true },
       { key: 'seleccion-embudo', label: 'Selección — embudo y evaluación', ready: true },
       { key: 'onboarding', label: 'Onboarding', ready: true },
     ],
   },
   {
-    panel: 'RR.HH. — Desarrollo y desempeño', roles: ['rrhh', 'admin'],
+    panel: 'Desarrollo y desempeño', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'evaluaciones', label: 'Evaluaciones de desempeño', ready: true },
       { key: 'desempeno-9box', label: 'Desempeño / 9-box', ready: true },
@@ -123,10 +103,27 @@ export const GROUPS: Group[] = [
       { key: 'competencias', label: 'Diccionario de competencias', ready: true },
     ],
   },
-
-  // ── Tiempos, ausencias y disciplina ──────────────────────────────────
   {
-    panel: 'RR.HH. — Tiempos y ausencias', roles: ['rrhh', 'admin'],
+    panel: 'Compensaciones y beneficios', area: 'rrhh', roles: ['rrhh', 'admin'],
+    items: [
+      { key: 'compensaciones', label: 'Bandas salariales y compa-ratio', ready: true },
+      { key: 'beneficios', label: 'Beneficios', ready: true },
+      { key: 'elementos-trabajo', label: 'Elementos de trabajo', ready: true },
+    ],
+  },
+  {
+    panel: 'Documentación y comunicación', area: 'rrhh', roles: ['rrhh', 'admin'],
+    items: [
+      { key: 'cert-trabajo-rrhh', label: 'Certificados de trabajo', ready: true },
+      { key: 'cert-servicios', label: 'Certificación de servicios (ANSES)', ready: true },
+      { key: 'documentos', label: 'Documentos firmados', ready: true },
+      { key: 'documentos-firma', label: 'Documentos para firma', ready: true },
+      { key: 'mensajes-rrhh', label: 'Mensajes de empleados', ready: true },
+      { key: 'comunicados-rrhh', label: 'Comunicados y reconocimientos', ready: true },
+    ],
+  },
+  {
+    panel: 'Tiempos y ausencias', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'fichadas-import', label: 'Importar fichadas (Pro-Soft)', ready: true },
       { key: 'fichadas-dia', label: 'Fichadas del día', ready: true },
@@ -135,15 +132,13 @@ export const GROUPS: Group[] = [
       { key: 'fichaje-web', label: 'Fichaje web (consulta)', ready: true },
       { key: 'vacaciones', label: 'Vacaciones (saldos)', ready: true },
       { key: 'licencias-rrhh', ready: true, label: 'Licencias (gestión)' },
-      { key: 'sanciones', label: 'Sanciones', ready: true },
     ],
   },
-
-  // ── Liquidación e impuestos ──────────────────────────────────────────
   {
-    panel: 'RR.HH. — Liquidación de haberes', roles: ['rrhh', 'admin'],
+    panel: 'Liquidación de haberes', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'liquidacion', label: 'Liquidación', ready: true },
+      { key: 'produccion', label: 'Liquidación por producción', ready: true },
       { key: 'novedades', label: 'Novedades variables', ready: true },
       { key: 'adelantos-rrhh', label: 'Adelantos (otorgamiento)', ready: true },
       { key: 'conceptos', label: 'Conceptos', ready: true },
@@ -159,7 +154,7 @@ export const GROUPS: Group[] = [
     ],
   },
   {
-    panel: 'RR.HH. — Impuesto a las Ganancias', roles: ['rrhh', 'admin'],
+    panel: 'Impuesto a las Ganancias', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'ganancias-rrhh', label: 'Ganancias / F.1357', ready: true },
       { key: 'ganancias-control', label: 'Ganancias — informe de control', ready: true },
@@ -172,7 +167,7 @@ export const GROUPS: Group[] = [
     ],
   },
   {
-    panel: 'RR.HH. — Cargas sociales y AFIP', roles: ['rrhh', 'admin'],
+    panel: 'Cargas sociales y AFIP', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'f931', label: 'F.931', ready: true },
       { key: 'libro-sueldos', label: 'Libro de sueldos', ready: true },
@@ -184,10 +179,8 @@ export const GROUPS: Group[] = [
       { key: 'embargos', label: 'Embargos y cuota alimentaria', ready: true },
     ],
   },
-
-  // ── Configuración y seguridad e higiene ──────────────────────────────
   {
-    panel: 'RR.HH. — Tablas y configuración', roles: ['rrhh', 'admin'],
+    panel: 'Tablas y configuración', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'valores-legales', label: 'Valores legales (topes y mínimos)', ready: true },
       { key: 'art-empresas', label: 'ART por empresa', ready: true },
@@ -198,26 +191,16 @@ export const GROUPS: Group[] = [
       { key: 'modalidades', label: 'Modalidades de contratación', ready: true },
     ],
   },
+
+  // ══════════ Sueltos (fuera del desplegable de RR.HH.) ══════════
   {
-    panel: 'RR.HH. — Comunicación', roles: ['rrhh', 'admin'],
-    items: [
-      { key: 'comunicados-rrhh', label: 'Comunicados y reconocimientos', ready: true },
-    ],
-  },
-  {
-    panel: 'RR.HH. — Compensaciones', roles: ['rrhh', 'admin'],
-    items: [
-      { key: 'compensaciones', label: 'Bandas salariales y compa-ratio', ready: true },
-    ],
-  },
-  {
-    panel: 'RR.HH. — Asistente IA', roles: ['rrhh', 'admin'],
+    panel: 'Asistente IA', roles: ['rrhh', 'admin'],
     items: [
       { key: 'asistente-ia', label: 'Asistente IA', ready: true },
     ],
   },
   {
-    panel: 'RR.HH. — Higiene y Seguridad', roles: ['rrhh', 'admin'],
+    panel: 'Higiene y Seguridad', area: 'rrhh', roles: ['rrhh', 'admin'],
     items: [
       { key: 'hys', label: 'Higiene y Seguridad', ready: true },
     ],
