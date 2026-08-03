@@ -14,6 +14,7 @@ interface Row {
   estado?: EstadoAprob; responsable?: string | null;
   rrhh_por?: string; rrhh_at?: string; rrhh_obs?: string;
   ger_por?: string; ger_at?: string; ger_obs?: string;
+  no_extra?: boolean;
 }
 interface ImportLog {
   id: number; anio: number; mes: number; archivo?: string; filas: number; legajos: number;
@@ -101,6 +102,17 @@ export default function FichadasConsulta() {
       await load();
     } catch (e: any) { setErr(e.message); }
     finally { setBusy(false); }
+  }
+
+  // Marcar/desmarcar "no liquidar horas extra" de una persona en el período.
+  async function toggleNoExtra(r: Row) {
+    setErr(''); setOk('');
+    try {
+      const valor = !r.no_extra;
+      await api.patch(`/fichadas/${r.id}/no-extra`, { valor });
+      setOk(valor ? `Las horas extra de ${r.nom} NO se van a liquidar este período.` : `Se vuelven a liquidar las horas extra de ${r.nom}.`);
+      await load();
+    } catch (e: any) { setErr(e.message); }
   }
 
   // Marcar/desmarcar el intervalo intermedio de un día como jornada trabajada.
@@ -273,7 +285,7 @@ export default function FichadasConsulta() {
             <thead><tr><th style={{ width: 24 }}></th><th>Legajo</th><th>Empleado</th><th>Empresa</th><th>Aprobación</th><th style={{ textAlign: 'right' }}>Días trab.</th><th style={{ textAlign: 'right' }}>Banco mes</th><th style={{ textAlign: 'right' }}>Extra neto</th><th style={{ textAlign: 'right' }}>Tard.</th><th style={{ textAlign: 'right' }}>Lic.</th><th style={{ textAlign: 'right' }}>Revisar</th><th style={{ textAlign: 'right' }}>Injustif.</th><th style={{ textAlign: 'right' }}>Conflic.</th></tr></thead>
             <tbody>
               {visibles.map((r) => (
-                <FilaEmpleado key={r.empleado_id} r={r} abierto={expand.has(r.empleado_id)} onToggle={() => toggle(r.empleado_id)} onResolver={resolver} onAjuste={ajusteIntervalo} busy={busy} />
+                <FilaEmpleado key={r.empleado_id} r={r} abierto={expand.has(r.empleado_id)} onToggle={() => toggle(r.empleado_id)} onResolver={resolver} onAjuste={ajusteIntervalo} onNoExtra={toggleNoExtra} busy={busy} />
               ))}
               {!visibles.length && <tr><td colSpan={13} className="muted" style={{ textAlign: 'center', padding: 20 }}>{rows.length ? 'Ningún empleado coincide con el filtro.' : `No hay fichadas importadas para ${MESES[mes - 1]} ${anio}.`}</td></tr>}
             </tbody>
@@ -314,10 +326,10 @@ export default function FichadasConsulta() {
   );
 }
 
-function FilaEmpleado({ r, abierto, onToggle, onResolver, onAjuste, busy }: {
+function FilaEmpleado({ r, abierto, onToggle, onResolver, onAjuste, onNoExtra, busy }: {
   r: Row; abierto: boolean; onToggle: () => void;
   onResolver: (r: Row, accion: 'aprobar' | 'rechazar') => void;
-  onAjuste: (r: Row, fecha: string, computar: boolean) => void; busy: boolean;
+  onAjuste: (r: Row, fecha: string, computar: boolean) => void; onNoExtra: (r: Row) => void; busy: boolean;
 }) {
   const d = r.data || {};
   const nRev = d.diasARevisar?.length || 0;
@@ -350,7 +362,8 @@ function FilaEmpleado({ r, abierto, onToggle, onResolver, onAjuste, busy }: {
               {r.rrhh_obs && <span style={{ fontSize: 13, color: '#dc2626' }}>Obs. RR.HH.: {r.rrhh_obs}</span>}
               {r.ger_obs && <span style={{ fontSize: 13, color: '#dc2626' }}>Obs. gerente: {r.ger_obs}</span>}
               {r.ger_por && r.estado === 'autorizada' && <span className="muted" style={{ fontSize: 13 }}>Autorizada por {r.ger_por}</span>}
-              <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button className="btn" style={{ background: r.no_extra ? '#d97706' : 'transparent', color: r.no_extra ? '#fff' : 'var(--text)', border: '1px solid ' + (r.no_extra ? '#d97706' : 'var(--border)') }} disabled={busy} onClick={(e) => { e.stopPropagation(); onNoExtra(r); }} title="Excluir las horas extra de esta persona de la liquidación">{r.no_extra ? '⛔ Extra excluidas' : 'No liquidar extra'}</button>
                 {aceptable && <button className="btn" style={{ background: '#16a34a' }} disabled={busy} onClick={(e) => { e.stopPropagation(); onResolver(r, 'aprobar'); }}>✓ Aceptar</button>}
                 {aceptable && <button className="btn danger" disabled={busy} onClick={(e) => { e.stopPropagation(); onResolver(r, 'rechazar'); }}>✗ Observar</button>}
               </span>

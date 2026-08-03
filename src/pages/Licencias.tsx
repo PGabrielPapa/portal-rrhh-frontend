@@ -24,6 +24,8 @@ const LIC_TIPOS: { value: string; label: string; soloRRHH?: boolean }[] = [
   { value: 'Matrimonio de hijo', label: 'Matrimonio de hijo (1 día hábil)' },
   { value: 'Mudanza', label: 'Mudanza (2 días corridos)' },
   { value: 'Trámites personales', label: 'Trámites personales' },
+  { value: 'ILT a cargo del empleador', label: 'ILT — a cargo del empleador (Incapacidad Laboral Temporaria, primeros días)', soloRRHH: true },
+  { value: 'ILT a cargo de la ART', label: 'ILT — a cargo de la ART (a partir del día 11)', soloRRHH: true },
 ];
 // Enfermedad, fallecimiento y nacimiento son imprevisibles: no se solicitan con anticipación (RR.HH. las registra).
 const TIPOS_SOLICITABLES = LIC_TIPOS.filter((t) => !t.soloRRHH);
@@ -79,6 +81,16 @@ export default function Licencias() {
   }
   async function resolver(l: Lic, est: string) { try { await api.patch(`/licencias/${l.id}`, { estado: est }); load(); } catch (e: any) { setErr(e.message); } }
   async function borrar(l: Lic) { if (!window.confirm(`¿Borrar la licencia de ${l.nom} (${l.tipo} ${fmt(l.desde)})?`)) return; try { await api.del(`/licencias/${l.id}`); load(); } catch (e: any) { setErr(e.message); } }
+  // Edición RR.HH.: corregir tipo/fechas/motivo de una licencia ya cargada.
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editF, setEditF] = useState<Record<string, string>>({});
+  function abrirEdit(l: Lic) { setEditId(l.id); setEditF({ tipo: l.tipo, desde: String(l.desde).slice(0, 10), hasta: String(l.hasta).slice(0, 10), motivo: (l as any).motivo || '' }); }
+  const setE = (k: string) => (e: any) => setEditF({ ...editF, [k]: e.target.value });
+  async function guardarEdit() {
+    if (!editId) return; setErr('');
+    try { await api.put(`/licencias/${editId}`, { tipo: editF.tipo, desde: editF.desde, hasta: editF.hasta, motivo: editF.motivo }); setEditId(null); load(); }
+    catch (e: any) { setErr(e.message); }
+  }
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
   const diasSol = (f.desde && f.hasta && f.hasta >= f.desde) ? Math.round((new Date(f.hasta + 'T12:00:00').getTime() - new Date(f.desde + 'T12:00:00').getTime()) / 86400000) + 1 : 0;
   const esVac = String(f.tipo || '').toLowerCase() === 'vacaciones';
@@ -261,12 +273,29 @@ export default function Licencias() {
                 <td><span className="badge" style={{ color: colorEstado(l.estado) }}>{l.estado}</span></td>
                 <td>{l.tiene_comprobante ? <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => verComprobante(l.id)}>📄 Ver</button> : <span className="muted">—</span>}</td>
                 {!modoMias && <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  {l.estado === 'pendiente' ? <>
+                  {l.estado === 'pendiente' && <>
                     <button className="btn" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => resolver(l, 'aprobada')}>Aprobar</button>
-                    <button className="btn danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => resolver(l, 'rechazada')}>Rechazar</button>
-                  </> : <span className="muted" style={{ fontSize: 12 }}>{l.resuelto_por ? `por ${l.resuelto_por}` : ''}</span>}
+                    <button className="btn danger" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => resolver(l, 'rechazada')}>Rechazar</button>
+                  </>}
+                  {l.estado !== 'pendiente' && l.resuelto_por && <span className="muted" style={{ fontSize: 12, marginRight: 6 }}>por {l.resuelto_por}</span>}
+                  {esRRHH && <>
+                    <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => abrirEdit(l)}>✏ Editar</button>
+                    <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => borrar(l)}>🗑 Borrar</button>
+                  </>}
                 </td>}
               </tr>,
+              (esRRHH && editId === l.id) && (
+                <tr key={`e${l.id}`}><td colSpan={esRRHH ? 9 : 8} style={{ padding: '8px 12px', background: 'var(--bg2)' }}>
+                  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end', gap: 8 }}>
+                    <div className="field" style={{ minWidth: 260 }}><label>Tipo</label><select className="input" value={editF.tipo || ''} onChange={setE('tipo')}>{LIC_TIPOS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}{!LIC_TIPOS.some((t) => t.value === editF.tipo) && editF.tipo && <option value={editF.tipo}>{editF.tipo}</option>}</select></div>
+                    <div className="field"><label>Desde</label><input className="input" type="date" value={editF.desde || ''} onChange={setE('desde')} /></div>
+                    <div className="field"><label>Hasta</label><input className="input" type="date" value={editF.hasta || ''} onChange={setE('hasta')} /></div>
+                    <div className="field" style={{ minWidth: 200 }}><label>Motivo</label><input className="input" value={editF.motivo || ''} onChange={setE('motivo')} /></div>
+                    <button className="btn" onClick={guardarEdit}>Guardar</button>
+                    <button className="btn ghost" onClick={() => setEditId(null)}>Cancelar</button>
+                  </div>
+                </td></tr>
+              ),
               (!modoMias && l.estado === 'pendiente') && (
                 <tr key={`f${l.id}`}><td colSpan={esRRHH ? 9 : 8} style={{ padding: '0 12px 10px' }}><FlujoAprobacion base="/licencias" id={l.id} onResuelto={load} /></td></tr>
               )

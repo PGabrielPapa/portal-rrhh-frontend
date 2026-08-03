@@ -139,6 +139,7 @@ export const GROUPS: Group[] = [
     items: [
       { key: 'liquidacion', label: 'Liquidación', ready: true },
       { key: 'produccion', label: 'Liquidación por producción', ready: true },
+      { key: 'previa-liquidacion', label: 'Previa de liquidación', ready: true },
       { key: 'novedades', label: 'Novedades variables', ready: true },
       { key: 'adelantos-rrhh', label: 'Adelantos (otorgamiento)', ready: true },
       { key: 'conceptos', label: 'Conceptos', ready: true },
