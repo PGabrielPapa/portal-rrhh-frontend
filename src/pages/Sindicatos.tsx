@@ -3,9 +3,9 @@ import HistorialConfig from '../components/HistorialConfig';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
-interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: number; pctPatronal: number; pctAntigPorAnio: number; nota?: string; tituloSecundario: number; tituloUniversitario: number; presBase: string; pctPresentismo: number; }
+interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: number; pctSolidario: number; pctPatronal: number; pctAntigPorAnio: number; nota?: string; tituloSecundario: number; tituloUniversitario: number; presBase: string; pctPresentismo: number; }
 const PRES = [['basico', 'Solo básico'], ['basico+antig', 'Básico + antigüedad'], ['basico+antig+titulo', 'Básico + antig. + título'], ['basico+antig+titulo+acuenta', 'Básico + antig. + título + a cuenta fut. aumentos']];
-const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctPatronal: 0, pctAntigPorAnio: 1, nota: '', tituloSecundario: 0, tituloUniversitario: 0, presBase: 'basico', pctPresentismo: 0 });
+const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctSolidario: 0, pctPatronal: 0, pctAntigPorAnio: 1, nota: '', tituloSecundario: 0, tituloUniversitario: 0, presBase: 'basico', pctPresentismo: 0 });
 
 export default function Sindicatos() {
   const { user } = useAuth();
@@ -71,7 +71,8 @@ export default function Sindicatos() {
           <div className="grid2" style={{ marginBottom: 10 }}>
             <div className="field"><label>Código *</label><input className="input" value={edit.codigo} disabled={!!edit.id} onChange={(e) => setF('codigo', e.target.value.toUpperCase())} /></div>
             <div className="field"><label>Nombre *</label><input className="input" value={edit.nombre} onChange={(e) => setF('nombre', e.target.value)} /></div>
-            <div className="field"><label>% aporte empleado</label><input className="input" type="number" step="0.01" value={edit.pctEmpleado} onChange={(e) => setF('pctEmpleado', Number(e.target.value))} /></div>
+            <div className="field"><label>% aporte empleado (cuota sindical afiliado)</label><input className="input" type="number" step="0.01" value={edit.pctEmpleado} onChange={(e) => setF('pctEmpleado', Number(e.target.value))} /></div>
+            <div className="field"><label>% aporte solidario (no afiliado)</label><input className="input" type="number" step="0.01" value={edit.pctSolidario || 0} onChange={(e) => setF('pctSolidario', Number(e.target.value))} placeholder="0 = no aplica (cobra cuota sindical)" /></div>
             <div className="field"><label>% contribución patronal</label><input className="input" type="number" step="0.01" value={edit.pctPatronal} onChange={(e) => setF('pctPatronal', Number(e.target.value))} /></div>
             <div className="field"><label>% antigüedad por año</label><input className="input" type="number" step="0.01" value={edit.pctAntigPorAnio} onChange={(e) => setF('pctAntigPorAnio', Number(e.target.value))} /></div>
             <div className="field"><label>% presentismo (CCT)</label><input className="input" type="number" step="0.01" value={edit.pctPresentismo} onChange={(e) => setF('pctPresentismo', Number(e.target.value))} placeholder="Ej: 8.33" /></div>
