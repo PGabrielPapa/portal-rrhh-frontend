@@ -180,6 +180,24 @@ function ConvenioView({ codigo, puedeEditar }: { codigo: string; puedeEditar: bo
   if (!c) return <div className="muted">{err ? `⚠ ${err}` : 'Cargando…'}</div>;
   const d = edit || c;
   const upd = (fn: (n: any) => void) => { const n = clone(edit); fn(n); setEdit(n); };
+  // Vista matriz: si las categorías terminan en un nivel (INICIAL/JR/SSR/SR), las pivotea en columnas
+  // (como la escala interna). Devuelve null si no aplica (entonces se usa la lista plana).
+  const NIVELES: [string, string][] = [['INICIAL', 'INICIAL'], ['JR', 'JUNIOR'], ['SSR', 'SEMI SENIOR'], ['SR', 'SENIOR']];
+  const pivot = (cats: any[], campo: string) => {
+    const rows: any[] = []; const byBase: Record<string, any> = {}; let hayNivel = false;
+    for (const c2 of cats) {
+      const name = String(c2.cat || '').trim().toUpperCase(); let tok: string | null = null;
+      for (const [t] of NIVELES) if (name.endsWith(' ' + t)) { tok = t; break; }
+      if (tok) {
+        hayNivel = true; const base = name.slice(0, name.length - tok.length).trim();
+        if (!byBase[base]) { byBase[base] = { base, vals: {}, single: null }; rows.push(byBase[base]); }
+        byBase[base].vals[tok] = c2[campo];
+      } else { rows.push({ base: name, vals: {}, single: c2[campo] }); }
+    }
+    if (!hayNivel) return null;
+    const niv = NIVELES.filter(([t]) => rows.some((r) => r.vals[t] != null));
+    return { niv, rows };
+  };
 
   return (
     <>
@@ -197,7 +215,25 @@ function ConvenioView({ codigo, puedeEditar }: { codigo: string; puedeEditar: bo
             ? <input className="input" style={{ marginBottom: 6, fontWeight: 600 }} value={t.titulo} onChange={(e) => upd((n) => { n.tablas[ti].titulo = e.target.value; })} />
             : <strong>{t.titulo}</strong>}
           {t.subtitulo && !edit && <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>{t.subtitulo}</div>}
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 6 }}>
+          {(() => { const piv = !edit && pivot(t.cats || [], t.tipo === 'hora' ? 'valorHora' : 'basico'); if (!piv) return null; return (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 6 }}>
+              <thead><tr>
+                <th style={{ textAlign: 'left', padding: '4px 8px' }}>Categoría</th>
+                {piv.niv.map(([tok, lbl]) => <th key={tok} style={{ textAlign: 'right', padding: '4px 8px' }}>{lbl}</th>)}
+              </tr></thead>
+              <tbody>
+                {piv.rows.map((r: any, ri: number) => (
+                  <tr key={ri}>
+                    <td style={{ padding: '4px 8px', borderTop: '1px solid var(--border)' }}>{r.base}</td>
+                    {r.single != null
+                      ? <td colSpan={piv.niv.length} style={{ padding: '4px 8px', borderTop: '1px solid var(--border)', textAlign: 'right', fontFamily: 'monospace' }}>$ {$(r.single)}</td>
+                      : piv.niv.map(([tok]) => <td key={tok} style={{ padding: '4px 8px', borderTop: '1px solid var(--border)', textAlign: 'right', fontFamily: 'monospace' }}>{r.vals[tok] != null ? `$ ${$(r.vals[tok])}` : <span className="muted">—</span>}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ); })()}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 6, display: (!edit && pivot(t.cats || [], t.tipo === 'hora' ? 'valorHora' : 'basico')) ? 'none' : 'table' }}>
             <thead><tr><th style={{ textAlign: 'left', padding: '4px 8px' }}>Categoría</th><th style={{ textAlign: 'right', padding: '4px 8px' }}>{t.tipo === 'hora' ? 'Valor hora' : 'Básico'}</th>{edit && <th></th>}</tr></thead>
             <tbody>
               {t.cats.map((cat: any, ci: number) => {
