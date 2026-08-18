@@ -55,6 +55,7 @@ import Parametros from '../pages/Parametros';
 import Conceptos from '../pages/Conceptos';
 import Liquidacion from '../pages/Liquidacion';
 import Produccion from '../pages/Produccion';
+import PreviaLiquidacion from '../pages/PreviaLiquidacion';
 import MisRecibos from '../pages/MisRecibos';
 import RecibosGestion from '../pages/RecibosGestion';
 import Licencias from '../pages/Licencias';
@@ -201,6 +202,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'conceptos': Conceptos,
   'liquidacion': Liquidacion,
   'produccion': Produccion,
+  'previa-liquidacion': PreviaLiquidacion,
   'mis-recibos': MisRecibos,
   'recibos-gestion': RecibosGestion,
   'aprobaciones-pendientes': MisAprobaciones,

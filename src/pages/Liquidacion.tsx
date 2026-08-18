@@ -196,6 +196,7 @@ function Corrida() {
   const [corridas, setCorridas] = useState<any[]>([]);
   const [sel, setSel] = useState<any>(null); const [reporte, setReporte] = useState<any>(null); const [exp, setExp] = useState<Record<number, boolean>>({});
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [filtro, setFiltro] = useState(''); const [msg, setMsg] = useState('');
+  const [previaItems, setPreviaItems] = useState<any[] | null>(null); const [ov, setOv] = useState<Record<number, any>>({});
 
   async function loadCorridas() { try { setCorridas(await api.get('/liquidacion/corridas')); } catch (e: any) { setErr(e.message); } }
   useEffect(() => { loadCorridas(); api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
@@ -220,6 +221,19 @@ function Corrida() {
       setMsg(`✓ Corrida generada.${escMsg}`);
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }
+  const bodyCorrida = (extra: any = {}) => { const esExtra = tipo === 'complementaria' || tipo === 'extra_norem'; return { anio, mes, tipo, empresa: empresa || undefined, fechaPago: fechaPago || undefined, overrides: ov, ...(esExtra ? { conceptoExtra, modoExtra, montoExtra: Number(montoExtra) || 0 } : {}), ...extra }; };
+  async function verPrevia() {
+    setErr(''); setMsg(''); setBusy(true);
+    try { const r = await api.post<any>('/liquidacion/corrida', bodyCorrida({ previa: true })); setPreviaItems(r.items); }
+    catch (e: any) { setErr(e.message); setPreviaItems(null); } finally { setBusy(false); }
+  }
+  const setOverride = (id: number, k: string, v: string) => setOv((s) => ({ ...s, [id]: { ...(s[id] || {}), [k]: v } }));
+  async function confirmarPrevia() {
+    if (!window.confirm('¿Generar la corrida con estos valores?')) return;
+    setErr(''); setMsg(''); setBusy(true);
+    try { const r = await api.post<any>('/liquidacion/corrida', bodyCorrida()); setPreviaItems(null); setOv({}); await loadCorridas(); abrir(r.id); setMsg('✓ Corrida generada.'); }
+    catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  }
   async function abrir(id: number) { setErr(''); setReporte(null); try { setSel(await api.get(`/liquidacion/corrida/${id}`)); } catch (e: any) { setErr(e.message); } }
   async function aprobar() { setErr(''); setMsg(''); try { await api.post(`/liquidacion/corrida/${sel.corrida.id}/aprobar`, {}); await loadCorridas(); abrir(sel.corrida.id); setMsg('Corrida aprobada. Ahora hacé clic en “Publicar recibos” para que los empleados los vean.'); } catch (e: any) { setErr(e.message); } }
   async function publicar() { if (!window.confirm('¿Publicar los recibos de esta corrida? Quedarán visibles para todos los empleados.')) return; setErr(''); setMsg(''); try { await api.post(`/liquidacion/corrida/${sel.corrida.id}/publicar`, {}); await loadCorridas(); abrir(sel.corrida.id); setMsg('✓ Recibos publicados — ya están disponibles en “Mis recibos” de cada empleado.'); } catch (e: any) { setErr(e.message); } }
@@ -240,8 +254,10 @@ function Corrida() {
           <div className="field"><label>Año</label><input className="input" type="number" value={anio} onChange={(e) => setAnio(Number(e.target.value))} style={{ width: 100 }} /></div>
           <div className="field"><label>Fecha de pago</label><input className="input" type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} /></div>
           <div className="field"><label>Empresa</label><select className="input" value={empresa} onChange={(e) => setEmpresa(e.target.value)}><option value="">Todas</option>{empresas.map((em) => <option key={em} value={em}>{em}</option>)}</select></div>
+          <button className="btn ghost" onClick={verPrevia} disabled={busy}>Previa editable</button>
           <button className="btn" onClick={crear} disabled={busy || ((tipo === 'complementaria' || tipo === 'extra_norem') && !(Number(montoExtra) > 0))}>{busy ? 'Liquidando…' : 'Generar corrida'}</button>
         </div>
+        <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>“Previa editable” calcula sin guardar y te deja ajustar horas por persona; “Generar corrida” liquida directo. La corrida es homogénea: Mensual = mensualizados, Quincena = jornaleros.</div>
         {(tipo === 'complementaria' || tipo === 'extra_norem') && (
           <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', marginTop: 10, gap: 10 }}>
             <div className="field" style={{ flex: 1, minWidth: 220 }}><label>Concepto de la extraordinaria</label><input className="input" value={conceptoExtra} onChange={(e) => setConceptoExtra(e.target.value)} placeholder={tipo === 'extra_norem' ? 'Ej: Gratificación extraordinaria' : 'Ej: Bono remunerativo'} /></div>
@@ -251,7 +267,44 @@ function Corrida() {
         )}
         <GananciasCheck anio={anio} mes={mes} />
         {err && <div className="err" style={{ marginTop: 10 }}>⚠ {err}</div>}
+        {msg && <div className="ok" style={{ marginTop: 10 }}>{msg}</div>}
       </div>
+
+      {previaItems && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+            <strong>Previa editable ({previaItems.length}) <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>— ajustá horas y "Recalcular"; el neto se actualiza</span></strong>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn ghost" onClick={verPrevia} disabled={busy}>↻ Recalcular</button>
+              <button className="btn" onClick={confirmarPrevia} disabled={busy}>✓ Generar corrida con estos valores</button>
+              <button className="btn ghost" onClick={() => { setPreviaItems(null); setOv({}); }}>Cancelar</button>
+            </div>
+          </div>
+          <div style={{ overflow: 'auto', maxHeight: 460 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr>
+                {['Legajo', 'Empleado', 'Hs norm.', 'Extra 50%', 'Extra 100%', 'Neto'].map((h, i) => <th key={i} style={{ padding: '6px 8px', textAlign: i > 1 ? 'right' : 'left', borderBottom: '2px solid var(--border)', position: 'sticky', top: 0, background: 'var(--bg2)' }}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {previaItems.map((it) => {
+                  const o = ov[it.empleadoId] || {};
+                  const inp = (k: string, cur: number) => <input className="input" type="number" step="any" value={o[k] ?? (cur ?? '')} onChange={(e) => setOverride(it.empleadoId, k, e.target.value)} style={{ width: 74, padding: '2px 6px', textAlign: 'right' }} />;
+                  return (
+                    <tr key={it.empleadoId} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '3px 8px' }}>{it.legNum}</td>
+                      <td style={{ padding: '3px 8px' }}>{it.nom} <span className="muted" style={{ fontSize: 11 }}>{it.esJornal ? '· jornal' : ''}</span></td>
+                      <td style={{ padding: '3px 8px', textAlign: 'right' }}>{it.esJornal ? inp('horasNormales', it.horasNormales) : <span className="muted">—</span>}</td>
+                      <td style={{ padding: '3px 8px', textAlign: 'right' }}>{inp('horasExtra50', it.extra50)}</td>
+                      <td style={{ padding: '3px 8px', textAlign: 'right' }}>{inp('horasExtra100', it.extra100)}</td>
+                      <td style={{ padding: '3px 8px', textAlign: 'right', fontWeight: 600 }}>{$(it.neto)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="card" style={{ padding: 8, marginBottom: 16 }}>
