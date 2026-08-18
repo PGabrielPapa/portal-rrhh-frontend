@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { Empleado } from '../lib/types';
+import { esc } from '../lib/html';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const $ = (n: any) => (Number(n) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -36,14 +37,14 @@ export default function DdjjSindical() {
 
   function boleta(g: Grupo) {
     const w = window.open('', '_blank', 'width=820,height=950'); if (!w) return;
-    const filas = g.items.map((it) => `<tr><td>${it.legNum}</td><td>${it.nom}</td><td>${it.cuil || ''}</td><td style="text-align:right">$ ${$(it.baseRem)}</td><td style="text-align:right">$ ${$(it.cuotaEmp)}</td><td style="text-align:right">$ ${$(it.cuotaPat)}</td><td style="text-align:right"><b>$ ${$(it.total)}</b></td></tr>`).join('');
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Boleta ${g.sindicato} ${mes}/${anio}</title>
+    const filas = g.items.map((it) => `<tr><td>${esc(it.legNum)}</td><td>${esc(it.nom)}</td><td>${esc(it.cuil || '')}</td><td style="text-align:right">$ ${$(it.baseRem)}</td><td style="text-align:right">$ ${$(it.cuotaEmp)}</td><td style="text-align:right">$ ${$(it.cuotaPat)}</td><td style="text-align:right"><b>$ ${$(it.total)}</b></td></tr>`).join('');
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Boleta ${esc(g.sindicato)} ${mes}/${anio}</title>
       <style>body{font-family:Arial,sans-serif;font-size:12px;color:#000;padding:28px} h1{font-size:18px;margin:0} .sub{color:#444;font-size:12px;margin-bottom:14px}
       .box{border:1px solid #333;border-radius:6px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
       table{width:100%;border-collapse:collapse;margin-top:8px} th,td{border:1px solid #ccc;padding:3px 6px;font-size:11px;text-align:left} th{background:#f3f3f3}
       .tot{font-size:14px;font-weight:bold} .firma{margin-top:60px;border-top:1px solid #333;width:260px;text-align:center;padding-top:4px;font-size:10px}</style></head><body>
       <h1>Boleta de aportes y contribuciones sindicales</h1>
-      <div class="sub">${g.sindicato} — Jurisdicción: ${g.jurisdiccion} · Período ${MESES[mes - 1]} ${anio} · Diseño de registro v${g.diseno.version}</div>
+      <div class="sub">${esc(g.sindicato)} — Jurisdicción: ${esc(g.jurisdiccion)} · Período ${MESES[mes - 1]} ${anio} · Diseño de registro v${esc(g.diseno.version)}</div>
       <div class="box">
         <div><b>Empleados:</b> ${g.items.length}</div>
         <div><b>Cuota empleado:</b> $ ${$(g.totales.cuotaEmp)}</div>

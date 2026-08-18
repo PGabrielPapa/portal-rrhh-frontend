@@ -32,7 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(r.user);
     return r;
   }
-  function logout() { setToken(null); setUser(null); }
+  // Cerrar sesión avisa al servidor para que invalide el token en TODOS los
+  // dispositivos. Borrarlo solo del navegador dejaba viva cualquier copia robada
+  // hasta que venciera por tiempo.
+  function logout() {
+    api.post('/auth/logout').catch(() => { /* igual se cierra localmente */ });
+    setToken(null);
+    setUser(null);
+  }
 
   return <Ctx.Provider value={{ user, loading, login, logout, refresh }}>{children}</Ctx.Provider>;
 }

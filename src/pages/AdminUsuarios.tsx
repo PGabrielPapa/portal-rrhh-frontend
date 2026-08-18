@@ -25,6 +25,8 @@ export default function AdminUsuarios() {
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [empresa, setEmpresa] = useState('');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  // Clave temporal recién generada: se muestra una sola vez y no se persiste.
+  const [temporal, setTemporal] = useState<{ nom: string; pwd: string } | null>(null);
   const [perms, setPerms] = useState<U | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
 
@@ -60,15 +62,38 @@ export default function AdminUsuarios() {
     try { await api.patch(`/admin/usuarios/${u.id}`, { reset2fa: true }); setMsg({ t: `2FA restablecido para ${u.nom}`, ok: true }); load(); }
     catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
+  // El blanqueo deja la clave igual al DNI (decisión operativa de RR.HH.). Ahora
+  // además cierra las sesiones abiertas del usuario y lo obliga a cambiarla antes
+  // de poder usar el resto del portal.
+  // Si se activa BLANQUEO_ALEATORIO=true en el backend, la respuesta trae una clave
+  // temporal aleatoria y se muestra acá una única vez.
   async function blanquear(u: U) {
-    if (!confirm(`¿Blanquear la contraseña de ${u.nom}? Quedará igual al DNI (${u.dni}) con cambio forzado.`)) return;
-    try { await api.post(`/admin/usuarios/${u.id}/blanquear`); setMsg({ t: `Clave de ${u.nom} blanqueada al DNI`, ok: true }); load(); }
-    catch (e: any) { setMsg({ t: e.message, ok: false }); }
+    if (!confirm(`¿Blanquear la contraseña de ${u.nom}? Quedará igual al DNI (${u.dni}), se cerrarán sus sesiones abiertas y deberá cambiarla al ingresar.`)) return;
+    try {
+      const r = await api.post<{ passwordTemporal?: string }>(`/admin/usuarios/${u.id}/blanquear`);
+      if (r.passwordTemporal) { setTemporal({ nom: u.nom, pwd: r.passwordTemporal }); setMsg(null); }
+      else setMsg({ t: `Clave de ${u.nom} blanqueada al DNI. Deberá cambiarla al ingresar.`, ok: true });
+      load();
+    } catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
 
   return (
     <>
       {msg && <div className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 12 }}>{msg.ok ? '✓ ' : '⚠ '}{msg.t}</div>}
+      {temporal && (
+        <div className="card" style={{ marginBottom: 12, borderLeft: '4px solid var(--yellow)' }}>
+          <h4 style={{ marginTop: 0 }}>Contraseña temporal de {temporal.nom}</h4>
+          <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
+            Se muestra <strong>una sola vez</strong>. Entregala por un canal seguro (en persona o
+            por un medio distinto del que usa para entrar). El usuario deberá cambiarla al ingresar.
+          </p>
+          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <code style={{ fontSize: 18, letterSpacing: 1, padding: '8px 14px', background: 'var(--bg2, #f3f4f6)', borderRadius: 6, userSelect: 'all' }}>{temporal.pwd}</code>
+            <button className="btn ghost" onClick={() => { navigator.clipboard?.writeText(temporal.pwd); }}>Copiar</button>
+            <button className="btn" onClick={() => setTemporal(null)}>Ya la guardé</button>
+          </div>
+        </div>
+      )}
       <div className="row" style={{ marginBottom: 14, flexWrap: 'wrap' }}>
         <input className="input" style={{ maxWidth: 240 }} placeholder="Buscar nombre, legajo o DNI…" value={q} onChange={(e) => setQ(e.target.value)} />
         <select className="input" style={{ maxWidth: 200 }} value={empresa} onChange={(e) => setEmpresa(e.target.value)}>

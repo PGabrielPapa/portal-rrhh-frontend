@@ -4,6 +4,7 @@ import { api, fetchBlob } from '../lib/api';
 import type { Empleado } from '../lib/types';
 import EmpleadoPicker from '../components/EmpleadoPicker';
 import FlujoAprobacion from '../components/FlujoAprobacion';
+import { esc } from '../lib/html';
 
 interface S { id: number; tipo: string; falta?: string; fecha: string; dias: number; descripcion?: string; estado?: string; fecha_notificacion?: string; fecha_cumplimiento?: string; nom?: string; leg_num?: string; empresa?: string; created_by?: string; resuelto_por?: string; tiene_notif?: boolean; notif_nombre?: string; }
 const TIPOS = ['Llamado de atención', 'Apercibimiento', 'Severo apercibimiento', 'Suspensión', 'Desvinculación'];
@@ -14,21 +15,21 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 
 function imprimirSancion(s: S) {
   const w = window.open('', '_blank', 'width=820,height=920'); if (!w) return;
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Sanción ${s.leg_num || ''}</title>
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Sanción ${esc(s.leg_num || '')}</title>
   <style>body{font-family:Arial,sans-serif;color:#000;padding:40px;max-width:720px;margin:0 auto;font-size:13px;line-height:1.6}
   h1{font-size:18px;text-align:center;margin-bottom:4px}.sub{text-align:center;color:#555;margin-bottom:24px}
   .row{margin:6px 0}.lbl{font-weight:bold}hr{border:none;border-top:1px solid #ccc;margin:18px 0}
   .firmas{display:flex;justify-content:space-between;margin-top:60px}.firma{width:45%;border-top:1px solid #000;text-align:center;padding-top:6px;font-size:12px}</style></head><body>
   <h1>NOTIFICACIÓN DE SANCIÓN DISCIPLINARIA</h1>
-  <div class="sub">${s.empresa || ''}</div>
-  <div class="row"><span class="lbl">Empleado:</span> ${s.nom || ''} (Legajo ${s.leg_num || ''})</div>
-  <div class="row"><span class="lbl">Tipo de sanción:</span> ${s.tipo}</div>
-  <div class="row"><span class="lbl">Falta cometida:</span> ${s.falta || '—'}</div>
+  <div class="sub">${esc(s.empresa || '')}</div>
+  <div class="row"><span class="lbl">Empleado:</span> ${esc(s.nom || '')} (Legajo ${esc(s.leg_num || '')})</div>
+  <div class="row"><span class="lbl">Tipo de sanción:</span> ${esc(s.tipo)}</div>
+  <div class="row"><span class="lbl">Falta cometida:</span> ${esc(s.falta || '—')}</div>
   <div class="row"><span class="lbl">Fecha del incumplimiento:</span> ${fmt(s.fecha)}</div>
-  ${s.dias ? `<div class="row"><span class="lbl">Días de suspensión:</span> ${s.dias}</div>` : ''}
+  ${s.dias ? `<div class="row"><span class="lbl">Días de suspensión:</span> ${esc(s.dias)}</div>` : ''}
   <div class="row"><span class="lbl">Fecha de notificación:</span> ${fmt(s.fecha_notificacion) !== '—' ? fmt(s.fecha_notificacion) : '____/____/______'}</div>
   <hr><div class="row"><span class="lbl">Detalle / descripción de los hechos:</span></div>
-  <div class="row">${s.descripcion || '—'}</div>
+  <div class="row">${esc(s.descripcion || '—')}</div>
   <hr><div class="row" style="font-size:12px;color:#444">Por la presente se notifica al trabajador la sanción detallada, conforme al art. 67 LCT. La firma del presente implica su recepción, no necesariamente su conformidad.</div>
   <div class="firmas"><div class="firma">Firma del empleador</div><div class="firma">Firma del trabajador</div></div>
   <script>window.onload=function(){window.print()}<\/script></body></html>`);

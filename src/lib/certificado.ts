@@ -1,3 +1,5 @@
+import { esc, escUrl } from './html';
+
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const fmtFecha = (iso?: string) => { if (!iso) return ''; const d = new Date(iso + 'T12:00:00'); return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`; };
 const money = (n: number) => Number(n || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
@@ -26,20 +28,20 @@ export function imprimirCertificado(d: CertData) {
   const hoy = fmtFecha(new Date().toISOString().slice(0, 10));
 
   const w = window.open('', '_blank', 'width=820,height=950'); if (!w) return;
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Certificado de trabajo - ${e.legNum}</title>
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Certificado de trabajo - ${esc(e.legNum)}</title>
   <style>body{font-family:'Times New Roman',serif;color:#000;padding:60px;max-width:720px;margin:0 auto;font-size:14px;line-height:1.9}
   h1{font-size:20px;text-align:center;letter-spacing:2px;margin-bottom:40px}p{text-align:justify;margin:16px 0}
   .empresa{text-align:center;font-weight:bold;margin-bottom:30px}.firma{margin-top:90px;text-align:center}
   .firma .l{width:280px;border-top:1px solid #000;margin:0 auto;padding-top:6px}</style></head><body>
-  ${e.logo ? `<div style="text-align:center;margin-bottom:10px"><img src="${e.logo}" style="max-height:70px;max-width:240px"></div>` : ''}
-  <div class="empresa">${e.empresa}${e.cuit ? ` — CUIT ${e.cuit}` : ''}</div>
+  ${e.logo ? `<div style="text-align:center;margin-bottom:10px"><img src="${escUrl(e.logo)}" style="max-height:70px;max-width:240px"></div>` : ''}
+  <div class="empresa">${esc(e.empresa)}${e.cuit ? ` — CUIT ${esc(e.cuit)}` : ''}</div>
   <h1>CERTIFICADO DE TRABAJO</h1>
-  <p>${cuerpo}</p>
-  <p>${dest}</p>
-  <p>Ciudad Autónoma de Buenos Aires, ${hoy}.</p>
+  <p>${esc(cuerpo)}</p>
+  <p>${esc(dest)}</p>
+  <p>Ciudad Autónoma de Buenos Aires, ${esc(hoy)}.</p>
   <div class="firma">
-    ${e.firma ? `<img src="${e.firma}" style="max-height:80px;max-width:220px;display:block;margin:0 auto 4px">` : ''}
-    <div class="l">${d.firmante?.nombre ? `<strong>${d.firmante.nombre}</strong>${d.firmante?.cargo ? `<div style="font-weight:normal;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#444;margin-top:2px">${d.firmante.cargo}</div>` : ''}` : 'Firma y sello — RR.HH.'}</div>
+    ${e.firma ? `<img src="${escUrl(e.firma)}" style="max-height:80px;max-width:220px;display:block;margin:0 auto 4px">` : ''}
+    <div class="l">${d.firmante?.nombre ? `<strong>${esc(d.firmante.nombre)}</strong>${d.firmante?.cargo ? `<div style="font-weight:normal;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#444;margin-top:2px">${esc(d.firmante.cargo)}</div>` : ''}` : 'Firma y sello — RR.HH.'}</div>
   </div>
   <script>window.onload=function(){window.print()}<\/script></body></html>`);
   w.document.close();

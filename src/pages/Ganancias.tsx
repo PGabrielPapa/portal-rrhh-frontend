@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import EmpleadoPicker from '../components/EmpleadoPicker';
 import type { Empleado } from '../lib/types';
+import { esc } from '../lib/html';
 
 interface F1357 {
   empleado: { legNum: string; nom: string; empresa: string; cuil?: string; cat?: string };
@@ -66,7 +67,7 @@ function Formulario({ f }: { f: F1357 }) {
   const cf = f.dedPersonales.cargasFamilia;
   const print = () => {
     const w = window.open('', '_blank'); if (!w) return;
-    w.document.write(`<html><head><title>F.1357 ${f.empleado.nom} ${f.periodo.periodoLabel}</title></head><body>${document.getElementById('f1357-print')?.innerHTML || ''}</body></html>`);
+    w.document.write(`<html><head><title>F.1357 ${esc(f.empleado.nom)} ${esc(f.periodo.periodoLabel)}</title></head><body>${document.getElementById('f1357-print')?.innerHTML || ''}</body></html>`);
     w.document.close(); w.focus(); w.print();
   };
   return (

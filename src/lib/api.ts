@@ -15,6 +15,18 @@ export function setToken(t: string | null) {
 let onSessionExpired: (() => void) | null = null;
 export function setOnSessionExpired(fn: (() => void) | null) { onSessionExpired = fn; }
 
+// El backend responde 403 { mustChangePassword: true } a cualquier ruta cuando el
+// usuario tiene el cambio de contraseña pendiente (tras un blanqueo). Antes el token
+// de un blanqueo servía para todo y el aviso era solo cosmético; ahora se lo lleva
+// a la pantalla de cambio en vez de mostrarle un error suelto.
+function handle403(data: any) {
+  if (data && data.mustChangePassword && !location.pathname.startsWith('/cambiar-clave')) {
+    location.assign('/cambiar-clave');
+    return true;
+  }
+  return false;
+}
+
 function handle401(path: string) {
   const hadToken = !!getToken();
   setToken(null);
@@ -37,6 +49,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) handle401(path);
+    if (res.status === 403 && handle403(data)) throw new Error('Cambio de contraseña pendiente');
     throw new Error((data as any).error || `Error ${res.status}`);
   }
   return data as T;
@@ -52,6 +65,7 @@ async function requestForm<T>(method: string, path: string, form: FormData): Pro
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) handle401(path);
+    if (res.status === 403 && handle403(data)) throw new Error('Cambio de contraseña pendiente');
     throw new Error((data as any).error || `Error ${res.status}`);
   }
   return data as T;

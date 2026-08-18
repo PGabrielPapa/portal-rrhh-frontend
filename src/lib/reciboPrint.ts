@@ -1,8 +1,11 @@
 import type { Recibo } from '../components/ReciboView';
+// Escape compartido: el local no neutralizaba comillas, así que un valor
+// interpolado dentro de un atributo (p. ej. la firma) podía cerrarlo y
+// agregar atributos propios.
+import { esc, escUrl } from './html';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const money = (n: number) => '$ ' + (Number(n) || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const esc = (s: any) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[c]);
 const fmtFecha = (s: any) => { if (!s) return '—'; const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s); };
 
 // Importe en letras (art. 140 LCT) — pesos y centavos.
@@ -126,7 +129,7 @@ function copia(r: Recibo, marca: string): string {
     ${pieDonut(r)}
     <div class="firmas">
       <div class="firma">
-        <div class="sig">${r.firmaEmpleador ? `<img src="${r.firmaEmpleador}"/>` : ''}</div>
+        <div class="sig">${r.firmaEmpleador ? `<img src="${escUrl(r.firmaEmpleador)}"/>` : ''}</div>
         <div class="line">${r.firmante?.nombre ? `<b>${esc(r.firmante.nombre)}</b>${r.firmante?.cargo ? `<div style="font-size:8px;text-transform:uppercase">${esc(r.firmante.cargo)}</div>` : ''}` : 'Firma del empleador'}</div>
       </div>
       <div class="firma">
