@@ -6,6 +6,8 @@ interface Dash {
   ncAbiertas: number; ncCerradas: number;
   medVencidas: number; medPorVencer: number; medVigentes: number; medProximas: { tipo: string; fecha_vencimiento: string }[];
   audTotal: number; audAbiertas: number; accionesPendientes: number; cartReponer: number; evidencias: number; minutas: number;
+  habTotal: number; habVencidas: number; habPorVencer: number; habEnTramite: number;
+  habProximas: { establecimiento: string; tipo: string; fecha_vencimiento: string; estado: string; dias: number }[];
 }
 const fmt = (s?: string) => { const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || '—'); };
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -41,6 +43,8 @@ export default function ChsDashboard() {
         <Stat label="No conformidades abiertas" value={d.ncAbiertas} color={d.ncAbiertas ? 'var(--yellow)' : 'var(--green)'} />
         <Stat label="Auditorías abiertas" value={`${d.audAbiertas}/${d.audTotal}`} />
         <Stat label="Cartelería a reponer" value={d.cartReponer} color={d.cartReponer ? 'var(--red)' : 'var(--green)'} />
+        <Stat label="Habilitaciones vencidas" value={d.habVencidas ?? 0} color={d.habVencidas ? 'var(--red)' : 'var(--green)'} />
+        <Stat label="Habilitaciones por vencer" value={d.habPorVencer ?? 0} color={d.habPorVencer ? 'var(--yellow)' : 'var(--green)'} />
       </div>
 
       <div className="grid2" style={{ alignItems: 'start' }}>
@@ -93,9 +97,24 @@ export default function ChsDashboard() {
             </div>
           )}
         </div>
+        <div className="card">
+          <h4 style={{ marginTop: 0 }}>Habilitaciones vencidas o por vencer</h4>
+          {!(d.habProximas || []).length ? <div className="muted">Ninguna habilitación vencida ni dentro de su ventana de alerta.</div> : (
+            <div style={{ marginTop: 6 }}>
+              {d.habProximas.map((h, i) => (
+                <div key={i} style={{ fontSize: 13, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ color: h.estado === 'Vencida' ? 'var(--red)' : 'var(--yellow)', fontWeight: 600 }}>●</span>{' '}
+                  {h.tipo} <span className="muted">· {h.establecimiento} · {h.estado === 'Vencida' ? `vencida el ${fmt(h.fecha_vencimiento)}` : `vence ${fmt(h.fecha_vencimiento)} (${h.dias} d)`}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>Indicadores del Comité de HyS · Minutas registradas: {d.minutas} · Evidencias de mejora: {d.evidencias}</p>
+      <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>
+        Indicadores del Comité de HyS · Minutas registradas: {d.minutas} · Evidencias de mejora: {d.evidencias} · Habilitaciones registradas: {d.habTotal ?? 0}{d.habEnTramite ? ` (${d.habEnTramite} en trámite)` : ''}
+      </p>
     </>
   );
 }

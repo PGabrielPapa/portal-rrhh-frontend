@@ -219,6 +219,7 @@ export const GROUPS: Group[] = [
       { key: 'chs-minutas', label: 'Minutas del Comité', ready: true },
       { key: 'chs-noconf', label: 'No Conformidades y Mejoras', ready: true },
       { key: 'chs-mediciones', label: 'Mediciones de HyS', ready: true },
+      { key: 'chs-habilitaciones', label: 'Habilitaciones por establecimiento', ready: true },
       { key: 'chs-evidencias', label: 'Evidencias de Mejoras', ready: true },
       { key: 'chs-dashboard', label: 'Indicadores (Dashboard)', ready: true },
     ],
