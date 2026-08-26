@@ -3,9 +3,9 @@ import HistorialConfig from '../components/HistorialConfig';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
-interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: number; pctSolidario: number; pctPatronal: number; pctAntigPorAnio: number; montoAntigPorAnio: number; complementoSinNoRem: boolean; pctArt37_1: number; pctArt37_2: number; pctPremio: number; nota?: string; tituloSecundario: number; tituloUniversitario: number; presBase: string; pctPresentismo: number; }
+interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: number; pctSolidario: number; pctPatronal: number; pctAntigPorAnio: number; montoAntigPorAnio: number; complementoSinNoRem: boolean; noRemConAntigPres: boolean; pctArt37_1: number; pctArt37_2: number; pctPremio: number; nota?: string; tituloSecundario: number; tituloUniversitario: number; presBase: string; pctPresentismo: number; }
 const PRES = [['basico', 'Solo básico'], ['basico+antig', 'Básico + antigüedad'], ['basico+antig+titulo', 'Básico + antig. + título'], ['basico+antig+titulo+acuenta', 'Básico + antig. + título + a cuenta fut. aumentos']];
-const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctSolidario: 0, pctPatronal: 0, pctAntigPorAnio: 1, montoAntigPorAnio: 0, complementoSinNoRem: false, pctArt37_1: 0, pctArt37_2: 0, pctPremio: 0, nota: '', tituloSecundario: 0, tituloUniversitario: 0, presBase: 'basico', pctPresentismo: 0 });
+const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctSolidario: 0, pctPatronal: 0, pctAntigPorAnio: 1, montoAntigPorAnio: 0, complementoSinNoRem: false, noRemConAntigPres: false, pctArt37_1: 0, pctArt37_2: 0, pctPremio: 0, nota: '', tituloSecundario: 0, tituloUniversitario: 0, presBase: 'basico', pctPresentismo: 0 });
 
 export default function Sindicatos() {
   const { user } = useAuth();
@@ -80,6 +80,7 @@ export default function Sindicatos() {
             <div className="field"><label>% Aporte solidario Art.37 II</label><input className="input" type="number" step="0.01" value={edit.pctArt37_2 || 0} onChange={(e) => setF('pctArt37_2', Number(e.target.value))} placeholder="UECARA: 1" /></div>
             <div className="field"><label>% Premio asistencia (jornal UOCRA)</label><input className="input" type="number" step="0.01" value={edit.pctPremio || 0} onChange={(e) => setF('pctPremio', Number(e.target.value))} placeholder="UOCRA: 20" /></div>
             <div className="field"><label>Complemento sin No Rem</label><select className="input" value={edit.complementoSinNoRem ? 'si' : 'no'} onChange={(e) => setF('complementoSinNoRem', e.target.value === 'si')}><option value="no">No (resta el No Rem)</option><option value="si">Sí (UECARA)</option></select></div>
+            <div className="field"><label>Antig./pres. sobre No Rem</label><select className="input" value={edit.noRemConAntigPres ? 'si' : 'no'} onChange={(e) => setF('noRemConAntigPres', e.target.value === 'si')}><option value="no">No</option><option value="si">Sí (calcula antig. y pres. también sobre el No Rem)</option></select></div>
             <div className="field"><label>% presentismo (CCT)</label><input className="input" type="number" step="0.01" value={edit.pctPresentismo} onChange={(e) => setF('pctPresentismo', Number(e.target.value))} placeholder="Ej: 8.33" /></div>
             <div className="field"><label>Base de presentismo</label><select className="input" value={edit.presBase} onChange={(e) => setF('presBase', e.target.value)}>{PRES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
             <div className="field"><label>Nota</label><input className="input" value={edit.nota || ''} onChange={(e) => setF('nota', e.target.value)} /></div>

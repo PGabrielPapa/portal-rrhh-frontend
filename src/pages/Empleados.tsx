@@ -320,10 +320,18 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
       lugar: e.lugar || '', tarea: e.tarea || '', cat: e.cat || '', tramo: e.tramo || '', desc_categoria: e.desc_categoria || '', condicion: e.condicion || '',
       puestoId: e.puestoId != null ? String(e.puestoId) : '',
       jornadaParcial: (e.jornadaParcial === true || e.jornadaParcial === 'si') ? 'si' : '', remFullTime: e.remFullTime != null ? String(e.remFullTime) : '',
-      cod_convenio: e.cod_convenio || '', cod_sindicato: e.cod_sindicato || '', categoria_convenio: e.categoria_convenio || '',
+      cod_convenio: e.cod_convenio || '', cod_sindicato: e.cod_sindicato || '',
+      categoria_convenio: e.categoria_convenio || '',
+      liqUecara: (e as any).liqUecara || '',
+      escalaTipo: (e as any).escalaBimObjetivo ? 'idee' : ((e as any).escalaUnifCat ? 'unificada' : ''),
+      escalaBimObjetivo: String((e as any).escalaBimObjetivo || '').split('||').pop() || '',
+      escalaUnifCat: String((e as any).escalaUnifCat || '').split('||').pop() || '',
       modalidadId: (e as any).modalidadId != null ? String((e as any).modalidadId) : '',
       unidadId: (e as any).unidadId != null ? String((e as any).unidadId) : '',
       basico: e.basico ?? '', antiguedad_monto: e.antiguedad_monto ?? '', complemento: e.complemento ?? '', norem: e.norem ?? '', sueldo: e.sueldo ?? '',
+      aCuenta: (e as any).aCuenta ?? '',
+      nivelTitulo: (e as any).nivelTitulo || (e as any).tituloNivel || '',
+      adicionalPresentismo: ((e as any).adicionalPresentismo === true || String((e as any).adicionalPresentismo) === '1') ? '1' : '',
       bruto: e.bruto != null ? String(e.bruto) : '', neto: e.neto != null ? String(e.neto) : '',
       dom_calle: e.dom_calle || '', dom_nro: e.dom_nro || '', dom_piso: e.dom_piso || '', dom_depto: e.dom_depto || '', dom_torre: e.dom_torre || '', dom_bloque: e.dom_bloque || '', dom_loc: e.dom_loc || '', dom_cp: e.dom_cp || '', dom_prov: e.dom_prov || '',
     };
@@ -419,6 +427,7 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
     try {
       const body: any = { ...f, foto, bruto: parseFloat(f.bruto) || 0, neto: parseFloat(f.neto) || 0, esAdmin, confidencial, verConfidenciales: verConf };
       body.puestoId = f.puestoId ? Number(f.puestoId) : null;
+      if (!['UECARA', 'IDEE-BIM'].includes(String(f.cod_convenio || '').toUpperCase())) body.liqUecara = '';
       body.nom = [f.apellido, f.nombres].filter(Boolean).join(', ').toUpperCase().trim();
       delete body.cod_os; delete body.desc_os;
       if (esNueva) {
@@ -444,6 +453,19 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
   const convSel = convs.find((c: any) => String(c.codigo) === String(f.cod_convenio));
   const catConvOpts: [string, string][] = [];
   for (const t of (convSel?.tablas || [])) for (const c of (t.cats || [])) catConvOpts.push([`${t.titulo}||${c.cat}`, `${t.titulo} · ${c.cat}`]);
+  // Escalas objetivo (definen el COMPLEMENTO FUNCIÓN): escala interna IDEE por rol/seniority y
+  // escala unificada del grupo. Antes no se podían ver ni elegir desde ninguna pantalla.
+  const catsDe = (cod: string): [string, string][] => {
+    const cv: any = convs.find((c: any) => String(c.codigo).toUpperCase() === cod);
+    const out: [string, string][] = [];
+    for (const t of (cv?.tablas || [])) for (const c of (t.cats || [])) {
+      if (!out.some(([v]) => v === String(c.cat))) out.push([String(c.cat), String(c.cat)]);
+    }
+    return out;
+  };
+  const bimOpts = catsDe('IDEE-BIM');
+  const unifOpts = catsDe('ESCALA-UNIF');
+  const LIQ_UECARA_OPTS: [string, string][] = [['uecara_bim', 'Dentro del convenio UECARA'], ['solo_convenio', 'Dentro del convenio UECARA (sin escala IDEE)'], ['fuera_bim', 'Fuera de convenio (no cobra antig./pres./título)'], ['fijo', 'Fuera de convenio, monto fijo (socio)']];
   const cuilErr = cuilError(f.cuil, f.dni);
 
   return (
@@ -560,12 +582,42 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
             <select className="input" value={f.jornadaParcial || ''} onChange={set('jornadaParcial')}><option value="">Jornada completa</option><option value="si">Tiempo parcial</option></select>
           </div>
           {f.jornadaParcial === 'si' && <div className="field"><label>Remuneración jornada completa (para O. Social)</label><input className="input" type="number" value={f.remFullTime || ''} onChange={set('remFullTime')} placeholder="Opcional: si se deja vacío, se usa el básico de convenio" /></div>}
-          <Sel k="cat" label="Categoría (escala unificada)" opts={catOpts} f={f} set={set} />
-          <Sel k="tramo" label="Tramo (escala unificada)" opts={tramoOpts} f={f} set={set} />
+          {f.escalaTipo === 'unificada' ? <Sel k="cat" label="Categoría (escala unificada)" opts={catOpts} f={f} set={set} /> : null}
+          {f.escalaTipo === 'unificada' ? <Sel k="tramo" label="Tramo (escala unificada)" opts={tramoOpts} f={f} set={set} /> : null}
           <F k="desc_categoria" label="Descripción de categoría" f={f} set={set} />
           <Sel k="condicion" label="Condición" opts={CONDICION_OPTS} f={f} set={set} />
           <Sel k="cod_convenio" label="Convenio (CCT)" opts={convOpts} f={f} set={set} />
           <Sel k="categoria_convenio" label="Categoría de convenio (define básico)" opts={catConvOpts} f={f} set={set} />
+          {['UECARA', 'IDEE-BIM'].includes(String(f.cod_convenio || '').toUpperCase())
+            ? <Sel k="liqUecara" label="Situación de convenio (solo UECARA / IDEE)" opts={LIQ_UECARA_OPTS} f={f} set={set} />
+            : null}
+          {/* Paso 1: QUE escala usa este legajo. Al cambiarla se limpian las categorias de la otra,
+              para que nunca quede una categoria de una escala que la persona no usa. */}
+          <div className="field">
+            <label>Escala que usa (complemento función)</label>
+            <select className="input" value={String(f.escalaTipo || '')}
+              onChange={(ev) => setF({ ...f, escalaTipo: ev.target.value, escalaBimObjetivo: '', escalaUnifCat: '', cat: '', tramo: '' })}>
+              <option value="">Ninguna — solo escala de convenio</option>
+              <option value="idee">Escala IDEE (roles BIM)</option>
+              <option value="unificada">Escala unificada del grupo</option>
+            </select>
+          </div>
+          {/* Paso 2: solo las categorias de la escala elegida en el paso 1. */}
+          {f.escalaTipo === 'idee' || f.escalaTipo === 'unificada' ? (() => {
+            const esIdee = f.escalaTipo === 'idee';
+            const opts = esIdee ? bimOpts : unifOpts;
+            const val = String((esIdee ? f.escalaBimObjetivo : f.escalaUnifCat) || '');
+            return (
+              <div className="field">
+                <label>Categoría de la {esIdee ? 'escala IDEE' : 'escala unificada'}</label>
+                <select className="input" value={val} disabled={!opts.length}
+                  onChange={(ev) => setF({ ...f, escalaBimObjetivo: esIdee ? ev.target.value : '', escalaUnifCat: esIdee ? '' : ev.target.value })}>
+                  <option value="">{opts.length ? '—' : 'sin escala cargada'}</option>
+                  {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+            );
+          })() : null}
           <div className="field"><label>Modalidad de contratación</label><select className="input" value={f.modalidadId || ''} onChange={set('modalidadId')}><option value="">— Sin especificar —</option>{modalidades.map((m) => <option key={m.id} value={String(m.id)}>{m.nombre}</option>)}</select></div>
           <div className="field"><label>Unidad organizativa</label><select className="input" value={f.unidadId || ''} onChange={set('unidadId')}><option value="">— Sin asignar —</option>{unidades.map((u) => <option key={u.id} value={String(u.id)}>{u.nombre}</option>)}</select></div>
           <Sel k="cod_sindicato" label="Sindicato" opts={sindOpts} f={f} set={set} />
@@ -696,11 +748,12 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <F k="antiguedad_monto" label="Adicional antigüedad ($)" f={f} set={set} />
           <F k="complemento" label="Complemento" f={f} set={set} />
           <F k="norem" label="No remunerativo" f={f} set={set} />
+          <F k="aCuenta" label="A cuenta de futuros aumentos" f={f} set={set} />
           <F k="sueldo" label="Sueldo" f={f} set={set} />
           <F k="bruto" label="Sueldo bruto" f={f} set={set} />
           <F k="neto" label="Sueldo neto" f={f} set={set} />
           <div className="field" style={{ alignSelf: 'end' }}><label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={!!f.adicionalPresentismo} onChange={(ev) => setF({ ...f, adicionalPresentismo: ev.target.checked ? '1' : '' })} /> Adicional presentismo (lleva al 10%)</label></div>
-          <div className="field"><label>Nivel de título (adicional CCT)</label><select className="input" value={f.nivelTitulo || ''} onChange={set('nivelTitulo')}><option value="">Ninguno</option><option value="secundario">Secundario / técnico</option><option value="universitario">Universitario</option></select></div>
+          <div className="field"><label>Nivel de título (adicional CCT)</label><select className="input" value={f.nivelTitulo || ''} onChange={set('nivelTitulo')}><option value="">Ninguno</option><option value="secundario">Secundario / técnico</option><option value="terciario">Terciario</option><option value="universitario">Universitario</option></select></div>
         </div>
 
         <div className="sb-group-label" style={{ margin: '12px 0 6px' }}>Domicilio</div>
