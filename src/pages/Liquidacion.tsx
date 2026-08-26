@@ -15,6 +15,11 @@ function Individual() {
   const [q, setQ] = useState(''); const [matches, setMatches] = useState<Empleado[]>([]); const [sel, setSel] = useState<Empleado | null>(null);
   const [sp] = useSearchParams();
   const [empresa, setEmpresa] = useState(''); const [empresas, setEmpresas] = useState<string[]>([]);
+  const [causas, setCausas] = useState<any[]>([]);
+  // Causales de baja: lista única, de la tabla oficial de ARCA. Cada causal trae si genera
+  // indemnización y si lleva preaviso, y con eso el motor arma la liquidación final.
+  useEffect(() => { api.get<any[]>('/causales-baja?activos=true').then(setCausas).catch(() => {}); }, []);
+  const causaSel = causas.find((c) => c.clave === fin.motivoBaja) || null;
   useEffect(() => { api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
   useEffect(() => {
     const leg = sp.get('reLeg'); if (!leg) return;
@@ -166,11 +171,12 @@ function Individual() {
           <div className="grid2" style={{ marginTop: 10 }}>
             <div className="field"><label>Fecha de egreso *</label><input className="input" type="date" value={fin.fechaEgreso || ''} onChange={(e) => setFin({ ...fin, fechaEgreso: e.target.value })} /></div>
             <div className="field"><label>Motivo de baja</label><select className="input" value={fin.motivoBaja} onChange={(e) => setFin({ ...fin, motivoBaja: e.target.value })}>
-              {CAUSAS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+              {(causas.length ? causas.map((c) => [c.clave, c.codArca ? `${c.codArca} — ${c.nombre}` : c.nombre] as [string, string]) : CAUSAS)
+                .map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
             <div className="field"><label>Días de vacaciones no gozadas</label><input className="input" type="number" value={fin.diasVacNoGozadas || ''} onChange={(e) => setFin({ ...fin, diasVacNoGozadas: e.target.value })} /></div>
             <div className="field"><label>Mejor remuneración (opcional)</label><input className="input" type="number" value={fin.mejorRem || ''} onChange={(e) => setFin({ ...fin, mejorRem: e.target.value })} placeholder="usa la del mes" /></div>
-            {['sin_causa', 'fuerza_mayor', 'despido_indirecto'].includes(fin.motivoBaja) && <div className="field"><label>Fecha de notificación</label><input className="input" type="date" value={fin.fechaNotificacion || ''} onChange={(e) => setFin({ ...fin, fechaNotificacion: e.target.value })} /></div>}
-            {['sin_causa', 'fuerza_mayor', 'despido_indirecto'].includes(fin.motivoBaja) && <div className="field"><label>Preaviso</label><select className="input" value={fin.preavisoOverride || ''} onChange={(e) => setFin({ ...fin, preavisoOverride: e.target.value })}><option value="">Automático (por fechas)</option><option value="pagar">Pagar (no se otorgó)</option><option value="no">No pagar (trabajado)</option></select></div>}
+            {(causaSel ? causaSel.preaviso : ['sin_causa', 'fuerza_mayor', 'despido_indirecto'].includes(fin.motivoBaja)) && <div className="field"><label>Fecha de notificación</label><input className="input" type="date" value={fin.fechaNotificacion || ''} onChange={(e) => setFin({ ...fin, fechaNotificacion: e.target.value })} /></div>}
+            {(causaSel ? causaSel.preaviso : ['sin_causa', 'fuerza_mayor', 'despido_indirecto'].includes(fin.motivoBaja)) && <div className="field"><label>Preaviso</label><select className="input" value={fin.preavisoOverride || ''} onChange={(e) => setFin({ ...fin, preavisoOverride: e.target.value })}><option value="">Automático (por fechas)</option><option value="pagar">Pagar (no se otorgó)</option><option value="no">No pagar (trabajado)</option></select></div>}
             {fin.motivoBaja === 'mutuo' && <div className="field"><label>Gratificación ($)</label><input className="input" type="number" value={fin.gratificacion || ''} onChange={(e) => setFin({ ...fin, gratificacion: e.target.value })} /></div>}
           </div>
         )}

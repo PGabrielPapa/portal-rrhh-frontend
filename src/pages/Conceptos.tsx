@@ -115,6 +115,8 @@ function ConceptoModal({ concepto, onClose, onSaved, onError }: { concepto: Conc
   const dmotivos: string[] = (f.data || {}).motivosEgreso || [];
   const toggleMotivo = (m: string) => setF({ ...f, data: { ...(f.data || {}), motivosEgreso: dmotivos.includes(m) ? dmotivos.filter((x: string) => x !== m) : [...dmotivos, m] } });
   useEffect(() => { api.get<any>('/conceptos/variables').then(setVars).catch(() => {}); }, []);
+  const [causales, setCausales] = useState<any[]>([]);
+  useEffect(() => { api.get<any[]>('/causales-baja?activos=true').then(setCausales).catch(() => {}); }, []);
   async function probar() {
     setPrueba(null);
     try { const r = await api.post<any>('/conceptos/probar-formula', { formula: f.formula, condicion: (f.data || {}).condicion }); setPrueba(r); }
@@ -172,7 +174,7 @@ function ConceptoModal({ concepto, onClose, onSaved, onError }: { concepto: Conc
             <summary style={{ cursor: 'pointer', fontSize: 13 }}>Conceptos por motivo de egreso — opcional</summary>
             <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Si elegís motivos, este concepto se aplica SOLO en la liquidación final y solo cuando el egreso es por alguno de esos motivos.</div>
             <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-              {MOTIVOS_EGRESO.map(([v, l]) => <label key={v} className="row" style={{ gap: 4, cursor: 'pointer', fontSize: 12 }}><input type="checkbox" checked={dmotivos.includes(v)} onChange={() => toggleMotivo(v)} /> {l}</label>)}
+              {(causales.length ? causales.map((c) => [c.clave, c.nombre] as [string, string]) : MOTIVOS_EGRESO).map(([v, l]) => <label key={v} className="row" style={{ gap: 4, cursor: 'pointer', fontSize: 12 }}><input type="checkbox" checked={dmotivos.includes(v)} onChange={() => toggleMotivo(v)} /> {l}</label>)}
             </div>
           </details>
         )}
