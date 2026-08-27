@@ -1,6 +1,6 @@
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { ComponentType } from 'react';
-import { findSection, esModuloSiempre } from '../lib/sections';
+import { findSection, esModuloSiempre, puedeVerSeccion } from '../lib/sections';
 import { useAuth } from '../lib/auth';
 import { META, fallback } from '../lib/meta';
 import Placeholder from './Placeholder';
@@ -289,6 +289,9 @@ export default function SectionView() {
     if (dash) { if (section.key !== 'chs-dashboard') return <Navigate to="/" replace />; }
     else if (!full) return <Navigate to="/" replace />;
   }
+  // Permiso por rol: hasta ahora el menú se armaba por rol pero la pantalla se abría igual
+  // escribiendo la URL, y el contenido se veía. Los paneles de comité los resuelve el bloque de arriba.
+  if (!section.key.startsWith('chs-') && !puedeVerSeccion(section.key, user?.role)) return <Navigate to="/" replace />;
   const Comp = COMPONENTS[section.key];
   return (
     <>

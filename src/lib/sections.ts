@@ -260,6 +260,17 @@ export function groupsForRole(role: string, flags?: { comiteHys?: boolean; comit
     .map((g) => (SIEMPRE_PANELS.includes(g.panel) ? g : { ...g, items: g.items.filter((it) => !ocultos.has(it.key)) }));
 }
 
+// ¿Este rol tiene permiso sobre la sección? Se usa para cortar el acceso por URL directa: el menú
+// se armaba por rol, pero escribiendo la dirección la pantalla se abría igual y mostraba el contenido.
+// Los paneles con flag (comité de H&S) los resuelve SectionView, que tiene la lógica de su acceso.
+export function puedeVerSeccion(key: string, role?: string): boolean {
+  if (!role) return false;
+  const g = GROUPS.find((x) => x.items.some((i) => i.key === key));
+  if (!g) return false;
+  if (g.flag) return true;
+  return g.roles.includes(role as Role);
+}
+
 export function findSection(key: string): Section | undefined {
   for (const g of GROUPS) { const s = g.items.find((i) => i.key === key); if (s) return s; }
   return undefined;

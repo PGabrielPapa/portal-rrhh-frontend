@@ -513,7 +513,9 @@ function EmpModal({ emp, empresas, onClose, onSaved, onError }: { emp: Empleado 
           <F k="email" label="E-mail (cuenta del sistema / notificaciones)" f={f} set={set} />
           {(_u?.role === 'admin' || _u?.role === 'rrhh') && (
             <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={esAdmin} onChange={(ev) => setEsAdmin(ev.target.checked)} /> Administrador</label>
+              {_u?.role === 'admin'
+                ? <label className="row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={esAdmin} onChange={(ev) => setEsAdmin(ev.target.checked)} /> Administrador</label>
+                : (esAdmin ? <span className="muted" style={{ fontSize: 12 }}>Administrador (solo un administrador puede cambiarlo)</span> : null)}
             </div>
           )}
           {(_u?.role === 'admin' || _u?.role === 'rrhh') && (
