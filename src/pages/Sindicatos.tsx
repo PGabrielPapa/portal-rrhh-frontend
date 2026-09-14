@@ -7,6 +7,33 @@ interface Sind { id?: number; codigo: string; nombre: string; pctEmpleado: numbe
 const PRES = [['basico', 'Solo básico'], ['basico+antig', 'Básico + antigüedad'], ['basico+antig+titulo', 'Básico + antig. + título'], ['basico+antig+titulo+acuenta', 'Básico + antig. + título + a cuenta fut. aumentos']];
 const vacio = (): Sind => ({ codigo: '', nombre: '', pctEmpleado: 0, pctSolidario: 0, pctPatronal: 0, pctAntigPorAnio: 1, montoAntigPorAnio: 0, complementoSinNoRem: false, noRemConAntigPres: false, pctArt37_1: 0, pctArt37_2: 0, pctPremio: 0, nota: '', tituloSecundario: 0, tituloUniversitario: 0, presBase: 'basico', pctPresentismo: 0 });
 
+
+// ── Aportes y contribuciones especiales del gremio ───────────────────────────
+// Son los conceptos que cada convenio cobra aparte de la cuota sindical (INACAP,
+// La Estrella, aporte extraordinario OSECAC, los de UOM…). Se guardan en la misma
+// tabla que consumen el asiento de sueldos y el motor de liquidación.
+interface Concepto {
+  id: number; columna: string; descripcion: string; codSindicato: string | null;
+  tipo: string; base: string; pct: number; importe: number;
+  cuenta: string | null; confirmado: boolean; activo: boolean; nota?: string | null;
+}
+const CNum = ({ valor, onGuardar, ancho = 90 }: { valor: number; onGuardar: (v: number) => void; ancho?: number }) => {
+  const [v, setV] = useState(String(valor ?? 0));
+  useEffect(() => { setV(String(valor ?? 0)); }, [valor]);
+  return <input className="input" style={{ width: ancho, padding: '2px 6px', textAlign: 'right', fontFamily: 'monospace' }}
+    value={v} onChange={(e) => setV(e.target.value)}
+    onBlur={() => { const n = Number(v.replace(',', '.')); if (!isNaN(n) && n !== Number(valor)) onGuardar(n); }}
+    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />;
+};
+const CTxt = ({ valor, onGuardar, ancho = 160 }: { valor: string; onGuardar: (v: string) => void; ancho?: number }) => {
+  const [v, setV] = useState(valor ?? '');
+  useEffect(() => { setV(valor ?? ''); }, [valor]);
+  return <input className="input" style={{ width: ancho, padding: '2px 6px' }}
+    value={v} onChange={(e) => setV(e.target.value)}
+    onBlur={() => { if (v !== (valor ?? '')) onGuardar(v); }}
+    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />;
+};
+
 export default function Sindicatos() {
   const { user } = useAuth();
   const puede = user?.role === 'rrhh' || user?.role === 'admin';
@@ -16,8 +43,31 @@ export default function Sindicatos() {
   const [porEmp, setPorEmp] = useState<any[]>([]);
   const [verEmp, setVerEmp] = useState(false);
 
+  const [conceptos, setConceptos] = useState<Concepto[]>([]);
+  const [verConceptos, setVerConceptos] = useState(false);
+  const [nuevoC, setNuevoC] = useState<any>(null);
+
   async function load() { try { setItems(await api.get<Sind[]>('/sindicatos')); } catch (e: any) { setErr(e.message); } }
-  useEffect(() => { load(); }, []);
+  async function loadConceptos() { try { setConceptos(await api.get<Concepto[]>('/sindicatos/conceptos')); } catch (e: any) { setErr(e.message); } }
+  useEffect(() => { load(); loadConceptos(); }, []);
+
+  async function guardarConcepto(c: Concepto, campo: string, valor: any) {
+    setErr('');
+    setConceptos((l) => l.map((x) => (x.id === c.id ? { ...x, [campo]: valor } : x)));
+    try { await api.put(`/sindicatos/conceptos/${c.id}`, { [campo]: valor }); }
+    catch (e: any) { setErr(e.message); loadConceptos(); }
+  }
+  async function crearConcepto() {
+    setErr('');
+    try { await api.post('/sindicatos/conceptos', nuevoC); setNuevoC(null); loadConceptos(); }
+    catch (e: any) { setErr(e.message); }
+  }
+  async function borrarConcepto(c: Concepto) {
+    if (!window.confirm(`¿Eliminar el concepto ${c.columna}?`)) return;
+    try { await api.del(`/sindicatos/conceptos/${c.id}`); loadConceptos(); }
+    catch (e: any) { setErr(e.message); }
+  }
+  const conceptosDe = (codigo: string) => conceptos.filter((c) => (c.codSindicato || '').toUpperCase() === codigo.toUpperCase());
   useEffect(() => { if (puede) api.get<any[]>('/sindicatos/por-empresa').then(setPorEmp).catch(() => {}); }, [puede]);
 
   async function guardar() {
@@ -98,7 +148,9 @@ export default function Sindicatos() {
           <tbody>
             {items.map((s) => (
               <tr key={s.id}>
-                <td><strong>{s.codigo}</strong></td><td>{s.nombre}{s.nota ? <div className="muted" style={{ fontSize: 11 }}>{s.nota}</div> : ''}</td>
+                <td><strong>{s.codigo}</strong></td><td>{s.nombre}
+                  {conceptosDe(s.codigo).length > 0 && <span className="badge" style={{ marginLeft: 6 }} title="Aportes y contribuciones especiales del gremio">+{conceptosDe(s.codigo).length} concepto(s)</span>}
+                  {s.nota ? <div className="muted" style={{ fontSize: 11 }}>{s.nota}</div> : ''}</td>
                 <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{s.pctEmpleado}%</td>
                 <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{s.pctPatronal}%</td>
                 <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{s.pctAntigPorAnio}%</td>
@@ -114,6 +166,110 @@ export default function Sindicatos() {
           </tbody>
         </table>
       </div>
+      <div style={{ margin: '16px 0 10px' }}>
+        <button className="btn ghost" onClick={() => setVerConceptos((v) => !v)}>
+          {verConceptos ? '▾' : '▸'} Aportes y contribuciones especiales del gremio ({conceptos.length})
+          {conceptos.filter((c) => !c.confirmado && c.activo).length > 0 &&
+            <span className="badge" style={{ marginLeft: 8, color: 'var(--red)' }}>{conceptos.filter((c) => !c.confirmado && c.activo).length} sin confirmar</span>}
+        </button>
+      </div>
+
+      {verConceptos && (
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)' }}>
+            <strong>Aportes y contribuciones especiales</strong>
+            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+              Lo que cada convenio cobra además de la cuota sindical: INACAP, La Estrella, aporte extraordinario OSECAC,
+              los conceptos de UOM. Un concepto sin gremio se aplica a todos los legajos.
+              <strong> Sólo se liquidan los marcados como confirmados</strong>, y el asiento los imputa a la cuenta indicada.
+            </div>
+          </div>
+          <div style={{ overflow: 'auto' }}>
+            <table style={{ width: '100%', fontSize: 12 }}>
+              <thead><tr>
+                <th style={{ textAlign: 'left' }}>Código</th><th style={{ textAlign: 'left' }}>Descripción</th>
+                <th style={{ textAlign: 'left' }}>Gremio</th><th style={{ textAlign: 'left' }}>Tipo</th>
+                <th style={{ textAlign: 'left' }}>Base</th><th>%</th><th>Importe fijo</th>
+                <th style={{ textAlign: 'left' }}>Cuenta</th><th>Confirmado</th><th>Activo</th>{puede && <th></th>}
+              </tr></thead>
+              <tbody>
+                {conceptos.map((c) => (
+                  <tr key={c.id} style={!c.confirmado && c.activo ? { background: 'rgba(234,179,8,.08)' } : undefined}>
+                    <td style={{ fontFamily: 'monospace' }}>{c.columna}</td>
+                    <td><CTxt valor={c.descripcion} ancho={230} onGuardar={(v) => guardarConcepto(c, 'descripcion', v)} /></td>
+                    <td>
+                      <select className="input" style={{ padding: '2px 6px', width: 130 }} value={c.codSindicato || ''}
+                        onChange={(e) => guardarConcepto(c, 'codSindicato', e.target.value)}>
+                        <option value="">(todos)</option>
+                        {items.map((x) => <option key={x.codigo} value={x.codigo}>{x.codigo}</option>)}
+                        {c.codSindicato && !items.some((x) => x.codigo === c.codSindicato) && <option value={c.codSindicato}>{c.codSindicato} (fuera del catálogo)</option>}
+                      </select>
+                    </td>
+                    <td>
+                      <select className="input" style={{ padding: '2px 6px', width: 120 }} value={c.tipo}
+                        onChange={(e) => guardarConcepto(c, 'tipo', e.target.value)}>
+                        <option value="contribucion">contribución</option><option value="aporte">aporte</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select className="input" style={{ padding: '2px 6px', width: 135 }} value={c.base}
+                        onChange={(e) => guardarConcepto(c, 'base', e.target.value)}>
+                        <option value="fijo">importe fijo</option><option value="remunerativo">% s/ remunerativo</option>
+                      </select>
+                    </td>
+                    <td><CNum valor={c.pct} ancho={70} onGuardar={(v) => guardarConcepto(c, 'pct', v)} /></td>
+                    <td><CNum valor={c.importe} onGuardar={(v) => guardarConcepto(c, 'importe', v)} /></td>
+                    <td><CTxt valor={c.cuenta || ''} ancho={80} onGuardar={(v) => guardarConcepto(c, 'cuenta', v)} /></td>
+                    <td style={{ textAlign: 'center' }}>
+                      <input type="checkbox" checked={c.confirmado} onChange={(e) => guardarConcepto(c, 'confirmado', e.target.checked)} />
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <input type="checkbox" checked={c.activo} onChange={(e) => guardarConcepto(c, 'activo', e.target.checked)} />
+                    </td>
+                    {puede && <td style={{ textAlign: 'right' }}>
+                      <button className="btn ghost" style={{ padding: '3px 9px', fontSize: 12, color: 'var(--red)' }} onClick={() => borrarConcepto(c)}>✕</button>
+                    </td>}
+                  </tr>
+                ))}
+                {!conceptos.length && <tr><td colSpan={11} className="muted" style={{ textAlign: 'center', padding: 16 }}>Sin conceptos especiales.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          {puede && (
+            <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+              {nuevoC ? (
+                <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div className="field"><label>Código</label><input className="input" style={{ width: 140 }} value={nuevoC.columna} onChange={(e) => setNuevoC({ ...nuevoC, columna: e.target.value.toUpperCase() })} placeholder="CONT_XXX" /></div>
+                  <div className="field"><label>Descripción</label><input className="input" style={{ width: 240 }} value={nuevoC.descripcion} onChange={(e) => setNuevoC({ ...nuevoC, descripcion: e.target.value })} /></div>
+                  <div className="field"><label>Gremio</label>
+                    <select className="input" style={{ width: 140 }} value={nuevoC.codSindicato} onChange={(e) => setNuevoC({ ...nuevoC, codSindicato: e.target.value })}>
+                      <option value="">(todos)</option>{items.map((x) => <option key={x.codigo} value={x.codigo}>{x.codigo}</option>)}
+                    </select>
+                  </div>
+                  <div className="field"><label>Tipo</label>
+                    <select className="input" style={{ width: 130 }} value={nuevoC.tipo} onChange={(e) => setNuevoC({ ...nuevoC, tipo: e.target.value })}>
+                      <option value="contribucion">contribución</option><option value="aporte">aporte</option>
+                    </select>
+                  </div>
+                  <div className="field"><label>Base</label>
+                    <select className="input" style={{ width: 145 }} value={nuevoC.base} onChange={(e) => setNuevoC({ ...nuevoC, base: e.target.value })}>
+                      <option value="fijo">importe fijo</option><option value="remunerativo">% s/ remunerativo</option>
+                    </select>
+                  </div>
+                  <div className="field"><label>%</label><input className="input" type="number" step="0.0001" style={{ width: 90 }} value={nuevoC.pct} onChange={(e) => setNuevoC({ ...nuevoC, pct: e.target.value })} /></div>
+                  <div className="field"><label>Importe</label><input className="input" type="number" step="0.01" style={{ width: 110 }} value={nuevoC.importe} onChange={(e) => setNuevoC({ ...nuevoC, importe: e.target.value })} /></div>
+                  <div className="field"><label>Cuenta</label><input className="input" style={{ width: 90 }} value={nuevoC.cuenta} onChange={(e) => setNuevoC({ ...nuevoC, cuenta: e.target.value })} /></div>
+                  <button className="btn" onClick={crearConcepto} disabled={!nuevoC.columna || !nuevoC.descripcion}>Agregar</button>
+                  <button className="btn ghost" onClick={() => setNuevoC(null)}>Cancelar</button>
+                </div>
+              ) : (
+                <button className="btn ghost" onClick={() => setNuevoC({ columna: '', descripcion: '', codSindicato: '', tipo: 'contribucion', base: 'fijo', pct: 0, importe: 0, cuenta: '' })}>+ Nuevo concepto</button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <HistorialConfig modulo="sindicatos" />
     </>
   );

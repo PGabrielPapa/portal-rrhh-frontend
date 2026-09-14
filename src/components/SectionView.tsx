@@ -17,6 +17,9 @@ import GananciasParams from '../pages/GananciasParams';
 import LibroSueldos from '../pages/LibroSueldos';
 import F931 from '../pages/F931';
 import Asiento from '../pages/Asiento';
+import AsientoSueldos from '../pages/AsientoSueldos';
+import CentrosLegajo from '../pages/CentrosLegajo';
+import TablasAuxiliares from '../pages/TablasAuxiliares';
 import ArchivosBanco from '../pages/ArchivosBanco';
 import GeneradorReportes from '../pages/GeneradorReportes';
 import Simulaciones from '../pages/Simulaciones';
@@ -149,6 +152,9 @@ const COMPONENTS: Record<string, ComponentType> = {
   'libro-sueldos': LibroSueldos,
   'f931': F931,
   'asiento': Asiento,
+  'asiento-sueldos': AsientoSueldos,
+  'centros-legajo': CentrosLegajo,
+  'tablas-asiento': TablasAuxiliares,
   'bancos': ArchivosBanco,
   'reportes': GeneradorReportes,
   'simulaciones': Simulaciones,
