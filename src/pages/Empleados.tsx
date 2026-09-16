@@ -65,6 +65,27 @@ export default function Empleados() {
   const [agrupaciones, setAgrupaciones] = useState<{ id: number; nombre: string }[]>([]);
   const navE = useNavigate();
   const [bajaEmp, setBajaEmp] = useState<Empleado | null>(null);
+  const [sel, setSel] = useState<Set<number>>(new Set());   // selección para baja masiva
+  const [bajaMasiva, setBajaMasiva] = useState(false);
+  const toggleSel = (id: number) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  // Ordenamiento por columna (click en el título). legNum numérico; Estado por activo; el resto alfabético.
+  const [sortBy, setSortBy] = useState<string>('legNum');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const onSort = (k: string) => { if (sortBy === k) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc')); else { setSortBy(k); setSortDir('asc'); } };
+  const sortedItems = useMemo(() => {
+    const arr = [...items];
+    arr.sort((a, b) => {
+      let va: any = (a as any)[sortBy], vb: any = (b as any)[sortBy];
+      if (sortBy === 'legNum') { va = Number(String(va).replace(/\D/g, '')) || 0; vb = Number(String(vb).replace(/\D/g, '')) || 0; }
+      else if (sortBy === 'activo') { va = va ? 1 : 0; vb = vb ? 1 : 0; }
+      else { va = String(va ?? '').toLowerCase(); vb = String(vb ?? '').toLowerCase(); }
+      return (va < vb ? -1 : va > vb ? 1 : 0) * (sortDir === 'asc' ? 1 : -1);
+    });
+    return arr;
+  }, [items, sortBy, sortDir]);
+  const Th = ({ k, children }: { k: string; children: any }) => (
+    <th onClick={() => onSort(k)} style={{ cursor: 'pointer', userSelect: 'none' }} title="Ordenar por esta columna">{children}{sortBy === k ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}</th>
+  );
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [showAlta, setShowAlta] = useState(false);
@@ -174,6 +195,7 @@ export default function Empleados() {
             <button className="btn ghost" title="Actualiza convenio, categoría, sindicato y zona por CUIL (no toca otros datos)" onClick={() => fileConvRef.current?.click()}>↑ Convenios</button>
             <input ref={fileConvRef} type="file" accept=".xlsx,.csv" style={{ display: 'none' }} onChange={onFileConv} />
             <button className="btn" onClick={() => setShowAlta(true)}>+ Nueva alta</button>
+            {sel.size > 0 && <button className="btn ghost" style={{ color: 'var(--red)' }} onClick={() => setBajaMasiva(true)}>Dar de baja ({sel.size})</button>}
           </>}
         </div>
 
@@ -182,11 +204,12 @@ export default function Empleados() {
         <div className="card" style={{ padding: 0, overflow: 'auto' }}>
           <table>
             <thead><tr>
-              <th>Legajo</th><th>Nombre</th><th>Empresa</th><th>DNI</th><th>Cat.</th><th>Tramo</th><th>Estado</th>{canEdit && <th></th>}
+              {canEdit && <th style={{ width: 28 }}></th>}<Th k="legNum">Legajo</Th><Th k="nom">Nombre</Th><Th k="empresa">Empresa</Th><Th k="dni">DNI</Th><Th k="cat">Cat.</Th><Th k="tramo">Tramo</Th><Th k="activo">Estado</Th>{canEdit && <th></th>}
             </tr></thead>
             <tbody>
-              {items.map((e) => (
+              {sortedItems.map((e) => (
                 <tr key={e.id}>
+                  {canEdit && <td style={{ textAlign: 'center' }}>{e.activo && <input type="checkbox" checked={sel.has((e as any).id)} onChange={() => toggleSel((e as any).id)} />}</td>}
                   <td style={{ fontFamily: 'monospace' }}>{e.legNum}</td>
                   <td><div className="row" style={{ gap: 8, alignItems: 'center' }}><Avatar nombre={e.nom} foto={(e as any).foto} size={28} /><span>{e.nom}</span></div></td>
                   <td>{e.empresa}</td>
@@ -202,14 +225,15 @@ export default function Empleados() {
                   </td>}
                 </tr>
               ))}
-              {!items.length && <tr><td colSpan={canEdit ? 8 : 7} className="muted" style={{ textAlign: 'center', padding: 24 }}>{loading ? 'Cargando…' : 'Sin resultados'}</td></tr>}
+              {!items.length && <tr><td colSpan={canEdit ? 9 : 7} className="muted" style={{ textAlign: 'center', padding: 24 }}>{loading ? 'Cargando…' : 'Sin resultados'}</td></tr>}
             </tbody>
           </table>
         </div>
         <p className="muted" style={{ marginTop: 10 }}>{items.length} empleado(s)</p>
 
       {(showAlta || editEmp) && <EmpModal emp={editEmp} empresas={empresas} onClose={() => { setShowAlta(false); setEditEmp(null); }} onSaved={(m) => { setShowAlta(false); setEditEmp(null); setMsg({ t: m, ok: true }); load(); }} onError={(t) => setMsg({ t, ok: false })} />}
-      {bajaEmp && <BajaModal emp={bajaEmp} onClose={() => setBajaEmp(null)} onDone={(navTo) => { setBajaEmp(null); load(); navE(navTo); }} />}
+      {bajaEmp && <BajaModal emp={bajaEmp} onClose={() => setBajaEmp(null)} onDone={(navTo) => { setBajaEmp(null); load(); if (navTo) navE(navTo); }} />}
+      {bajaMasiva && <BajaMasivaModal ids={[...sel]} total={sel.size} onClose={() => setBajaMasiva(false)} onDone={(m) => { setBajaMasiva(false); setSel(new Set()); setMsg({ t: m, ok: true }); load(); }} />}
     </>
   );
 }
@@ -234,6 +258,9 @@ const CAUSAS_BAJA: [string, string][] = [
 function BajaModal({ emp, onClose, onDone }: { emp: Empleado; onClose: () => void; onDone: (navTo: string) => void }) {
   const [f, setF] = useState<any>({ causa: 'sin_causa', fechaBaja: new Date().toISOString().slice(0, 10), preavisoOverride: '' });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  // Causas de baja: se leen de la tabla oficial de ARCA (/api/causales-baja). Si falla, se usa la lista fija.
+  const [causas, setCausas] = useState<[string, string][]>(CAUSAS_BAJA);
+  useEffect(() => { api.get('/causales-baja?soloActivos=1').then((rows: any) => { if (Array.isArray(rows) && rows.length) setCausas(rows.map((r: any) => [r.clave, r.nombre] as [string, string])); }).catch(() => {}); }, []);
   const esDespido = ['sin_causa', 'fuerza_mayor', 'despido_indirecto'].includes(f.causa);
   const esMutuo = f.causa === 'mutuo';
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
@@ -255,6 +282,8 @@ function BajaModal({ emp, onClose, onDone }: { emp: Empleado; onClose: () => voi
         gratifCuotas: esMutuo ? (f.cuotas || []) : [],
         observaciones: f.observaciones || undefined,
       });
+      // Si NO se pide liquidar ahora, se cierra sin ir a la liquidación final (queda de baja nomás).
+      if (f.liquidarAhora === false) { onDone(''); return; }
       const p = new URLSearchParams({ reLeg: emp.legNum, reEmp: emp.empresa, tipo: 'final', fechaEgreso: f.fechaBaja, motivo: f.causa });
       if (f.fechaNotificacion) p.set('fechaNotif', f.fechaNotificacion);
       if (esDespido && f.preavisoOverride) p.set('preaviso', f.preavisoOverride);
@@ -268,7 +297,7 @@ function BajaModal({ emp, onClose, onDone }: { emp: Empleado; onClose: () => voi
         <h3 style={{ marginTop: 0 }}>Dar de baja — {emp.nom} <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>({emp.legNum} · {emp.empresa})</span></h3>
         <div className="grid2" style={{ marginBottom: 10 }}>
           <div className="field"><label>Fecha de baja *</label><input className="input" type="date" value={f.fechaBaja} onChange={set('fechaBaja')} /></div>
-          <div className="field"><label>Causa de baja *</label><select className="input" value={f.causa} onChange={set('causa')}>{CAUSAS_BAJA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+          <div className="field"><label>Causa de baja *</label><select className="input" value={f.causa} onChange={set('causa')}>{causas.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
         </div>
         {esDespido && (
           <div className="grid2" style={{ marginBottom: 10 }}>
@@ -296,9 +325,51 @@ function BajaModal({ emp, onClose, onDone }: { emp: Empleado; onClose: () => voi
           </div>
         )}
         <div className="field" style={{ marginBottom: 12 }}><label>Observaciones</label><textarea className="input" rows={2} value={f.observaciones || ''} onChange={set('observaciones')} /></div>
+        <label className="row" style={{ gap: 6, cursor: 'pointer', marginBottom: 12 }}><input type="checkbox" checked={f.liquidarAhora !== false} onChange={(ev) => setF({ ...f, liquidarAhora: ev.target.checked })} /> Generar la liquidación final ahora</label>
         {err && <div className="err" style={{ marginBottom: 8 }}>⚠ {err}</div>}
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn" disabled={busy} onClick={guardar}>{busy ? 'Guardando…' : 'Registrar baja y liquidar final →'}</button>
+          <button className="btn" disabled={busy} onClick={guardar}>{busy ? 'Guardando…' : (f.liquidarAhora !== false ? 'Registrar baja y liquidar final →' : 'Registrar baja')}</button>
+          <button className="btn ghost" onClick={onClose}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Baja MASIVA: da de baja a varios empleados con la misma fecha y causa, sin generar liquidación final.
+function BajaMasivaModal({ ids, total, onClose, onDone }: { ids: number[]; total: number; onClose: () => void; onDone: (m: string) => void }) {
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [causa, setCausa] = useState('sin_causa');
+  const [obs, setObs] = useState('');
+  const [causas, setCausas] = useState<[string, string][]>(CAUSAS_BAJA);
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [prog, setProg] = useState(0);
+  useEffect(() => { api.get('/causales-baja?soloActivos=1').then((rows: any) => { if (Array.isArray(rows) && rows.length) setCausas(rows.map((r: any) => [r.clave, r.nombre] as [string, string])); }).catch(() => {}); }, []);
+  async function guardar() {
+    if (!fecha || !causa) { setErr('Fecha y causa son obligatorias.'); return; }
+    setBusy(true); setErr(''); let ok = 0, fail = 0;
+    for (const id of ids) {
+      try { await api.post(`/empleados/${id}/baja`, { fechaBaja: fecha, causa, observaciones: obs || undefined }); ok++; }
+      catch { fail++; }
+      setProg(ok + fail);
+    }
+    setBusy(false);
+    if (fail) setErr(`${ok} dados de baja · ${fail} con error.`);
+    else onDone(`${ok} empleado(s) dados de baja.`);
+  }
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', zIndex: 50, overflow: 'auto' }} onClick={onClose}>
+      <div className="card" style={{ maxWidth: 560, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Dar de baja — {total} empleados</h3>
+        <p className="muted" style={{ marginTop: -4 }}>Se dan de baja los {total} seleccionados con la misma fecha y causa. <strong>No</strong> genera la liquidación final; la hacés después desde cada legajo (botón “⚖️ Liquidar final”) cuando quieras.</p>
+        <div className="grid2" style={{ marginBottom: 10 }}>
+          <div className="field"><label>Fecha de baja *</label><input className="input" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} /></div>
+          <div className="field"><label>Causa de baja *</label><select className="input" value={causa} onChange={(e) => setCausa(e.target.value)}>{causas.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+        </div>
+        <div className="field" style={{ marginBottom: 12 }}><label>Observaciones</label><textarea className="input" rows={2} value={obs} onChange={(e) => setObs(e.target.value)} /></div>
+        {busy && <div className="muted" style={{ marginBottom: 8 }}>Procesando {prog}/{total}…</div>}
+        {err && <div className="err" style={{ marginBottom: 8 }}>⚠ {err}</div>}
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn" disabled={busy} onClick={guardar}>{busy ? 'Procesando…' : `Dar de baja ${total}`}</button>
           <button className="btn ghost" onClick={onClose}>Cancelar</button>
         </div>
       </div>
