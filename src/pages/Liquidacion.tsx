@@ -202,7 +202,7 @@ function Corrida() {
   const [corridas, setCorridas] = useState<any[]>([]);
   const [sel, setSel] = useState<any>(null); const [reporte, setReporte] = useState<any>(null); const [exp, setExp] = useState<Record<number, boolean>>({});
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [filtro, setFiltro] = useState(''); const [msg, setMsg] = useState('');
-  const [previaItems, setPreviaItems] = useState<any[] | null>(null); const [ov, setOv] = useState<Record<number, any>>({});
+  const [previaItems, setPreviaItems] = useState<any[] | null>(null); const [ov, setOv] = useState<Record<string, any>>({});
 
   async function loadCorridas() { try { setCorridas(await api.get('/liquidacion/corridas')); } catch (e: any) { setErr(e.message); } }
   useEffect(() => { loadCorridas(); api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
@@ -233,7 +233,8 @@ function Corrida() {
     try { const r = await api.post<any>('/liquidacion/corrida', bodyCorrida({ previa: true })); setPreviaItems(r.items); }
     catch (e: any) { setErr(e.message); setPreviaItems(null); } finally { setBusy(false); }
   }
-  const setOverride = (id: number, k: string, v: string) => setOv((s) => ({ ...s, [id]: { ...(s[id] || {}), [k]: v } }));
+  // La clave es legajo, o legajo-período cuando el mes tiene dos liquidaciones (cesión).
+  const setOverride = (id: number | string, k: string, v: string) => setOv((s) => ({ ...s, [id]: { ...(s[id] || {}), [k]: v } }));
   async function confirmarPrevia() {
     if (!window.confirm('¿Generar la corrida con estos valores?')) return;
     setErr(''); setMsg(''); setBusy(true);
@@ -289,16 +290,24 @@ function Corrida() {
           <div style={{ overflow: 'auto', maxHeight: 460 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr>
-                {['Legajo', 'Empleado', 'Hs norm.', 'Extra 50%', 'Extra 100%', 'Neto'].map((h, i) => <th key={i} style={{ padding: '6px 8px', textAlign: i > 1 ? 'right' : 'left', borderBottom: '2px solid var(--border)', position: 'sticky', top: 0, background: 'var(--bg2)' }}>{h}</th>)}
+                {['Legajo', 'Empleado', 'Días', 'Hs norm.', 'Extra 50%', 'Extra 100%', 'Neto'].map((h, i) => <th key={i} style={{ padding: '6px 8px', textAlign: i > 1 ? 'right' : 'left', borderBottom: '2px solid var(--border)', position: 'sticky', top: 0, background: 'var(--bg2)' }}>{h}</th>)}
               </tr></thead>
               <tbody>
                 {previaItems.map((it) => {
-                  const o = ov[it.empleadoId] || {};
-                  const inp = (k: string, cur: number) => <input className="input" type="number" step="any" value={o[k] ?? (cur ?? '')} onChange={(e) => setOverride(it.empleadoId, k, e.target.value)} style={{ width: 74, padding: '2px 6px', textAlign: 'right' }} />;
+                  // Un mismo legajo puede aparecer dos veces en el mes de una cesión (una fila
+                  // por empresa), así que la fila —y sus overrides de horas— se identifican por
+                  // legajo + período, no sólo por legajo.
+                  const fila = it.periodoId ? `${it.empleadoId}-${it.periodoId}` : String(it.empleadoId);
+                  const o = ov[fila] || {};
+                  const parcial = (it.diasLiquidados ?? 30) < 30;
+                  const inp = (k: string, cur: number) => <input className="input" type="number" step="any" value={o[k] ?? (cur ?? '')} onChange={(e) => setOverride(fila, k, e.target.value)} style={{ width: 74, padding: '2px 6px', textAlign: 'right' }} />;
                   return (
-                    <tr key={it.empleadoId} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <tr key={fila} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '3px 8px' }}>{it.legNum}</td>
-                      <td style={{ padding: '3px 8px' }}>{it.nom} <span className="muted" style={{ fontSize: 11 }}>{it.esJornal ? '· jornal' : ''}</span></td>
+                      <td style={{ padding: '3px 8px' }}>{it.nom} <span className="muted" style={{ fontSize: 11 }}>{it.esJornal ? '· jornal' : ''}{parcial ? ` · ${it.empresa}` : ''}</span></td>
+                      <td style={{ padding: '3px 8px', textAlign: 'right' }} title={parcial ? `Mes parcial: ${it.diasLiquidados} de 30 días${it.motivoPeriodo ? ` (${it.motivoPeriodo})` : ''}` : 'Mes completo'}>
+                        {parcial ? <strong style={{ color: 'var(--accent2)' }}>{it.diasLiquidados}/30</strong> : <span className="muted">30</span>}
+                      </td>
                       <td style={{ padding: '3px 8px', textAlign: 'right' }}>{it.esJornal ? inp('horasNormales', it.horasNormales) : <span className="muted">—</span>}</td>
                       <td style={{ padding: '3px 8px', textAlign: 'right' }}>{inp('horasExtra50', it.extra50)}</td>
                       <td style={{ padding: '3px 8px', textAlign: 'right' }}>{inp('horasExtra100', it.extra100)}</td>

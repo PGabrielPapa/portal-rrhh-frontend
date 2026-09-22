@@ -117,6 +117,7 @@ export const META: Record<string, { ico: string; col: string; desc: string }> = 
   'asiento': { ico: '🧾', col: '92,104,128', desc: 'Asiento contable de la liquidación' },
   'asiento-sueldos': { ico: '📒', col: '92,104,128', desc: 'Libro completo del asiento de sueldos: las 14 hojas que hoy se arman en Excel' },
   'centros-legajo': { ico: '🏷', col: '92,104,128', desc: 'Centro de costos y centro de operaciones de cada legajo (apertura del asiento)' },
+  'periodos': { ico: '🔗', col: '61,127,255', desc: 'Períodos laborales del legajo: ingresos, egresos, reingresos y cesiones de contrato entre empresas del grupo' },
   'tablas-asiento': { ico: '🗂', col: '92,104,128', desc: 'Obras sociales y categorías que usa el asiento de sueldos' },
   'bancos': { ico: '🏦', col: '61,200,160', desc: 'Archivos de acreditación bancaria' },
   'cbu-novedades': { ico: '🏦', col: '61,200,160', desc: 'Novedades y validación de CBU' },

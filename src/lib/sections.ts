@@ -68,6 +68,7 @@ export const GROUPS: Group[] = [
     items: [
       { key: 'personas', label: 'Personas (base)', ready: true },
       { key: 'empleados', label: 'ABM Empleados', ready: true },
+      { key: 'periodos', label: 'Períodos y cesiones', ready: true },
       { key: 'actualizacion-masiva', label: 'Actualización masiva de legajos', ready: true },
       { key: 'plantillas-legajo', label: 'Plantillas de legajo', ready: true },
       { key: 'agrupaciones', label: 'Agrupaciones auxiliares', ready: true },

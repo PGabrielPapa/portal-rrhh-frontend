@@ -21,9 +21,9 @@ export default function SimplificacionRegistral() {
   }
   function csv() {
     if (!data) return;
-    const rows = [['Tipo', 'Empresa', 'CUIT Empleador', 'CUIL', 'Apellido', 'Nombres', 'Fecha', 'Modalidad/Causa', 'Obra Social', 'Remuneración']];
-    for (const a of data.altas) rows.push(['ALTA', a.empresa, a.empresaCuit || '', a.cuil || '', a.apellido, a.nombres, fmtF(a.fecha), a.modalidad || '', a.obraSocial || '', String(a.remuneracion || '')]);
-    for (const b of data.bajas) rows.push(['BAJA', b.empresa, b.empresaCuit || '', b.cuil || '', b.apellido, b.nombres, fmtF(b.fecha), b.causa || '', '', '']);
+    const rows = [['Tipo', 'Empresa', 'CUIT Empleador', 'Legajo', 'CUIL', 'Apellido', 'Nombres', 'Fecha', 'Motivo/Causa', 'Antigüedad reconocida', 'Empresa cedente', 'Modalidad', 'Obra Social', 'Remuneración']];
+    for (const a of data.altas) rows.push(['ALTA', a.empresa, a.empresaCuit || '', a.legNum || '', a.cuil || '', a.apellido, a.nombres, fmtF(a.fecha), a.motivo || '', a.antiguedadReconocida ? fmtF(a.antiguedadReconocida) : '', a.empresaOrigen || '', a.modalidad || '', a.obraSocial || '', String(a.remuneracion || '')]);
+    for (const b of data.bajas) rows.push(['BAJA', b.empresa, b.empresaCuit || '', b.legNum || '', b.cuil || '', b.apellido, b.nombres, fmtF(b.fecha), b.causa || '', '', '', '', '', '']);
     const body = '﻿' + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
     const blob = new Blob([body], { type: 'text/csv;charset=utf-8' });
     const u = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = u; link.download = `simplificacion_${anio}_${String(mes).padStart(2, '0')}.csv`; link.click(); setTimeout(() => URL.revokeObjectURL(u), 4000);
@@ -32,7 +32,7 @@ export default function SimplificacionRegistral() {
   return (
     <>
       <div className="card" style={{ marginBottom: 14 }}>
-        <p className="muted" style={{ marginTop: 0 }}>Altas (ingresos) y bajas (ceses) del período para informar a AFIP/ARCA (Simplificación Registral). El diseño de importación exacto de ARCA debe confirmarse antes de subirlo.</p>
+        <p className="muted" style={{ marginTop: 0 }}>Altas y bajas del período para informar a ARCA (Simplificación Registral), tomadas de los períodos laborales: una cesión de contrato figura como baja en la cedente y alta en la cesionaria. En esos casos se muestra además la antigüedad reconocida, porque la fecha de ingreso a declarar puede no ser la del alta. El diseño de importación exacto de ARCA debe confirmarse antes de subirlo.</p>
         <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="field"><label>Mes</label><select className="input" value={mes} onChange={(e) => setMes(Number(e.target.value))}>{MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}</select></div>
           <div className="field"><label>Año</label><input className="input" type="number" style={{ width: 100 }} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></div>
@@ -46,19 +46,29 @@ export default function SimplificacionRegistral() {
       {data && (<>
         <h3 style={{ margin: '0 0 8px' }}>Altas <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>({data.altas.length})</span></h3>
         <div className="card" style={{ padding: 0, overflow: 'auto', marginBottom: 16 }}>
-          <table><thead><tr><th>Empleado</th><th>CUIL</th><th>Empresa</th><th>Fecha ingreso</th><th>Modalidad</th><th>Obra social</th></tr></thead>
+          <table><thead><tr><th>Legajo</th><th>Empleado</th><th>CUIL</th><th>Empresa</th><th>Fecha alta</th><th>Motivo</th><th>Antig. reconocida</th><th>Modalidad</th><th>Obra social</th></tr></thead>
             <tbody>
-              {data.altas.map((a: any, i: number) => <tr key={i}><td>{a.apellido}, {a.nombres}</td><td style={{ fontFamily: 'monospace' }}>{a.cuil}</td><td>{a.empresa}</td><td>{fmtF(a.fecha)}</td><td className="muted">{a.modalidad || '—'}</td><td className="muted">{a.obraSocial || '—'}</td></tr>)}
-              {!data.altas.length && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 16 }}>Sin altas en el período.</td></tr>}
+              {data.altas.map((a: any, i: number) => <tr key={i}>
+                <td style={{ fontFamily: 'monospace' }}>{a.legNum || '—'}</td>
+                <td>{a.apellido}, {a.nombres}</td>
+                <td style={{ fontFamily: 'monospace' }}>{a.cuil}</td>
+                <td>{a.empresa}</td>
+                <td>{fmtF(a.fecha)}</td>
+                <td>{a.motivo || '—'}{a.empresaOrigen && <div className="muted" style={{ fontSize: 11 }}>cedido desde {a.empresaOrigen}</div>}</td>
+                <td>{a.antiguedadReconocida ? fmtF(a.antiguedadReconocida) : '—'}</td>
+                <td className="muted">{a.modalidad || '—'}</td>
+                <td className="muted">{a.obraSocial || '—'}</td>
+              </tr>)}
+              {!data.altas.length && <tr><td colSpan={9} className="muted" style={{ textAlign: 'center', padding: 16 }}>Sin altas en el período.</td></tr>}
             </tbody>
           </table>
         </div>
         <h3 style={{ margin: '0 0 8px' }}>Bajas <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>({data.bajas.length})</span></h3>
         <div className="card" style={{ padding: 0, overflow: 'auto' }}>
-          <table><thead><tr><th>Empleado</th><th>CUIL</th><th>Empresa</th><th>Fecha baja</th><th>Causa</th></tr></thead>
+          <table><thead><tr><th>Legajo</th><th>Empleado</th><th>CUIL</th><th>Empresa</th><th>Fecha baja</th><th>Causa</th></tr></thead>
             <tbody>
-              {data.bajas.map((b: any, i: number) => <tr key={i}><td>{b.apellido}, {b.nombres}</td><td style={{ fontFamily: 'monospace' }}>{b.cuil}</td><td>{b.empresa}</td><td>{fmtF(b.fecha)}</td><td className="muted">{b.causa || '—'}</td></tr>)}
-              {!data.bajas.length && <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 16 }}>Sin bajas en el período.</td></tr>}
+              {data.bajas.map((b: any, i: number) => <tr key={i}><td style={{ fontFamily: 'monospace' }}>{b.legNum || '—'}</td><td>{b.apellido}, {b.nombres}</td><td style={{ fontFamily: 'monospace' }}>{b.cuil}</td><td>{b.empresa}</td><td>{fmtF(b.fecha)}</td><td className="muted">{b.causa || '—'}</td></tr>)}
+              {!data.bajas.length && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 16 }}>Sin bajas en el período.</td></tr>}
             </tbody>
           </table>
         </div>

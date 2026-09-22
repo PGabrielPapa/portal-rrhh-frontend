@@ -19,6 +19,7 @@ import F931 from '../pages/F931';
 import Asiento from '../pages/Asiento';
 import AsientoSueldos from '../pages/AsientoSueldos';
 import CentrosLegajo from '../pages/CentrosLegajo';
+import Periodos from '../pages/Periodos';
 import TablasAuxiliares from '../pages/TablasAuxiliares';
 import ArchivosBanco from '../pages/ArchivosBanco';
 import GeneradorReportes from '../pages/GeneradorReportes';
@@ -154,6 +155,7 @@ const COMPONENTS: Record<string, ComponentType> = {
   'asiento': Asiento,
   'asiento-sueldos': AsientoSueldos,
   'centros-legajo': CentrosLegajo,
+  'periodos': Periodos,
   'tablas-asiento': TablasAuxiliares,
   'bancos': ArchivosBanco,
   'reportes': GeneradorReportes,

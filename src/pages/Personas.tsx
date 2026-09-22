@@ -3,7 +3,7 @@ import { api } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 
 interface Periodo { id: number; empresa?: string; legajo?: string; fechaIngreso?: string; fechaEgreso?: string; funcion?: string; catEscala?: string; tramoEscala?: string; catConvenio?: string; codConvenio?: string; codSindicato?: string; vigente?: boolean }
-interface Persona { id: number; cuil?: string; dni: string; apellido?: string; nombres?: string; nom?: string; tipos: string[]; data?: any; empleadoActivo?: boolean; nPeriodos?: number; periodos?: Periodo[]; accesoComite?: string | null; tieneClave?: boolean }
+interface Persona { id: number; nro?: number; cuil?: string; dni: string; apellido?: string; nombres?: string; nom?: string; tipos: string[]; data?: any; empleadoActivo?: boolean; nPeriodos?: number; periodos?: Periodo[]; accesoComite?: string | null; tieneClave?: boolean }
 
 const TIPOS: [string, string][] = [['empleado', 'Empleado'], ['familiar', 'Familiar'], ['prestador_hys', 'Prestador HyS'], ['medicina_laboral', 'Medicina Laboral'], ['postulante', 'Postulante'], ['contratista', 'Contratista'], ['otro', 'Otro']];
 const tipoLbl = (t: string) => TIPOS.find((x) => x[0] === t)?.[1] || t;
@@ -50,13 +50,14 @@ export default function Personas() {
 
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
-          <thead><tr><th></th><th>Nombre</th><th>DNI</th><th>CUIL</th><th>Tipos</th><th>Períodos</th><th></th></tr></thead>
+          <thead><tr><th></th><th>N°</th><th>Nombre</th><th>DNI</th><th>CUIL</th><th>Tipos</th><th>Períodos</th><th></th></tr></thead>
           <tbody>
             {items.map((p) => {
               const abierto = exp[p.id] !== undefined; const full = exp[p.id];
               return [
                 <tr key={p.id}>
                   <td style={{ cursor: 'pointer', width: 24 }} onClick={() => toggle(p.id)}>{abierto ? '▾' : '▸'}</td>
+                  <td style={{ fontFamily: 'monospace' }} className="muted">{p.nro ?? '—'}</td>
                   <td>{p.nom || `${p.apellido || ''} ${p.nombres || ''}`}{p.empleadoActivo && <span className="badge" style={{ color: 'var(--green)', marginLeft: 6 }}>Empleado activo</span>}</td>
                   <td>{p.dni}</td><td>{p.cuil || '—'}</td>
                   <td>{(p.tipos || []).map((t) => <span key={t} className="badge" style={{ marginRight: 4 }}>{tipoLbl(t)}</span>)}</td>
@@ -67,7 +68,7 @@ export default function Personas() {
                   </td>
                 </tr>,
                 abierto && (
-                  <tr key={`d${p.id}`}><td colSpan={7} style={{ background: 'var(--bg2)', padding: '10px 16px' }}>
+                  <tr key={`d${p.id}`}><td colSpan={8} style={{ background: 'var(--bg2)', padding: '10px 16px' }}>
                     {!full ? <span className="muted">Cargando…</span> : (full.periodos && full.periodos.length ? (
                       <table style={{ width: '100%', fontSize: 13 }}>
                         <thead><tr><th style={{ textAlign: 'left' }}>Empresa</th><th style={{ textAlign: 'left' }}>Legajo</th><th style={{ textAlign: 'left' }}>Ingreso</th><th style={{ textAlign: 'left' }}>Egreso</th><th style={{ textAlign: 'left' }}>Función</th><th style={{ textAlign: 'left' }}>Cat. escala</th><th style={{ textAlign: 'left' }}>Cat. convenio</th><th style={{ textAlign: 'left' }}>Estado</th><th></th></tr></thead>
@@ -83,7 +84,7 @@ export default function Personas() {
                 ),
               ].filter(Boolean);
             })}
-            {!items.length && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin personas.</td></tr>}
+            {!items.length && <tr><td colSpan={8} className="muted" style={{ textAlign: 'center', padding: 20 }}>Sin personas.</td></tr>}
           </tbody>
         </table>
       </div>
