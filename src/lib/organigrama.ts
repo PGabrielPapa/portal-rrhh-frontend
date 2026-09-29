@@ -62,7 +62,7 @@ export function getValidador(emp: any) {
   if(nom.includes('BASSO'))
     return {validador:'GARRIDO, JUAN MANUEL', area:'Gerencia Regional (Córdoba/Neuquén/Mendoza)', goToHR:false};
   if(nom.includes('NICOLOSI'))
-    return {validador:'GARRIDO, JUAN MANUEL', area:'Gerencia Regional (Santa Fe/Corrientes/Rosario/Salta)', goToHR:false};
+    return {validador:'GARRIDO, JUAN MANUEL', area:'Gerencia Regional (Santa Fe/Corrientes/Rosario)', goToHR:false};
 
   // ── GERENTES (cat GER) → van directo a RR.HH. ────────────────────
   if(emp.cat === 'GER')
@@ -75,8 +75,8 @@ export function getValidador(emp: any) {
   // ═══════════════════════════════════════════════════════════════════
   {
     const empCo = (emp.emp||'').toUpperCase();
-    if(empCo.includes('LEITEN SALTA') || lugar.includes('SUCURSAL SALTA'))
-      return {validador:'RODRIGUEZ, ADRIAN ROBERTO', area:'LEITEN SALTA', goToHR:false};
+    if(empCo.includes('LEITEN SALTA') || lugar.includes('SALTA'))
+      return {validador:'RODRIGUEZ, ADRIAN ROBERTO', area:'Gerencia Salta (LEITEN SALTA)', goToHR:false};
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -227,13 +227,13 @@ export function getValidador(emp: any) {
     'RONDOLETTO','MALGIOGLIO'
   ];
   if(regionNicolosi.some(s=>nom.includes(s.toUpperCase())))
-    return {validador:'NICOLOSI, ADRIAN PABLO', area:'Gerencia Regional (Santa Fe/Corrientes/Rosario/Salta)', goToHR:false};
+    return {validador:'NICOLOSI, ADRIAN PABLO', area:'Gerencia Regional (Santa Fe/Corrientes/Rosario)', goToHR:false};
 
   // Basso y Nicolosi (Gerentes Regionales) → bajo Garrido
   if(nom.includes('BASSO'))
     return {validador:'GARRIDO, JUAN MANUEL', area:'Gerencia Regional (Córdoba/Neuquén/Mendoza)', goToHR:false};
   if(nom.includes('NICOLOSI'))
-    return {validador:'GARRIDO, JUAN MANUEL', area:'Gerencia Regional (Santa Fe/Corrientes/Rosario/Salta)', goToHR:false};
+    return {validador:'GARRIDO, JUAN MANUEL', area:'Gerencia Regional (Santa Fe/Corrientes/Rosario)', goToHR:false};
 
   // Fallback por lugar (Salta queda cubierto arriba por regla específica)
   if(['CORDOBA','NEUQUEN','MENDOZA'].some(l=>lugar.includes(l)))

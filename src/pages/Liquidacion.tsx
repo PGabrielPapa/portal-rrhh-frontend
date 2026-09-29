@@ -19,7 +19,6 @@ function Individual() {
   // Causales de baja: lista única, de la tabla oficial de ARCA. Cada causal trae si genera
   // indemnización y si lleva preaviso, y con eso el motor arma la liquidación final.
   useEffect(() => { api.get<any[]>('/causales-baja?activos=true').then(setCausas).catch(() => {}); }, []);
-  const causaSel = causas.find((c) => c.clave === fin.motivoBaja) || null;
   useEffect(() => { api.get<Empleado[]>('/empleados').then((es) => setEmpresas([...new Set(es.map((e) => e.empresa))].sort())).catch(() => {}); }, []);
   useEffect(() => {
     const leg = sp.get('reLeg'); if (!leg) return;
@@ -40,6 +39,7 @@ function Individual() {
   const [mes, setMes] = useState(new Date().getMonth() + 1); const [anio, setAnio] = useState(new Date().getFullYear());
   const [tipo, setTipo] = useState('mensual');
   const [fin, setFin] = useState<Record<string, string>>({ motivoBaja: 'sin_causa' });
+  const causaSel = causas.find((c) => c.clave === fin.motivoBaja) || null;
   const [recibo, setRecibo] = useState<Recibo | null>(null);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
 
