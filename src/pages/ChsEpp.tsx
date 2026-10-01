@@ -24,6 +24,15 @@ export default function ChsEpp() {
   useEffect(() => { load(); api.get<any>('/hys/catalogos').then((c) => setEppCat(c?.epp || [])).catch(() => {}); }, []);
   async function delM(m: Mat) { if (!confirm('¿Eliminar este puesto de la matriz?')) return; try { await api.del(`/chs/epp-matriz/${m.id}`); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
   async function delE(e: Ent) { if (!confirm('¿Eliminar esta entrega?')) return; try { await api.del(`/chs/epp-entregas/${e.id}`); load(); } catch (er: any) { setMsg({ t: er.message, ok: false }); } }
+  // Genera el formulario 299/11 ya completo: lo descarga y lo guarda como constancia.
+  async function generar(e: Ent) {
+    if (!e.empleadoId) { setMsg({ t: 'La entrega no tiene empleado asignado', ok: false }); return; }
+    try {
+      await descargar(`/chs/epp-entregas/${e.id}/formulario`, `Constancia_EPP_299-11_${(e.empleadoNom || 'empleado').replace(/[^\w]+/g, '_')}.pdf`);
+      setMsg({ t: 'Formulario 299/11 generado y guardado como constancia.', ok: true });
+      load();
+    } catch (er: any) { setMsg({ t: er.message || 'No se pudo generar', ok: false }); }
+  }
 
   return (
     <>
@@ -65,6 +74,7 @@ export default function ChsEpp() {
                   <td>{fmt(e.fechaEntrega)}</td><td>{fmt(e.fechaReposicion)}</td>
                   <td>{e.tieneArchivo ? <a style={{ cursor: 'pointer', color: 'var(--accent2)' }} onClick={() => descargar(`/chs/epp-entregas/${e.id}/archivo`, e.archivoNombre)}>📎</a> : '—'}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button className="btn" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => generar(e)} title="Genera el formulario reglamentario 299/11 ya completo y lo guarda como constancia">📄 Generar 299/11</button>
                     <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }} onClick={() => { setEditE(e); setShowE(true); }}>Editar</button>
                     <button className="btn danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => delE(e)}>Eliminar</button>
                   </td>

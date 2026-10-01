@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { api, fetchBlob } from '../lib/api';
 import EmpleadoPicker from '../components/EmpleadoPicker';
 
-interface Seg { fecha: string; detalle: string }
+interface Seg { fecha: string; detalle: string; proximoTurno?: string }
 interface Sin {
   id: number; tipo?: string; empleadoId?: number; empleadoNom?: string; empleadoLeg?: string; empresa?: string;
-  fecha?: string; lugar?: string; descripcion?: string; causas?: string; acciones?: string; estado?: string;
+  fecha?: string; fechaAlta?: string; lugar?: string; descripcion?: string; causas?: string; acciones?: string; estado?: string;
   artNro?: string; diasBaja?: number; seguimientos: Seg[]; archivoNombre?: string; tieneArchivo?: boolean;
 }
 
@@ -24,6 +24,7 @@ async function descargar(url: string, nombre?: string) {
 
 export default function ChsSiniestros() {
   const [items, setItems] = useState<Sin[]>([]);
+  const [allItems, setAllItems] = useState<Sin[]>([]);
   const [fTipo, setFTipo] = useState('');
   const [fEstado, setFEstado] = useState('');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
@@ -34,11 +35,28 @@ export default function ChsSiniestros() {
     try {
       const p = new URLSearchParams(); if (fTipo) p.set('tipo', fTipo); if (fEstado) p.set('estado', fEstado);
       setItems(await api.get<Sin[]>(`/chs/siniestros?${p}`));
+      setAllItems(await api.get<Sin[]>('/chs/siniestros'));   // sin filtros, para el panel de turnos/movimientos
     } catch (e: any) { setMsg({ t: e.message, ok: false }); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [fTipo, fEstado]);
 
   async function eliminar(s: Sin) { if (!confirm('¿Eliminar este registro de siniestro?')) return; try { await api.del(`/chs/siniestros/${s.id}`); load(); } catch (e: any) { setMsg({ t: e.message, ok: false }); } }
+
+  // Panel: próximos turnos (de siniestros abiertos) y últimos movimientos cargados.
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  const diasHasta = (d: string) => Math.round((new Date(d + 'T00:00:00').getTime() - new Date(hoyStr + 'T00:00:00').getTime()) / 86400000);
+  const turnos = allItems
+    .filter((s) => s.estado !== 'Cerrado')
+    .map((s) => { const ts = (s.seguimientos || []).map((g) => g.proximoTurno).filter(Boolean).sort() as string[]; const prox = ts.length ? ts[ts.length - 1] : null; return prox ? { id: s.id, emp: s.empleadoNom, tipo: s.tipo, turno: prox, dias: diasHasta(prox) } : null; })
+    .filter(Boolean)
+    .sort((a, b) => (a!.turno < b!.turno ? -1 : 1)) as { id: number; emp?: string; tipo?: string; turno: string; dias: number }[];
+  const movs = allItems
+    .flatMap((s) => (s.seguimientos || []).map((g) => ({ id: s.id, emp: s.empleadoNom, tipo: s.tipo, estado: s.estado, fecha: g.fecha, detalle: g.detalle })))
+    .filter((m) => m.detalle && m.detalle.trim())
+    .sort((a, b) => (a.fecha < b.fecha ? 1 : -1))
+    .slice(0, 8);
+  const turnoColor = (d: number) => (d < 0 ? 'var(--red)' : d <= 7 ? 'var(--yellow)' : 'var(--green)');
+  const turnoTxt = (d: number) => (d < 0 ? `vencido hace ${-d}d` : d === 0 ? 'hoy' : `en ${d}d`);
 
   return (
     <>
@@ -53,6 +71,31 @@ export default function ChsSiniestros() {
         <button className="btn" onClick={() => { setEdit(null); setShow(true); }}>+ Nuevo siniestro</button>
       </div>
       {msg && <div className={msg.ok ? 'ok' : 'err'} style={{ marginBottom: 10 }}>{msg.ok ? '✓ ' : '⚠ '}{msg.t}</div>}
+
+      {(turnos.length > 0 || movs.length > 0) && (
+        <div className="row" style={{ gap: 10, marginBottom: 14, alignItems: 'stretch', flexWrap: 'wrap' }}>
+          <div className="card" style={{ flex: 1, minWidth: 280 }}>
+            <div className="sb-group-label" style={{ marginTop: 0 }}>Próximos turnos</div>
+            {turnos.length === 0 && <div className="muted" style={{ fontSize: 13 }}>Sin turnos agendados.</div>}
+            {turnos.map((t) => (
+              <div key={t.id} className="row" style={{ justifyContent: 'space-between', gap: 8, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 13 }}><strong>{t.emp || '—'}</strong> <span className="muted">· {t.tipo}</span></div>
+                <div style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{fmt(t.turno)} <span className="badge" style={{ color: turnoColor(t.dias), marginLeft: 4 }}>{turnoTxt(t.dias)}</span></div>
+              </div>
+            ))}
+          </div>
+          <div className="card" style={{ flex: 1, minWidth: 280 }}>
+            <div className="sb-group-label" style={{ marginTop: 0 }}>Últimos movimientos</div>
+            {movs.length === 0 && <div className="muted" style={{ fontSize: 13 }}>Sin movimientos cargados.</div>}
+            {movs.map((m, i) => (
+              <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
+                <strong>{fmt(m.fecha)}</strong> · {m.emp || '—'} <span className="muted">— {m.detalle}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {!items.length && <div className="muted">Sin registros.</div>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -92,16 +135,20 @@ function SinModal({ sin, onClose, onSaved, onError }: { sin: Sin | null; onClose
   const s = sin || ({} as Sin);
   const [f, setF] = useState<any>({
     tipo: s.tipo || TIPOS[0], empleadoId: s.empleadoId || null, empleadoNom: s.empleadoNom || '',
-    fecha: (s.fecha || '').slice(0, 10), lugar: s.lugar || '', descripcion: s.descripcion || '', causas: s.causas || '',
-    acciones: s.acciones || '', estado: s.estado || 'Abierto', artNro: s.artNro || '', diasBaja: s.diasBaja || '',
+    fecha: (s.fecha || '').slice(0, 10), fechaAlta: (s.fechaAlta || '').slice(0, 10), lugar: s.lugar || '', descripcion: s.descripcion || '', causas: s.causas || '',
+    acciones: s.acciones || '', estado: s.estado || 'Abierto', artNro: s.artNro || '',
   });
+  // Días de baja = días entre el evento y el alta médica (calculado, no se carga a mano).
+  const diasBajaCalc = (f.fecha && f.fechaAlta)
+    ? Math.max(0, Math.round((new Date(f.fechaAlta + 'T00:00:00').getTime() - new Date(f.fecha + 'T00:00:00').getTime()) / 86400000))
+    : null;
   const [segs, setSegs] = useState<Seg[]>(s.seguimientos || []);
   const [archivo, setArchivo] = useState<any>(null);
   const [quitar, setQuitar] = useState(false);
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
 
-  function addSeg() { setSegs([...segs, { fecha: new Date().toISOString().slice(0, 10), detalle: '' }]); }
+  function addSeg() { setSegs([...segs, { fecha: new Date().toISOString().slice(0, 10), detalle: '', proximoTurno: '' }]); }
   function setSeg(i: number, k: string, v: string) { const a = [...segs]; a[i] = { ...a[i], [k]: v }; setSegs(a); }
   function delSeg(i: number) { setSegs(segs.filter((_, j) => j !== i)); }
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) { const file = e.target.files?.[0]; if (!file) return; if (file.size > 4.5 * 1024 * 1024) return onError('Máximo 4,5 MB'); setArchivo(await fileToB64(file)); setQuitar(false); }
@@ -109,7 +156,8 @@ function SinModal({ sin, onClose, onSaved, onError }: { sin: Sin | null; onClose
   async function save() {
     setBusy(true);
     try {
-      const body: any = { ...f, diasBaja: f.diasBaja ? Number(f.diasBaja) : null, seguimientos: segs.filter((g) => g.detalle.trim()) };
+      if (f.estado === 'Cerrado' && !f.fechaAlta) { onError('Para cerrar el siniestro es obligatoria la fecha de alta.'); setBusy(false); return; }
+      const body: any = { ...f, diasBaja: diasBajaCalc, seguimientos: segs.filter((g) => g.detalle.trim() || g.proximoTurno) };
       if (archivo) body.archivo = archivo; else if (quitar) body.quitarArchivo = true;
       if (sin) await api.put(`/chs/siniestros/${sin.id}`, body); else await api.post('/chs/siniestros', body);
       onSaved(sin ? 'Siniestro actualizado' : 'Siniestro registrado');
@@ -142,17 +190,33 @@ function SinModal({ sin, onClose, onSaved, onError }: { sin: Sin | null; onClose
         <div className="field" style={{ marginTop: 10 }}><label>Acciones correctivas / preventivas</label><textarea className="input" rows={2} value={f.acciones} onChange={set('acciones')} /></div>
         <div className="grid2" style={{ marginTop: 10 }}>
           <div className="field"><label>N° de siniestro ART</label><input className="input" value={f.artNro} onChange={set('artNro')} /></div>
-          <div className="field"><label>Días de baja</label><input className="input" type="number" value={f.diasBaja} onChange={set('diasBaja')} /></div>
+          <div className="field">
+            <label>Fecha de alta {f.estado === 'Cerrado' && <span style={{ color: 'var(--red)' }}>*</span>}</label>
+            <input className="input" type="date" value={f.fechaAlta} min={f.fecha || undefined} onChange={set('fechaAlta')} />
+          </div>
+        </div>
+        <div className="grid2" style={{ marginTop: 10 }}>
+          <div className="field">
+            <label>Días de baja (calculado)</label>
+            <input className="input" value={diasBajaCalc != null ? `${diasBajaCalc} día${diasBajaCalc === 1 ? '' : 's'}` : '—'} readOnly disabled />
+          </div>
+          <div className="field" style={{ display: 'flex', alignItems: 'flex-end' }}>
+            {f.estado !== 'Cerrado' && !f.fechaAlta && <span className="muted" style={{ fontSize: 12 }}>Cargá la fecha de alta y los días se calculan solos.</span>}
+          </div>
         </div>
 
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', margin: '14px 0 6px' }}>
           <div className="sb-group-label" style={{ margin: 0 }}>Seguimiento ART / Medicina Laboral</div>
           <button type="button" className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={addSeg}>+ Seguimiento</button>
         </div>
+        <div className="row" style={{ gap: 6, fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>
+          <span style={{ width: 150 }}>Fecha del movimiento</span><span style={{ flex: 1 }}>Detalle</span><span style={{ width: 150 }}>Próximo turno</span><span style={{ width: 28 }} />
+        </div>
         {segs.map((g, i) => (
           <div key={i} className="row" style={{ gap: 6, marginBottom: 6 }}>
             <input className="input" type="date" style={{ width: 150 }} value={g.fecha} onChange={(e) => setSeg(i, 'fecha', e.target.value)} />
             <input className="input" style={{ flex: 1 }} placeholder="Detalle del seguimiento" value={g.detalle} onChange={(e) => setSeg(i, 'detalle', e.target.value)} />
+            <input className="input" type="date" style={{ width: 150 }} title="Fecha del próximo turno" value={g.proximoTurno || ''} onChange={(e) => setSeg(i, 'proximoTurno', e.target.value)} />
             <button type="button" className="btn ghost" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => delSeg(i)}>✕</button>
           </div>
         ))}
