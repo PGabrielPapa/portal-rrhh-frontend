@@ -92,6 +92,38 @@ function EmpModal({ emp, onClose, onSaved, onError }: { emp: Emp | null; onClose
         <div className="grid2">
           {DOM.map(([k, l]) => <div className="field" key={k}><label>{l}</label><input className="input" value={data[k] || ''} onChange={(e) => setData({ ...data, [k]: e.target.value })} /></div>)}
         </div>
+        <div className="field" style={{ marginTop: 14, marginBottom: 4 }}>
+          <label>Contribuciones de seguridad social — RG ARCA 5907/2026</label>
+          <p className="muted" style={{ margin: '2px 0 8px', fontSize: 12 }}>
+            Define las alícuotas que se aplican desde el devengado 11/2026. Las MiPyMEs y las
+            entidades sin fines de lucro tributan 2,5% de FAL; el resto del sector privado, 1%.
+            El total del régimen no cambia: el FAL se detrae de los otros cuatro subsistemas.
+          </p>
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <div className="field"><label>Régimen (art. 19 Ley 27.541)</label>
+              <select className="input" value={data.falRegimen || 'b'}
+                onChange={(e) => setData({ ...data, falRegimen: e.target.value })}>
+                <option value="b">Inciso b) — total 18,00%</option>
+                <option value="a">Inciso a) — total 20,40%</option>
+              </select>
+            </div>
+            <div className="field"><label>Clasificación</label>
+              <select className="input" value={data.falClasificacion || 'mipyme'}
+                onChange={(e) => setData({ ...data, falClasificacion: e.target.value })}>
+                <option value="mipyme">MiPyME o entidad sin fines de lucro — FAL 2,5%</option>
+                <option value="resto">Resto del sector privado — FAL 1%</option>
+              </select>
+            </div>
+            <div className="field"><label>FAL</label>
+              <select className="input" value={data.falBaja === 'si' ? 'si' : 'no'}
+                onChange={(e) => setData({ ...data, falBaja: e.target.value })}>
+                <option value="no">Contribuye normalmente</option>
+                <option value="si">Baja voluntaria / excluido (cód. 658 / 659)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="field" style={{ margin: '12px 0' }}>
           <label>Logo</label>
           <div className="row" style={{ gap: 12 }}>

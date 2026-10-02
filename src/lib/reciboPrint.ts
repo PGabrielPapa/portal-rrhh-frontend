@@ -54,6 +54,7 @@ function pieDonut(r: Recibo): string {
   const segs = [
     { l: 'Sueldo Neto', v: Number(c.neto || 0), col: '#2563eb' },
     { l: 'Seguridad Social', v: sum(cg.seguridadSocial), col: '#dc2626' },
+    { l: 'Fondo de Asistencia Laboral', v: Number(cg.fal?.empleador || 0), col: '#f59e0b' },
     { l: 'Obra Social', v: sum(cg.obraSocial), col: '#9333ea' },
     { l: 'INSSJP (PAMI)', v: sum(cg.inssjp), col: '#ea580c' },
     { l: 'Sindical', v: sum(cg.sindical), col: '#16a34a' },
@@ -84,7 +85,7 @@ function pieDonut(r: Recibo): string {
       <div class="leyenda">${leyenda}<div style="margin-top:4px;font-weight:bold">Costo total: ${money(c.costoTotal || 0)}</div></div>
     </div>
     <table class="det"><thead><tr><th>Concepto</th><th class="n">Empleador</th><th class="n">Trabajador</th><th class="n">Total</th></tr></thead><tbody>
-      ${filaDet('Seguridad Social (SIPA + FNE)', cg.seguridadSocial)}${filaDet('Obra Social', cg.obraSocial)}${filaDet('INSSJP (PAMI)', cg.inssjp)}${filaDet('Sindical', cg.sindical)}${filaDet('ART', cg.art)}${filaDet('SCVO', cg.scvo)}
+      ${filaDet('Seguridad Social (SIPA, AA.FF. y FNE)', cg.seguridadSocial)}${filaDet('Fondo de Asistencia Laboral (Ley 27.802)', cg.fal)}${filaDet('Obra Social', cg.obraSocial)}${filaDet('INSSJP (PAMI)', cg.inssjp)}${filaDet('Sindical', cg.sindical)}${filaDet('ART', cg.art)}${filaDet('SCVO', cg.scvo)}
     </tbody></table>
   </div>`;
 }

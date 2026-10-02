@@ -127,7 +127,8 @@ function CostoLaboralChart({ recibo }: { recibo: Recibo }) {
   if (!comp) return null;
   const cg = comp.cargas || {};
   const filas: [string, { empleador: number; trabajador: number }][] = [
-    ['Seguridad Social (SIPA + FNE)', cg.seguridadSocial],
+    ['Seguridad Social (SIPA, AA.FF. y FNE)', cg.seguridadSocial],
+    ['Fondo de Asistencia Laboral (Ley 27.802)', cg.fal],
     ['Obra Social', cg.obraSocial],
     ['INSSJP (PAMI)', cg.inssjp],
     ['Sindical', cg.sindical],
@@ -138,6 +139,7 @@ function CostoLaboralChart({ recibo }: { recibo: Recibo }) {
   const segs = [
     { label: 'Sueldo Neto', valor: comp.neto, color: '#2563eb' },
     { label: 'Seguridad Social', valor: (cg.seguridadSocial?.empleador || 0) + (cg.seguridadSocial?.trabajador || 0), color: '#dc2626' },
+    { label: 'Fondo de Asistencia Laboral', valor: cg.fal?.empleador || 0, color: '#f59e0b' },
     { label: 'Obra Social', valor: (cg.obraSocial?.empleador || 0) + (cg.obraSocial?.trabajador || 0), color: '#9333ea' },
     { label: 'INSSJP (PAMI)', valor: (cg.inssjp?.empleador || 0) + (cg.inssjp?.trabajador || 0), color: '#ea580c' },
     { label: 'Sindical', valor: (cg.sindical?.empleador || 0) + (cg.sindical?.trabajador || 0), color: '#16a34a' },
